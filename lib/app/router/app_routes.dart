@@ -1,0 +1,26 @@
+abstract final class AppRoutes {
+  static const home = '/';
+  static const login = '/login';
+  static const captcha = '/captcha';
+  static const library = '/library';
+  static const player = '/player';
+  static const downloads = '/downloads';
+  static const online = '/online';
+  static const onlineSearch = '/online/search';
+  static const onlineComments = '/online/comments';
+  static const settings = '/settings';
+  static const about = '/settings/about';
+  static const discoverDetail = '/discover/detail';
+  static const artistDetail = '/artist/detail';
+  static const artistPlaza = '/artist/plaza';
+  static const playlistPlaza = '/playlist/plaza';
+  static const videoPlaza = '/video/plaza';
+  static const playlistDetail = '/playlist/detail';
+  static const userPlaylistDetail = '/my/playlist/detail';
+  static const albumDetail = '/album/detail';
+  static const videoDetail = '/video/detail';
+  static const rankingList = '/ranking-list';
+  static const rankingDetail = '/ranking';
+  static const myHistory = '/my/history';
+  static const myCollection = '/my/collection';
+}
