@@ -1,7 +1,10 @@
 # he_music_flutter
 
-A new Flutter project.
+这是一个由 AI 驱动的 Flutter 音乐项目。
+欢迎通过 PR 一起完善功能、体验与文档。
+Flutter(我不会)
 
+基于 Electron+Vue3 的 PC 版本 [HE-Music](https://github.com/serious-snow/HE-Music.git)
 ## 常用命令
 
 项目根目录已经提供 `Makefile`，以后常用命令直接执行：
