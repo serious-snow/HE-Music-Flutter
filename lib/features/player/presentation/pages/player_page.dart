@@ -12,12 +12,14 @@ import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
+import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
 import '../../../download/presentation/providers/download_providers.dart';
 import '../../../lyrics/domain/entities/lyric_document.dart';
 import '../../../lyrics/domain/entities/lyric_line.dart';
 import '../../../lyrics/presentation/providers/lyrics_providers.dart';
 import '../../../lyrics/presentation/widgets/lyric_panel.dart';
+import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../../domain/entities/player_quality_option.dart';
 import '../controllers/player_controller.dart';
@@ -213,8 +215,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
               track != null &&
               track.title.trim().isNotEmpty &&
               searchPlatformId != null;
-          final canViewAlbum =
-              canOnline && hasValidAlbumId(track?.albumId);
+          final canViewAlbum = canOnline && hasValidAlbumId(track?.albumId);
           final canViewArtists =
               canOnline && track != null && track.artists.isNotEmpty;
           final canWatchMv =
@@ -225,8 +226,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
           final onlineId = track?.id ?? '';
           final onlineTitle = track?.title.trim() ?? '';
           final config = ref.read(appConfigProvider);
+          final platforms = ref.read(onlinePlatformsProvider).valueOrNull;
           final sourcePlatformLabel = canOnline
-              ? _resolvePlatformLabel(ref, onlinePlatformId)
+              ? resolvePlatformLabel(
+                  onlinePlatformId,
+                  platforms: platforms ?? const <OnlinePlatform>[],
+                )
               : 'LOCAL';
 
           return SafeArea(
@@ -307,15 +312,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                             Navigator.of(sheetContext).pop();
                             rootContext.push(
                               Uri(
-                              path: AppRoutes.albumDetail,
-                              queryParameters: <String, String>{
-                                'id': track!.albumId!.trim(),
-                                'platform': onlinePlatformId,
-                                if ((track.album ?? '').trim().isNotEmpty)
-                                  'title': track.album!.trim(),
-                              },
-                            ).toString(),
-                          );
+                                path: AppRoutes.albumDetail,
+                                queryParameters: <String, String>{
+                                  'id': track!.albumId!.trim(),
+                                  'platform': onlinePlatformId,
+                                  if ((track.album ?? '').trim().isNotEmpty)
+                                    'title': track.album!.trim(),
+                                },
+                              ).toString(),
+                            );
                           }
                         : null,
                   ),
@@ -428,7 +433,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                         );
                       } catch (_) {
                         if (!mounted) return;
-                        _showMessage(AppI18n.t(config, 'player.download.failed'));
+                        _showMessage(
+                          AppI18n.t(config, 'player.download.failed'),
+                        );
                       }
                     },
                   ),
@@ -444,7 +451,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                             ClipboardData(text: track.title),
                           );
                           if (!mounted) return;
-                          _showMessage(AppI18n.t(config, 'player.copy.name_done'));
+                          _showMessage(
+                            AppI18n.t(config, 'player.copy.name_done'),
+                          );
                         },
                 ),
                 _PlayerSheetActionTile(
@@ -459,15 +468,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                             ClipboardData(text: track.id),
                           );
                           if (!mounted) return;
-                          _showMessage(AppI18n.t(config, 'player.copy.id_done'));
+                          _showMessage(
+                            AppI18n.t(config, 'player.copy.id_done'),
+                          );
                         },
                 ),
                 _PlayerSourceInfoRow(
-                  label: AppI18n.format(
-                    config,
-                    'song.source',
-                    <String, String>{'platform': sourcePlatformLabel},
-                  ),
+                  label: AppI18n.format(config, 'song.source', <String, String>{
+                    'platform': sourcePlatformLabel,
+                  }),
                 ),
                 const SizedBox(height: 4),
               ],
@@ -676,26 +685,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     return null;
   }
 
-  String _resolvePlatformLabel(WidgetRef ref, String platformId) {
-    final normalized = platformId.trim();
-    if (normalized.isEmpty) {
-      return '';
-    }
-    final platforms = ref.read(onlinePlatformsProvider).valueOrNull;
-    if (platforms != null) {
-      for (final platform in platforms) {
-        if (platform.id == normalized) {
-          final name = platform.name.trim();
-          if (name.isNotEmpty) {
-            return name;
-          }
-          break;
-        }
-      }
-    }
-    return normalized.toUpperCase();
-  }
-
   PlayerQualityOption? _findQualityOptionByName(
     List<PlayerQualityOption> options,
     String? name,
@@ -796,10 +785,14 @@ class _PlayerInfoPage extends ConsumerWidget {
       playerControllerProvider.select((state) => state.currentTrack),
     );
     final currentAvailableQualities = ref.watch(
-      playerControllerProvider.select((state) => state.currentAvailableQualities),
+      playerControllerProvider.select(
+        (state) => state.currentAvailableQualities,
+      ),
     );
     final currentSelectedQualityName = ref.watch(
-      playerControllerProvider.select((state) => state.currentSelectedQualityName),
+      playerControllerProvider.select(
+        (state) => state.currentSelectedQualityName,
+      ),
     );
     final speed = ref.watch(
       playerControllerProvider.select((state) => state.speed),
@@ -935,10 +928,7 @@ class _PlayerStageCard extends StatelessWidget {
 }
 
 class _PlayerMiniBadge extends StatelessWidget {
-  const _PlayerMiniBadge({
-    required this.label,
-    required this.onTap,
-  });
+  const _PlayerMiniBadge({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
@@ -1338,9 +1328,9 @@ class _PlayerSheetHero extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(

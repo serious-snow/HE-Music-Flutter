@@ -10,6 +10,7 @@ import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
+import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
 import '../../../../shared/utils/cover_resolver.dart';
 import '../../../my/presentation/providers/favorite_song_status_providers.dart';
@@ -143,10 +144,9 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
     final hasMore = cacheKey != null && (_hasMoreCache[cacheKey] ?? false);
     final loadingPlatforms =
         platformsAsync.isLoading && !platformsAsync.hasValue;
-    final defaultEntry =
-        _searchFocusNode.hasFocus
-            ? (_frozenPlaceholderEntry ?? defaultPlaceholderState.currentEntry)
-            : defaultPlaceholderState.currentEntry;
+    final defaultEntry = _searchFocusNode.hasFocus
+        ? (_frozenPlaceholderEntry ?? defaultPlaceholderState.currentEntry)
+        : defaultPlaceholderState.currentEntry;
     final searchPlaceholderPrimary = defaultEntry?.key.trim().isNotEmpty == true
         ? defaultEntry!.key.trim()
         : AppI18n.t(config, 'home.search');
@@ -524,8 +524,9 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
     }
     final focused = _searchFocusNode.hasFocus;
     if (focused) {
-      _frozenPlaceholderEntry =
-          ref.read(searchDefaultPlaceholderProvider).currentEntry;
+      _frozenPlaceholderEntry = ref
+          .read(searchDefaultPlaceholderProvider)
+          .currentEntry;
     } else {
       _frozenPlaceholderEntry = null;
     }
@@ -646,11 +647,9 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
       song: item,
       coverUrl: coverUrl.isEmpty ? null : coverUrl,
       hasMv: songHasMv(item),
-      sourceLabel: AppI18n.format(
-        config,
-        'song.source',
-        <String, String>{'platform': platform.toUpperCase()},
-      ),
+      sourceLabel: AppI18n.format(config, 'song.source', <String, String>{
+        'platform': resolvePlatformLabel(platform, platforms: platforms),
+      }),
       onPlay: () => unawaited(_playSong(item)),
       onPlayNext: () => unawaited(_queuePlayNext(item)),
       onAddToPlaylist: () => unawaited(_appendToQueue(item)),
@@ -761,7 +760,9 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
   void _openCommentPage(Map<String, dynamic> item) {
     final id = text(item['id']);
     if (id == '-') {
-      _showMessage(AppI18n.t(ref.read(appConfigProvider), 'search.invalid_song'));
+      _showMessage(
+        AppI18n.t(ref.read(appConfigProvider), 'search.invalid_song'),
+      );
       return;
     }
     final platform = resolveSearchPlatform(item, _selectedPlatformId);
@@ -813,7 +814,9 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
     try {
       final track = await _buildPlayerTrack(item);
       await ref.read(playerControllerProvider.notifier).appendTrack(track);
-      _showMessage(AppI18n.t(ref.read(appConfigProvider), 'search.queue.appended'));
+      _showMessage(
+        AppI18n.t(ref.read(appConfigProvider), 'search.queue.appended'),
+      );
     } catch (error) {
       _showErrorMessage('$error');
     }

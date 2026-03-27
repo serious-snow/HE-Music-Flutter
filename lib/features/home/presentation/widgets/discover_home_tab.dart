@@ -12,6 +12,7 @@ import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
+import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/models/he_music_models.dart';
@@ -269,11 +270,6 @@ class DiscoverHomeTab extends ConsumerWidget {
 
     final title = song.title;
     final subtitle = song.artist;
-    final sourceLabel = AppI18n.format(
-      ref.read(appConfigProvider),
-      'song.source',
-      <String, String>{'platform': platformId.toUpperCase()},
-    );
     final albumId = song.album?.id.trim() ?? '';
     final albumTitle = song.album?.name.trim() ?? '';
     final canViewAlbum = hasValidAlbumId(albumId);
@@ -281,6 +277,13 @@ class DiscoverHomeTab extends ConsumerWidget {
     final platforms =
         ref.read(onlinePlatformsProvider).valueOrNull ??
         const <OnlinePlatform>[];
+    final sourceLabel = AppI18n.format(
+      ref.read(appConfigProvider),
+      'song.source',
+      <String, String>{
+        'platform': resolvePlatformLabel(platformId, platforms: platforms),
+      },
+    );
     final artworkUrl = _resolveDiscoverSongCover(
       config: config,
       platforms: platforms,
@@ -612,9 +615,7 @@ class DiscoverHomeTab extends ConsumerWidget {
       platformId: platformId,
       featureFlag: PlatformFeatureSupportFlag.getCommentList,
     )) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppI18n.tByLocaleCode(localeCode, 'search.comment_unsupported'),
@@ -643,10 +644,10 @@ class DiscoverHomeTab extends ConsumerWidget {
     final localeCode = Localizations.localeOf(context).languageCode;
     final mvId = song.mvId.trim();
     if (mvId.isEmpty || mvId == '0') {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(content: Text(AppI18n.tByLocaleCode(localeCode, 'search.no_mv'))),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppI18n.tByLocaleCode(localeCode, 'search.no_mv')),
+        ),
       );
       return;
     }
@@ -684,9 +685,7 @@ class DiscoverHomeTab extends ConsumerWidget {
     final localeCode = Localizations.localeOf(context).languageCode;
     final text = value.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppI18n.tByLocaleCode(localeCode, 'search.copy_empty')),
         ),

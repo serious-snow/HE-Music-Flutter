@@ -16,6 +16,7 @@ import '../../features/player/domain/entities/player_track.dart';
 import '../../features/player/presentation/providers/player_providers.dart';
 import '../models/he_music_models.dart';
 import 'album_id_helper.dart';
+import 'platform_label_helper.dart';
 import 'song_artist_navigation_helper.dart';
 import '../utils/cover_resolver.dart';
 import '../widgets/song_actions_sheet.dart';
@@ -102,7 +103,13 @@ class DetailSongActionHandler<T> {
   }) {
     final platformId = songPlatformOf(song);
     final config = ref.read(appConfigProvider);
-    final platformLabel = _resolvePlatformLabel(platformId);
+    final platforms =
+        ref.read(onlinePlatformsProvider).valueOrNull ??
+        const <OnlinePlatform>[];
+    final platformLabel = resolvePlatformLabel(
+      platformId,
+      platforms: platforms,
+    );
     final artists = songArtistsOf?.call(song) ?? const <SongInfoArtistInfo>[];
     final albumId = songAlbumIdOf?.call(song)?.trim() ?? '';
     final albumTitle = songAlbumTitleOf?.call(song)?.trim() ?? '';
@@ -113,11 +120,9 @@ class DetailSongActionHandler<T> {
       title: songTitleOf(song),
       subtitle: songArtistOf(song),
       hasMv: false,
-      sourceLabel: AppI18n.format(
-        config,
-        'song.source',
-        <String, String>{'platform': platformLabel},
-      ),
+      sourceLabel: AppI18n.format(config, 'song.source', <String, String>{
+        'platform': platformLabel,
+      }),
       onPlay: () => unawaited(_playNow(song, coverUrl)),
       onPlayNext: () => unawaited(_insertNext(song, coverUrl)),
       onAddToPlaylist: () => unawaited(_appendToQueue(song, coverUrl)),
@@ -197,26 +202,6 @@ class DetailSongActionHandler<T> {
     await ref.read(playerControllerProvider.notifier).appendTrack(track);
   }
 
-  String _resolvePlatformLabel(String platformId) {
-    final normalized = platformId.trim();
-    if (normalized.isEmpty) {
-      return '';
-    }
-    final platforms =
-        ref.read(onlinePlatformsProvider).valueOrNull ??
-        const <OnlinePlatform>[];
-    for (final platform in platforms) {
-      if (platform.id == normalized) {
-        final name = platform.name.trim();
-        if (name.isNotEmpty) {
-          return name;
-        }
-        break;
-      }
-    }
-    return normalized.toUpperCase();
-  }
-
   Future<PlayerTrack> _buildTrack(T song, String coverUrl) async {
     return PlayerTrack(
       id: songIdOf(song),
@@ -224,9 +209,7 @@ class DetailSongActionHandler<T> {
       links: song is SongInfo ? song.links : const <LinkInfo>[],
       artist: songArtistOf(song),
       albumId: song is SongInfo ? song.album?.id : songAlbumIdOf?.call(song),
-      album: song is SongInfo
-          ? song.album?.name
-          : songAlbumTitleOf?.call(song),
+      album: song is SongInfo ? song.album?.name : songAlbumTitleOf?.call(song),
       artists: song is SongInfo
           ? song.artists
           : (songArtistsOf?.call(song) ?? const <SongInfoArtistInfo>[]),

@@ -3,14 +3,43 @@ import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../app/config/app_config_data_source.dart';
 import '../../app/config/app_environment.dart';
 import '../../app/config/app_config_state.dart';
 import '../../app/config/app_online_audio_quality.dart';
 import '../../shared/models/he_music_models.dart';
 import 'audio_player_factory.dart';
 import 'audio_track.dart';
+
+class HeAudioHandlerRuntimeConfig {
+  const HeAudioHandlerRuntimeConfig({
+    required this.apiBaseUrl,
+    required this.authToken,
+    required this.qualityPreference,
+    required this.lastSelectedQualityName,
+  });
+
+  final String apiBaseUrl;
+  final String? authToken;
+  final AppOnlineAudioQuality qualityPreference;
+  final String? lastSelectedQualityName;
+}
+
+@visibleForTesting
+Future<HeAudioHandlerRuntimeConfig> loadHeAudioHandlerRuntimeConfig({
+  AppConfigDataSource dataSource = const AppConfigDataSource(),
+}) async {
+  final config = await dataSource.load();
+  return HeAudioHandlerRuntimeConfig(
+    apiBaseUrl: config.apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), ''),
+    authToken: config.authToken?.trim(),
+    qualityPreference: config.onlineAudioQualityPreference,
+    lastSelectedQualityName: config.lastSelectedOnlineAudioQualityName?.trim(),
+  );
+}
 
 class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   HeAudioHandler() : _player = createHeAudioPlayer() {
@@ -42,6 +71,8 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   bool _shuffleEnabled = false;
   bool _singleLoopEnabled = false;
   bool _handlingCompletion = false;
+  bool _configRecovered = false;
+  Future<void>? _recoveringConfigFuture;
 
   String _apiBaseUrl = AppEnvironment.apiBaseUrl;
   String? _authToken = AppConfigState.initial.authToken;
@@ -58,6 +89,7 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     _authToken = authToken?.trim();
     _qualityPreference = qualityPreference;
     _lastSelectedQualityName = lastSelectedQualityName?.trim();
+    _configRecovered = true;
   }
 
   Future<void> setQueueData(
@@ -262,6 +294,7 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   Future<AudioTrack> _resolveTrack(AudioTrack track) async {
+    await _ensureConfigRecovered();
     if (track.url.trim().isNotEmpty) {
       return track;
     }
@@ -322,6 +355,33 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       artworkUrl: track.artworkUrl,
       platform: track.platform,
     );
+  }
+
+  Future<void> _ensureConfigRecovered() async {
+    if (_configRecovered) {
+      return;
+    }
+    final pending = _recoveringConfigFuture;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+    final future = _recoverConfig();
+    _recoveringConfigFuture = future;
+    try {
+      await future;
+    } finally {
+      _recoveringConfigFuture = null;
+    }
+  }
+
+  Future<void> _recoverConfig() async {
+    final config = await loadHeAudioHandlerRuntimeConfig();
+    _apiBaseUrl = config.apiBaseUrl;
+    _authToken = config.authToken;
+    _qualityPreference = config.qualityPreference;
+    _lastSelectedQualityName = config.lastSelectedQualityName;
+    _configRecovered = true;
   }
 
   LinkInfo? _resolvePreferredLink(List<LinkInfo> links) {
@@ -443,7 +503,6 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         headers: <String, String>{
           'User-Agent': heAudioUserAgent,
           if ((_authToken ?? '').isNotEmpty) ...<String, String>{
-            'authorization': 'Bearer ${_authToken!}',
             'Authorization': 'Bearer ${_authToken!}',
           },
         },
@@ -604,9 +663,11 @@ Future<void> initHeAudioHandler() async {
   globalHeAudioHandler = await AudioService.init(
     builder: HeAudioHandler.new,
     config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.example.he_music_flutter.playback',
-      androidNotificationChannelName: 'Playback',
+      androidNotificationChannelId: 'com.serioussnow.hemusic.flutter.audio',
+      androidNotificationChannelName: 'HE-Music 播放控制',
       androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+      androidResumeOnClick: true,
     ),
   );
 }
