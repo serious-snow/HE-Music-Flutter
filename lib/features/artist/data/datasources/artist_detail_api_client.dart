@@ -5,6 +5,7 @@ import '../../../../core/error/failure.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../domain/entities/artist_detail_album.dart';
 import '../../domain/entities/artist_detail_content.dart';
+import '../../domain/entities/artist_detail_page_chunk.dart';
 import '../../domain/entities/artist_detail_request.dart';
 import '../../domain/entities/artist_detail_song.dart';
 import '../../domain/entities/artist_detail_video.dart';
@@ -44,12 +45,24 @@ class ArtistDetailApiClient {
   }
 
   Future<List<ArtistDetailSong>> fetchSongs(ArtistDetailRequest request) async {
-    final list = await _fetchPagedList(
+    final list = await _fetchAllPages(
+      (pageIndex) => fetchSongsPage(request, pageIndex: pageIndex),
+    );
+    return list;
+  }
+
+  Future<ArtistDetailPageChunk<ArtistDetailSong>> fetchSongsPage(
+    ArtistDetailRequest request, {
+    required int pageIndex,
+  }) async {
+    final response = await _fetchPage(
       path: '/v1/artist/songs',
       request: request,
-      pageSize: 200,
+      pageSize: 500,
+      pageIndex: pageIndex,
     );
-    return list
+    final list = response.items;
+    final items = list
         .map((item) {
           final song = _asMap(item);
           final id = '${song['id'] ?? ''}'.trim();
@@ -62,17 +75,34 @@ class ArtistDetailApiClient {
           return SongInfo.fromMap(song, fallbackPlatform: request.platform);
         })
         .toList(growable: false);
+    return ArtistDetailPageChunk<ArtistDetailSong>(
+      items: items,
+      hasMore: response.hasMore,
+      nextPageIndex: response.nextPageIndex,
+    );
   }
 
   Future<List<ArtistDetailAlbum>> fetchAlbums(
     ArtistDetailRequest request,
   ) async {
-    final list = await _fetchPagedList(
+    final list = await _fetchAllPages(
+      (pageIndex) => fetchAlbumsPage(request, pageIndex: pageIndex),
+    );
+    return list;
+  }
+
+  Future<ArtistDetailPageChunk<ArtistDetailAlbum>> fetchAlbumsPage(
+    ArtistDetailRequest request, {
+    required int pageIndex,
+  }) async {
+    final response = await _fetchPage(
       path: '/v1/artist/albums',
       request: request,
-      pageSize: 100,
+      pageSize: 200,
+      pageIndex: pageIndex,
     );
-    return list
+    final list = response.items;
+    final items = list
         .map((item) {
           final album = _asMap(item);
           final id = '${album['id'] ?? ''}'.trim();
@@ -108,17 +138,34 @@ class ArtistDetailApiClient {
           );
         })
         .toList(growable: false);
+    return ArtistDetailPageChunk<ArtistDetailAlbum>(
+      items: items,
+      hasMore: response.hasMore,
+      nextPageIndex: response.nextPageIndex,
+    );
   }
 
   Future<List<ArtistDetailVideo>> fetchVideos(
     ArtistDetailRequest request,
   ) async {
-    final list = await _fetchPagedList(
+    final list = await _fetchAllPages(
+      (pageIndex) => fetchVideosPage(request, pageIndex: pageIndex),
+    );
+    return list;
+  }
+
+  Future<ArtistDetailPageChunk<ArtistDetailVideo>> fetchVideosPage(
+    ArtistDetailRequest request, {
+    required int pageIndex,
+  }) async {
+    final response = await _fetchPage(
       path: '/v1/artist/mvs',
       request: request,
-      pageSize: 100,
+      pageSize: 200,
+      pageIndex: pageIndex,
     );
-    return list
+    final list = response.items;
+    final items = list
         .map((item) {
           final video = _asMap(item);
           final id = '${video['id'] ?? ''}'.trim();
@@ -146,6 +193,11 @@ class ArtistDetailApiClient {
           );
         })
         .toList(growable: false);
+    return ArtistDetailPageChunk<ArtistDetailVideo>(
+      items: items,
+      hasMore: response.hasMore,
+      nextPageIndex: response.nextPageIndex,
+    );
   }
 
   List<LinkInfo> _links(dynamic value) {
@@ -306,36 +358,46 @@ class ArtistDetailApiClient {
     return int.tryParse('$value') ?? 0;
   }
 
-  Future<List<dynamic>> _fetchPagedList({
-    required String path,
-    required ArtistDetailRequest request,
-    required int pageSize,
-  }) async {
-    final result = <dynamic>[];
+  Future<List<T>> _fetchAllPages<T>(
+    Future<ArtistDetailPageChunk<T>> Function(int pageIndex) loader,
+  ) async {
+    final result = <T>[];
     var pageIndex = 1;
     var hasMore = true;
     var guard = 0;
     while (hasMore && guard < 20) {
       guard += 1;
-      final response = await _dio.get(
-        path,
-        queryParameters: <String, dynamic>{
-          'id': request.id,
-          'platform': request.platform,
-          'page_index': pageIndex,
-          'page_size': pageSize,
-        },
-      );
-      final raw = _asMap(response.data);
-      final list = raw['list'];
-      if (list is! List || list.isEmpty) {
-        break;
-      }
-      result.addAll(list);
-      hasMore = _readHasMore(raw);
-      pageIndex += 1;
+      final chunk = await loader(pageIndex);
+      result.addAll(chunk.items);
+      hasMore = chunk.hasMore;
+      pageIndex = chunk.nextPageIndex;
     }
     return result;
+  }
+
+  Future<_ArtistPagedRawResponse> _fetchPage({
+    required String path,
+    required ArtistDetailRequest request,
+    required int pageSize,
+    required int pageIndex,
+  }) async {
+    final safePageIndex = pageIndex <= 0 ? 1 : pageIndex;
+    final response = await _dio.get(
+      path,
+      queryParameters: <String, dynamic>{
+        'id': request.id,
+        'platform': request.platform,
+        'page_index': safePageIndex,
+        'page_size': pageSize,
+      },
+    );
+    final raw = _asMap(response.data);
+    final list = raw['list'];
+    return _ArtistPagedRawResponse(
+      items: list is List ? list : const <dynamic>[],
+      hasMore: _readHasMore(raw),
+      nextPageIndex: safePageIndex + 1,
+    );
   }
 
   bool _readHasMore(Map<String, dynamic> raw) {
@@ -358,4 +420,16 @@ class ArtistDetailApiClient {
       NetworkFailure('Invalid payload type: ${value.runtimeType}'),
     );
   }
+}
+
+class _ArtistPagedRawResponse {
+  const _ArtistPagedRawResponse({
+    required this.items,
+    required this.hasMore,
+    required this.nextPageIndex,
+  });
+
+  final List<dynamic> items;
+  final bool hasMore;
+  final int nextPageIndex;
 }

@@ -443,21 +443,32 @@ class _ArtistVideoSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return const Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: SkeletonBox(
-            width: double.infinity,
-            height: double.infinity,
-            radius: 16,
+        Stack(
+          children: <Widget>[
+            SkeletonBox(width: 112, height: 64, radius: 10),
+            Positioned(
+              right: 6,
+              bottom: 6,
+              child: SkeletonBox(width: 36, height: 14, radius: 999),
+            ),
+          ],
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SkeletonBox(width: double.infinity, height: 14, radius: 7),
+              SizedBox(height: 8),
+              SkeletonBox(width: 92, height: 12, radius: 6),
+              SizedBox(height: 6),
+              SkeletonBox(width: 108, height: 12, radius: 6),
+            ],
           ),
         ),
-        SizedBox(height: 10),
-        SkeletonBox(width: double.infinity, height: 14, radius: 7),
-        SizedBox(height: 8),
-        SkeletonBox(width: 132, height: 12, radius: 6),
       ],
     );
   }

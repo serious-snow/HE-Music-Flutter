@@ -20,6 +20,7 @@ import '../../../../shared/widgets/detail_description_sheet.dart';
 import '../../../../shared/widgets/detail_loading_skeleton.dart';
 import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/online_song_list_item.dart';
+import '../../../../shared/widgets/animated_skeleton.dart';
 import '../../../my/presentation/providers/favorite_collection_status_providers.dart';
 import '../../../my/presentation/providers/favorite_song_status_providers.dart';
 import '../../../player/domain/entities/player_queue_source.dart';
@@ -106,6 +107,20 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
       await ref
           .read(artistDetailControllerProvider.notifier)
           .initialize(_request);
+      final content = ref.read(artistDetailControllerProvider).content;
+      if (content != null && content.songs.isNotEmpty) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _songs = content.songs;
+        });
+        final expectedCount = int.tryParse(content.songCount.trim()) ?? 0;
+        if (expectedCount > content.songs.length) {
+          await _loadSongs(startPageIndex: 2, preserveExisting: true);
+        }
+        return;
+      }
       await _loadSongs();
     });
   }
@@ -350,7 +365,10 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
     }
   }
 
-  Future<void> _loadSongs() async {
+  Future<void> _loadSongs({
+    int startPageIndex = 1,
+    bool preserveExisting = false,
+  }) async {
     if (_songsLoading) {
       return;
     }
@@ -359,14 +377,28 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
       _songsError = null;
     });
     try {
-      final songs = await _repository.fetchSongs(_request);
-      if (!mounted) {
-        return;
+      var pageIndex = startPageIndex <= 0 ? 1 : startPageIndex;
+      while (true) {
+        final chunk = await _repository.fetchSongsPage(
+          _request,
+          pageIndex: pageIndex,
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          if (pageIndex == 1 && !preserveExisting) {
+            _songs = chunk.items;
+          } else {
+            _songs = <ArtistDetailSong>[..._songs, ...chunk.items];
+          }
+          _songsLoading = chunk.hasMore;
+        });
+        if (!chunk.hasMore) {
+          break;
+        }
+        pageIndex = chunk.nextPageIndex;
       }
-      setState(() {
-        _songs = songs;
-        _songsLoading = false;
-      });
     } catch (error) {
       if (!mounted) {
         return;
@@ -433,14 +465,28 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
       _albumsError = null;
     });
     try {
-      final albums = await _repository.fetchAlbums(_request);
-      if (!mounted) {
-        return;
+      var pageIndex = 1;
+      while (true) {
+        final chunk = await _repository.fetchAlbumsPage(
+          _request,
+          pageIndex: pageIndex,
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          if (pageIndex == 1) {
+            _albums = chunk.items;
+          } else {
+            _albums = <ArtistDetailAlbum>[..._albums, ...chunk.items];
+          }
+          _albumsLoading = chunk.hasMore;
+        });
+        if (!chunk.hasMore) {
+          break;
+        }
+        pageIndex = chunk.nextPageIndex;
       }
-      setState(() {
-        _albums = albums;
-        _albumsLoading = false;
-      });
     } catch (error) {
       if (!mounted) {
         return;
@@ -461,14 +507,28 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
       _videosError = null;
     });
     try {
-      final videos = await _repository.fetchVideos(_request);
-      if (!mounted) {
-        return;
+      var pageIndex = 1;
+      while (true) {
+        final chunk = await _repository.fetchVideosPage(
+          _request,
+          pageIndex: pageIndex,
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          if (pageIndex == 1) {
+            _videos = chunk.items;
+          } else {
+            _videos = <ArtistDetailVideo>[..._videos, ...chunk.items];
+          }
+          _videosLoading = chunk.hasMore;
+        });
+        if (!chunk.hasMore) {
+          break;
+        }
+        pageIndex = chunk.nextPageIndex;
       }
-      setState(() {
-        _videos = videos;
-        _videosLoading = false;
-      });
     } catch (error) {
       if (!mounted) {
         return;
@@ -990,6 +1050,8 @@ class _ArtistSongsTab extends StatelessWidget {
               );
             }, childCount: songs.length),
           ),
+        if (songs.isNotEmpty)
+          SliverToBoxAdapter(child: _ArtistListFooter(loading: loading)),
       ],
     );
   }
@@ -1051,6 +1113,8 @@ class _ArtistAlbumsTab extends StatelessWidget {
               );
             }, childCount: albums.length),
           ),
+        if (albums.isNotEmpty)
+          SliverToBoxAdapter(child: _ArtistListFooter(loading: loading)),
       ],
     );
   }
@@ -1112,7 +1176,36 @@ class _ArtistVideosTab extends StatelessWidget {
               );
             }, childCount: videos.length),
           ),
+        if (videos.isNotEmpty)
+          SliverToBoxAdapter(child: _ArtistListFooter(loading: loading)),
       ],
+    );
+  }
+}
+
+class _ArtistListFooter extends StatelessWidget {
+  const _ArtistListFooter({required this.loading});
+
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: SkeletonBox(width: 92, height: 12, radius: 999)),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Center(
+        child: Text(
+          '没有更多了',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import '../../domain/entities/artist_detail_album.dart';
 import '../../domain/entities/artist_detail_content.dart';
+import '../../domain/entities/artist_detail_page_chunk.dart';
 import '../../domain/entities/artist_detail_request.dart';
 import '../../domain/entities/artist_detail_song.dart';
 import '../../domain/entities/artist_detail_video.dart';
@@ -22,12 +23,36 @@ class ArtistDetailRepositoryImpl implements ArtistDetailRepository {
   }
 
   @override
+  Future<ArtistDetailPageChunk<ArtistDetailSong>> fetchSongsPage(
+    ArtistDetailRequest request, {
+    required int pageIndex,
+  }) {
+    return _apiClient.fetchSongsPage(request, pageIndex: pageIndex);
+  }
+
+  @override
   Future<List<ArtistDetailAlbum>> fetchAlbums(ArtistDetailRequest request) {
     return _apiClient.fetchAlbums(request);
   }
 
   @override
+  Future<ArtistDetailPageChunk<ArtistDetailAlbum>> fetchAlbumsPage(
+    ArtistDetailRequest request, {
+    required int pageIndex,
+  }) {
+    return _apiClient.fetchAlbumsPage(request, pageIndex: pageIndex);
+  }
+
+  @override
   Future<List<ArtistDetailVideo>> fetchVideos(ArtistDetailRequest request) {
     return _apiClient.fetchVideos(request);
+  }
+
+  @override
+  Future<ArtistDetailPageChunk<ArtistDetailVideo>> fetchVideosPage(
+    ArtistDetailRequest request, {
+    required int pageIndex,
+  }) {
+    return _apiClient.fetchVideosPage(request, pageIndex: pageIndex);
   }
 }
