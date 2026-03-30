@@ -86,6 +86,44 @@ void main() {
     expect(find.text('第二页专辑'), findsOneWidget);
     expect(find.text('没有更多了'), findsOneWidget);
   });
+
+  testWidgets('artist detail favorite action uses white icon theme when expanded', (
+    tester,
+  ) async {
+    const themeIconColor = Colors.teal;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(_TestAppConfigController.new),
+          playerControllerProvider.overrideWith(_TestPlayerController.new),
+          artistDetailRepositoryProvider.overrideWithValue(
+            _TestArtistDetailRepository(),
+          ),
+          onlinePlatformsProvider.overrideWith(
+            _TestOnlinePlatformsController.new,
+          ),
+        ],
+        child: MaterialApp(
+          theme: ThemeData(
+            iconTheme: const IconThemeData(color: themeIconColor),
+          ),
+          home: const ArtistDetailPage(
+            id: 'artist-1',
+            platform: 'qq',
+            title: '测试歌手',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final iconElement = tester.element(
+      find.byIcon(Icons.favorite_border_rounded).first,
+    );
+    expect(IconTheme.of(iconElement).color, Colors.white);
+  });
 }
 
 class _TestAppConfigController extends AppConfigController {

@@ -134,7 +134,14 @@ class MusicDetailSliverAppBar extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            if (actions != null) ...actions!,
+                            if (actions != null)
+                              IconTheme.merge(
+                                data: IconThemeData(color: iconColor),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: actions!,
+                                ),
+                              ),
                             const SizedBox(width: 6),
                           ],
                         ),

@@ -784,10 +784,17 @@ class _ArtistSliverHeader extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            if (actions.isNotEmpty) ...<Widget>[
-                              ...actions,
-                              const SizedBox(width: 4),
-                            ],
+                            if (actions.isNotEmpty)
+                              IconTheme.merge(
+                                data: IconThemeData(color: iconColor),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    ...actions,
+                                    const SizedBox(width: 4),
+                                  ],
+                                ),
+                              ),
                             const SizedBox(width: 12),
                           ],
                         ),
