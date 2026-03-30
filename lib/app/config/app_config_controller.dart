@@ -47,6 +47,10 @@ class AppConfigController extends Notifier<AppConfigState> {
     _update(state.copyWith(onlineAudioQualityPreference: quality));
   }
 
+  void setAutoCheckUpdates(bool value) {
+    _update(state.copyWith(autoCheckUpdates: value));
+  }
+
   void setLastSelectedOnlineAudioQualityName(String qualityName) {
     final normalized = qualityName.trim();
     if (normalized.isEmpty) {
@@ -84,6 +88,7 @@ class AppConfigController extends Notifier<AppConfigState> {
         isMonochrome: loaded.isMonochrome,
         localeCode: loaded.localeCode,
         onlineAudioQualityPreference: loaded.onlineAudioQualityPreference,
+        autoCheckUpdates: loaded.autoCheckUpdates,
         lastSelectedOnlineAudioQualityName:
             loaded.lastSelectedOnlineAudioQualityName,
         authToken: loaded.authToken,

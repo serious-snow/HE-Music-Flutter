@@ -11,6 +11,7 @@ class AppConfigState {
     required this.isMonochrome,
     required this.localeCode,
     required this.onlineAudioQualityPreference,
+    required this.autoCheckUpdates,
     this.lastSelectedOnlineAudioQualityName,
     this.authToken,
   });
@@ -21,6 +22,7 @@ class AppConfigState {
   final bool isMonochrome;
   final String localeCode;
   final AppOnlineAudioQuality onlineAudioQualityPreference;
+  final bool autoCheckUpdates;
   final String? lastSelectedOnlineAudioQualityName;
   final String? authToken;
 
@@ -31,6 +33,7 @@ class AppConfigState {
     bool? isMonochrome,
     String? localeCode,
     AppOnlineAudioQuality? onlineAudioQualityPreference,
+    bool? autoCheckUpdates,
     String? lastSelectedOnlineAudioQualityName,
     bool clearLastSelectedOnlineAudioQuality = false,
     String? authToken,
@@ -44,6 +47,7 @@ class AppConfigState {
       localeCode: localeCode ?? this.localeCode,
       onlineAudioQualityPreference:
           onlineAudioQualityPreference ?? this.onlineAudioQualityPreference,
+      autoCheckUpdates: autoCheckUpdates ?? this.autoCheckUpdates,
       lastSelectedOnlineAudioQualityName: clearLastSelectedOnlineAudioQuality
           ? null
           : lastSelectedOnlineAudioQualityName ??
@@ -58,6 +62,7 @@ class AppConfigState {
     isMonochrome: false,
     localeCode: 'zh',
     onlineAudioQualityPreference: AppOnlineAudioQuality.auto,
+    autoCheckUpdates: false,
     apiBaseUrl: AppEnvironment.apiBaseUrl,
   );
 }

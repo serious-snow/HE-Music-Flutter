@@ -14,6 +14,7 @@ import 'i18n/app_i18n.dart';
 import 'router/app_router.dart';
 import 'router/app_routes.dart';
 import 'startup/app_startup_provider.dart';
+import 'startup/app_auto_update_gate.dart';
 import 'theme/app_theme.dart';
 
 class HeMusicApp extends ConsumerWidget {
@@ -45,7 +46,9 @@ class HeMusicApp extends ConsumerWidget {
         final content = child ?? const SizedBox.shrink();
         final gated = isTestBinding
             ? content
-            : _AppStartupGate(appConfig: appConfig, child: content);
+            : AppAutoUpdateGate(
+                child: _AppStartupGate(appConfig: appConfig, child: content),
+              );
         if (!appConfig.isMonochrome) return gated;
         return ColorFiltered(
           colorFilter: const ColorFilter.matrix(<double>[

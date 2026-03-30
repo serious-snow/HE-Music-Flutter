@@ -157,6 +157,8 @@ abstract final class AppI18n {
       'settings.language': '语言',
       'settings.monochrome': '黑白模式',
       'settings.monochrome.desc': '将界面切换为单色显示',
+      'settings.auto_check_updates': '自动检查更新',
+      'settings.auto_check_updates.desc': '启动应用时自动检查是否有新版本',
       'settings.about': '关于',
       'settings.about.desc': '版本信息与检查更新',
       'settings.about.title': '关于',
@@ -508,6 +510,9 @@ abstract final class AppI18n {
       'settings.language': 'Language',
       'settings.monochrome': 'Monochrome',
       'settings.monochrome.desc': 'Render the interface in grayscale',
+      'settings.auto_check_updates': 'Auto Check for Updates',
+      'settings.auto_check_updates.desc':
+          'Check for new versions when the app starts',
       'settings.about': 'About',
       'settings.about.desc': 'Version info and update check',
       'settings.about.title': 'About',

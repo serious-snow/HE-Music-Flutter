@@ -13,6 +13,7 @@ const _onlineAudioQualityPreferenceKey =
     'app_config.online_audio_quality_preference';
 const _lastSelectedOnlineAudioQualityNameKey =
     'app_config.last_selected_online_audio_quality';
+const _autoCheckUpdatesKey = 'app_config.auto_check_updates';
 const _authTokenKey = 'app_config.auth_token';
 
 class AppConfigDataSource {
@@ -32,6 +33,7 @@ class AppConfigDataSource {
       onlineAudioQualityPreference: AppOnlineAudioQuality.fromValue(
         prefs.getString(_onlineAudioQualityPreferenceKey),
       ),
+      autoCheckUpdates: prefs.getBool(_autoCheckUpdatesKey) ?? false,
       lastSelectedOnlineAudioQualityName:
           _readLastSelectedOnlineAudioQualityName(
             prefs.getString(_lastSelectedOnlineAudioQualityNameKey),
@@ -51,6 +53,7 @@ class AppConfigDataSource {
       _onlineAudioQualityPreferenceKey,
       state.onlineAudioQualityPreference.value,
     );
+    await prefs.setBool(_autoCheckUpdatesKey, state.autoCheckUpdates);
     final lastSelected = state.lastSelectedOnlineAudioQualityName?.trim();
     if (lastSelected == null || lastSelected.isEmpty) {
       await prefs.remove(_lastSelectedOnlineAudioQualityNameKey);

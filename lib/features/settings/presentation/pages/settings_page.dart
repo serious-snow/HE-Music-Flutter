@@ -86,6 +86,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   vertical: 2,
                 ),
               ),
+              SwitchListTile.adaptive(
+                value: config.autoCheckUpdates,
+                onChanged: (value) => ref
+                    .read(appConfigProvider.notifier)
+                    .setAutoCheckUpdates(value),
+                secondary: const Icon(Icons.system_update_alt_rounded),
+                title: Text(AppI18n.t(config, 'settings.auto_check_updates')),
+                subtitle: Text(
+                  AppI18n.t(config, 'settings.auto_check_updates.desc'),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 2,
+                ),
+              ),
               _SettingsTile(
                 icon: Icons.info_outline_rounded,
                 title: AppI18n.t(config, 'settings.about'),
