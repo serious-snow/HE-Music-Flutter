@@ -68,7 +68,7 @@ class _SectionHeader extends StatelessWidget {
           title,
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
         ),
         const Spacer(),
         if (trailing != null) ...<Widget>[trailing!],
@@ -169,9 +169,6 @@ class _HotKeywordList extends StatelessWidget {
                           color: rank <= 3
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).hintColor,
-                          fontWeight: rank <= 3
-                              ? FontWeight.w700
-                              : FontWeight.w500,
                         ),
                       ),
                     ),

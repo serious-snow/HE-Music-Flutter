@@ -208,7 +208,7 @@ class _PlaylistPlazaPageState extends ConsumerState<PlaylistPlazaPage> {
                   Text(
                     '全部分类',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -229,7 +229,7 @@ class _PlaylistPlazaPageState extends ConsumerState<PlaylistPlazaPage> {
                           child: Text(
                             currentPlatform.name,
                             style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                                ?.copyWith(fontWeight: FontWeight.w500),
                           ),
                         ),
                       if (currentPlatform != null) const SizedBox(width: 8),
@@ -466,9 +466,6 @@ class _CategoryBarState extends State<_CategoryBar> {
                                 : colorScheme.outlineVariant,
                           ),
                           labelStyle: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: category.id == widget.selectedCategoryId
-                                ? FontWeight.w700
-                                : FontWeight.w500,
                             color: category.id == widget.selectedCategoryId
                                 ? colorScheme.primary
                                 : colorScheme.onSurfaceVariant,
@@ -582,7 +579,7 @@ class _CategoryGroupSection extends StatelessWidget {
           Text(
             group.name,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 10),
@@ -602,9 +599,6 @@ class _CategoryGroupSection extends StatelessWidget {
                           : colorScheme.outlineVariant,
                     ),
                     labelStyle: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: category.id == selectedCategoryId
-                          ? FontWeight.w700
-                          : FontWeight.w500,
                       color: category.id == selectedCategoryId
                           ? colorScheme.primary
                           : colorScheme.onSurfaceVariant,

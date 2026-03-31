@@ -54,7 +54,7 @@ class VideoListCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                           height: 1.2,
                         ),
                       ),
@@ -161,7 +161,7 @@ class _VideoCover extends StatelessWidget {
                         formatCompactPlayCount(playCount!, locale),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w500,
                           fontSize: _videoOverlayFontSize,
                         ),
                       ),
@@ -186,7 +186,7 @@ class _VideoCover extends StatelessWidget {
                     formatDurationSecondsLabel(duration!),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                       fontSize: _videoOverlayFontSize,
                     ),
                   ),

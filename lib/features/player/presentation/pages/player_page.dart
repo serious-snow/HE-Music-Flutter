@@ -837,7 +837,7 @@ class _PlayerInfoPage extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.left,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: -0.6,
                     color: Colors.white,
                   ),
@@ -1204,7 +1204,7 @@ class _PlayerCompactLyricSection extends ConsumerWidget {
                     color: Colors.white.withValues(
                       alpha: text.isEmpty ? 0.56 : 0.92,
                     ),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     height: 1.0,
                   ),
                 ),
@@ -1329,7 +1329,7 @@ class _PlayerSheetHero extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 3),

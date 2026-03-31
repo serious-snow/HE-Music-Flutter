@@ -76,7 +76,6 @@ class _UnderlinePlatformTab extends StatelessWidget {
             Text(
               label,
               style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: !enabled
                     ? theme.hintColor.withValues(alpha: 0.55)
                     : (selected ? primary : normal),

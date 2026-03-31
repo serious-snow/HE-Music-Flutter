@@ -127,7 +127,7 @@ class MusicDetailSliverAppBar extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: theme.textTheme.titleMedium
                                         ?.copyWith(
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.w500,
                                           color: titleColor,
                                         ),
                                   ),
@@ -223,7 +223,7 @@ class MusicDetailPlayAllHeader extends SliverPersistentHeaderDelegate {
                       Text(
                         countText,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                           color: enabled ? null : theme.hintColor,
                         ),
                       ),
@@ -405,7 +405,7 @@ class _HeroMeta extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w500,
               color: textColor,
             ),
           ),

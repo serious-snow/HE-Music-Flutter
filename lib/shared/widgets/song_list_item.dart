@@ -152,7 +152,7 @@ class SongListItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w500,
                         height: 1.12,
                         color: isCurrent
                             ? theme.colorScheme.primary
@@ -356,7 +356,7 @@ class _BottomMetaLine extends StatelessWidget {
                 '更多版本',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   fontSize: 10.5,
                 ),
               ),
@@ -462,7 +462,7 @@ class _TagChip extends StatelessWidget {
           fontSize: 8.2,
           height: 1.0,
           color: style.$2,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

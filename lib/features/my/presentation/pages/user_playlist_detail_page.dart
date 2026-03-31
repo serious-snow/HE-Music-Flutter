@@ -602,7 +602,7 @@ class _UserPlaylistEditSheetState extends State<_UserPlaylistEditSheet> {
               ),
               style: Theme.of(
                 context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             TextField(

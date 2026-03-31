@@ -73,11 +73,11 @@ class _PlayerQueueSheetState extends ConsumerState<PlayerQueueSheet>
                       splashFactory: NoSplash.splashFactory,
                       overlayColor: WidgetStateProperty.all(Colors.transparent),
                       labelStyle: Theme.of(context).textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                          ?.copyWith(fontWeight: FontWeight.w500),
                       unselectedLabelStyle: Theme.of(context)
                           .textTheme
                           .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                          ?.copyWith(fontWeight: FontWeight.w500),
                       tabs: <Widget>[
                         _QueueTabLabel(
                           title: AppI18n.t(config, 'player.queue.current'),
@@ -204,7 +204,7 @@ class _QueueTabLabel extends StatelessWidget {
               '$count',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

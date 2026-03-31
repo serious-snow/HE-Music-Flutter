@@ -201,7 +201,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                 Text(
                   AppI18n.t(config, 'settings.about.available'),
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -215,7 +215,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                 Text(
                   AppI18n.t(config, 'settings.about.release_notes'),
                   style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -301,7 +301,7 @@ class _AboutHero extends StatelessWidget {
               appName,
               textAlign: TextAlign.center,
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
@@ -317,7 +317,7 @@ class _AboutHero extends StatelessWidget {
               versionLabel,
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

@@ -106,7 +106,7 @@ class SearchTopBox extends StatelessWidget {
                                   color: theme.colorScheme.onSurface.withValues(
                                     alpha: 0.72,
                                   ),
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                               if (secondary.isNotEmpty)
@@ -249,7 +249,6 @@ class _PlatformChip extends StatelessWidget {
             child: Text(
               label,
               style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: !enabled
                     ? theme.hintColor.withValues(alpha: 0.55)
                     : (selected ? selectedColor : baseTextColor),

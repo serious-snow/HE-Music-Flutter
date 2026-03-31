@@ -231,9 +231,9 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
                     splashFactory: NoSplash.splashFactory,
                     overlayColor: WidgetStateProperty.all(Colors.transparent),
                     labelStyle: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                        ?.copyWith(fontWeight: FontWeight.w500),
                     unselectedLabelStyle: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                        ?.copyWith(fontWeight: FontWeight.w500),
                     tabs: <Tab>[
                       Tab(
                         text: AppI18n.t(
@@ -778,7 +778,7 @@ class _ArtistSliverHeader extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w500,
                                     color: titleColor,
                                   ),
                                 ),
@@ -845,7 +845,7 @@ class _ArtistHeaderMeta extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w500,
               color: textColor,
             ),
           ),
@@ -1252,7 +1252,7 @@ class _InlinePlayAllRow extends StatelessWidget {
               Text(
                 countText,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   color: enabled ? null : theme.hintColor,
                 ),
               ),
@@ -1296,7 +1296,7 @@ class _ArtistAlbumItem extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1418,7 +1418,7 @@ class _ArtistVideoItem extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                       height: 1.25,
                     ),
                   ),
@@ -1538,7 +1538,7 @@ class _VideoCover extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: Colors.white,
                   fontSize: 10,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

@@ -30,7 +30,7 @@ class MyThemeCard extends StatelessWidget {
             AppI18n.t(config, 'my.theme'),
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 10),
           SegmentedButton<AppThemeMode>(
@@ -93,7 +93,7 @@ class MyLanguageCard extends StatelessWidget {
             AppI18n.t(config, 'my.language'),
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 10),
           Wrap(

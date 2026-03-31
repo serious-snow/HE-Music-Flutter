@@ -78,14 +78,14 @@ class QrLoginConfirmPage extends ConsumerWidget {
                         ? AppI18n.t(config, 'auth.qr.empty')
                         : qrState.clientName,
                     style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     viewModel.title,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -108,7 +108,7 @@ class QrLoginConfirmPage extends ConsumerWidget {
                         viewModel.detail!,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: viewModel.accentColor,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -168,9 +168,7 @@ class QrLoginConfirmPage extends ConsumerWidget {
     context.go(
       Uri(
         path: AppRoutes.login,
-        queryParameters: <String, String>{
-          'redirect': AppRoutes.loginQrConfirm,
-        },
+        queryParameters: <String, String>{'redirect': AppRoutes.loginQrConfirm},
       ).toString(),
     );
   }

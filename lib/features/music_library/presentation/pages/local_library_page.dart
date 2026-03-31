@@ -290,7 +290,7 @@ class _SongList extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800),
+                                  ?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -388,7 +388,7 @@ class _LocalGroupListItem extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -565,7 +565,7 @@ class _EmptyLibrary extends StatelessWidget {
               AppI18n.tByLocaleCode(localeCode, 'local.empty'),
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

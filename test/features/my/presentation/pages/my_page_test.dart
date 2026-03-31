@@ -35,6 +35,18 @@ void main() {
     expect(find.byTooltip('创建歌单'), findsOneWidget);
   });
 
+  testWidgets('my page title does not use bold font weight', (tester) async {
+    await tester.pumpWidget(_buildTestApp(localeCode: 'zh'));
+    await tester.pump();
+
+    final title = tester.widget<Text>(find.text('我的'));
+
+    expect(
+      title.style?.fontWeight,
+      isNot(anyOf(FontWeight.w600, FontWeight.w700, FontWeight.w800)),
+    );
+  });
+
   testWidgets('my page shows english labels when locale is en', (tester) async {
     await tester.pumpWidget(_buildTestApp(localeCode: 'en'));
     await tester.pump();

@@ -238,7 +238,7 @@ class _StartupScaffold extends StatelessWidget {
                         title,
                         style: theme.textTheme.labelLarge?.copyWith(
                           letterSpacing: 3.2,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w500,
                           color: theme.colorScheme.primary,
                         ),
                       ),
@@ -247,7 +247,7 @@ class _StartupScaffold extends StatelessWidget {
                         subtitle,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                           height: 1.35,
                         ),
                       ),

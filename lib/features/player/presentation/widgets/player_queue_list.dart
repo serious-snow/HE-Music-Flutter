@@ -160,9 +160,6 @@ class _PlayerQueueListState extends State<PlayerQueueList> {
                           color: isCurrent
                               ? theme.colorScheme.primary
                               : theme.colorScheme.onSurface,
-                          fontWeight: isCurrent
-                              ? FontWeight.w800
-                              : FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -242,7 +239,7 @@ class _QueueIndexBadge extends StatelessWidget {
                 '${index + 1}',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
       ),

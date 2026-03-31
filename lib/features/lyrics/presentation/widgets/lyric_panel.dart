@@ -101,7 +101,7 @@ class _LyricPanelState extends ConsumerState<LyricPanel> {
       activeStyle: TextStyle(
         fontSize: 22,
         color: Colors.white,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
       ),
       translationStyle: TextStyle(fontSize: 14, color: Colors.white70),
       lineGap: 16,
@@ -125,7 +125,7 @@ class _LyricPanelState extends ConsumerState<LyricPanel> {
         fontSize: 16,
         height: 1.0,
         color: Colors.white,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
       ),
       translationStyle: const TextStyle(fontSize: 9, color: Colors.white70),
       translationActiveColor: Colors.white,

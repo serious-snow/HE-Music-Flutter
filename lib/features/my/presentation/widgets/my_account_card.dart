@@ -43,7 +43,7 @@ class MyAccountCard extends StatelessWidget {
                   'PROFILE',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: 1.6,
                   ),
                 ),
@@ -53,7 +53,7 @@ class MyAccountCard extends StatelessWidget {
                       ? profile.username
                       : profile.nickname,
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -101,7 +101,7 @@ class _ProfileMetaChip extends StatelessWidget {
         label,
         style: Theme.of(
           context,
-        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w500),
       ),
     );
   }

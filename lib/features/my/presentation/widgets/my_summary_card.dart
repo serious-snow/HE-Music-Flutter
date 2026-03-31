@@ -25,7 +25,7 @@ class MySummaryCard extends StatelessWidget {
             AppI18n.t(config, 'my.summary'),
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
           GridView.count(
@@ -99,7 +99,7 @@ class _SummaryTile extends StatelessWidget {
             Text(
               '$value',
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 4),

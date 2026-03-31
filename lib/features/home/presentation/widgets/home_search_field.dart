@@ -50,7 +50,7 @@ class HomeSearchField extends StatelessWidget {
                           color: theme.colorScheme.onSurface.withValues(
                             alpha: 0.8,
                           ),
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       if (secondary.isNotEmpty)
@@ -80,7 +80,7 @@ class HomeSearchField extends StatelessWidget {
                     platform,
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

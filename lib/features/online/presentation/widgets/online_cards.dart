@@ -37,7 +37,7 @@ class OnlineHeroCard extends StatelessWidget {
                   title,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: 1.6,
                   ),
                 ),
@@ -45,7 +45,7 @@ class OnlineHeroCard extends StatelessWidget {
                 Text(
                   AppI18n.tByLocaleCode(localeCode, 'online.center.title'),
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -87,7 +87,7 @@ class OnlineSectionCard extends StatelessWidget {
           Text(
             title,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w500,
             ),
           ),
           if (caption != null) ...<Widget>[
@@ -531,7 +531,7 @@ class _QuickActionTile extends StatelessWidget {
               Text(
                 title,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 4),
@@ -561,7 +561,7 @@ class _OnlineMetaChip extends StatelessWidget {
         label,
         style: Theme.of(
           context,
-        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w500),
       ),
     );
   }

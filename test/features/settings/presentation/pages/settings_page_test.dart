@@ -13,6 +13,21 @@ void main() {
     expect(find.text('关于'), findsOneWidget);
   });
 
+  testWidgets('settings tile title does not use bold font weight', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: SettingsPage())),
+    );
+
+    final aboutTitle = tester.widget<Text>(find.text('关于'));
+
+    expect(
+      aboutTitle.style?.fontWeight,
+      isNot(anyOf(FontWeight.w600, FontWeight.w700, FontWeight.w800)),
+    );
+  });
+
   testWidgets('settings page places about entry below monochrome', (
     tester,
   ) async {

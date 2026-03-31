@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/config/app_config_state.dart';
+import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/layout/adaptive_media_grid_spec.dart';
 import '../../../../shared/utils/playlist_song_count_text.dart';
@@ -90,6 +91,217 @@ class DiscoverSections extends StatelessWidget {
   }
 }
 
+List<Widget> buildDiscoverSectionSlivers({
+  required String loadingText,
+  required String emptyText,
+  required String retryText,
+  required String Function(HomeDiscoverSection) titleOf,
+  required HomeDiscoverState state,
+  required AdaptiveMediaGridSpec gridSpec,
+  required VoidCallback onRetry,
+  required void Function(List<SongInfo> songs, int index) onTapSong,
+  required ValueChanged<AlbumInfo> onTapAlbum,
+  required ValueChanged<PlaylistInfo> onTapPlaylist,
+  required ValueChanged<MvInfo> onTapVideo,
+  required ValueChanged<SongInfo> onMoreSong,
+  required bool Function(SongInfo song) isSongLiked,
+  required Future<void> Function(SongInfo song) onLikeSong,
+  required bool Function(SongInfo song) isCurrentSong,
+  required AppConfigState config,
+  String Function(SongInfo item)? resolveSongCover,
+  String Function(AlbumInfo item)? resolveAlbumCover,
+  String Function(PlaylistInfo item)? resolvePlaylistCover,
+}) {
+  if (state.loading) {
+    return <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutTokens.compactPageGutter,
+        ),
+        sliver: const SliverToBoxAdapter(child: _DiscoverLoadingSkeleton()),
+      ),
+    ];
+  }
+  if (state.errorMessage != null) {
+    return <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutTokens.compactPageGutter,
+        ),
+        sliver: SliverToBoxAdapter(
+          child: _ErrorBlock(
+            message: state.errorMessage!,
+            retryText: retryText,
+            onRetry: onRetry,
+          ),
+        ),
+      ),
+    ];
+  }
+  if (state.sections.every((section) => section.isEmpty)) {
+    return <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutTokens.compactPageGutter,
+        ),
+        sliver: SliverToBoxAdapter(child: _EmptyBlock(label: emptyText)),
+      ),
+    ];
+  }
+
+  final slivers = <Widget>[];
+  for (final section in state.sections) {
+    if (section.isEmpty) {
+      continue;
+    }
+    slivers.add(
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(
+          LayoutTokens.compactPageGutter + 2,
+          0,
+          LayoutTokens.compactPageGutter + 2,
+          10,
+        ),
+        sliver: SliverToBoxAdapter(
+          child: _SectionTitle(title: titleOf(section)),
+        ),
+      ),
+    );
+    slivers.addAll(
+      _buildSectionSlivers(
+        section: section,
+        gridSpec: gridSpec,
+        onTapSong: onTapSong,
+        onTapAlbum: onTapAlbum,
+        onTapPlaylist: onTapPlaylist,
+        onTapVideo: onTapVideo,
+        onMoreSong: onMoreSong,
+        isSongLiked: isSongLiked,
+        onLikeSong: onLikeSong,
+        isCurrentSong: isCurrentSong,
+        config: config,
+        resolveSongCover: resolveSongCover,
+        resolveAlbumCover: resolveAlbumCover,
+        resolvePlaylistCover: resolvePlaylistCover,
+      ),
+    );
+    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 18)));
+  }
+  return slivers;
+}
+
+List<Widget> _buildSectionSlivers({
+  required HomeDiscoverSection section,
+  required AdaptiveMediaGridSpec gridSpec,
+  required void Function(List<SongInfo> songs, int index) onTapSong,
+  required ValueChanged<AlbumInfo> onTapAlbum,
+  required ValueChanged<PlaylistInfo> onTapPlaylist,
+  required ValueChanged<MvInfo> onTapVideo,
+  required ValueChanged<SongInfo> onMoreSong,
+  required bool Function(SongInfo song) isSongLiked,
+  required Future<void> Function(SongInfo song) onLikeSong,
+  required bool Function(SongInfo song) isCurrentSong,
+  required AppConfigState config,
+  String Function(SongInfo item)? resolveSongCover,
+  String Function(AlbumInfo item)? resolveAlbumCover,
+  String Function(PlaylistInfo item)? resolvePlaylistCover,
+}) {
+  return switch (section.type) {
+    HomeDiscoverItemType.song => <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutTokens.compactPageGutter,
+        ),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final item = section.songs[index];
+            return _DiscoverSongItem(
+              index: index,
+              song: item,
+              songs: section.songs,
+              onTapSong: onTapSong,
+              onMoreSong: onMoreSong,
+              isSongLiked: isSongLiked,
+              onLikeSong: onLikeSong,
+              isCurrentSong: isCurrentSong,
+              resolveSongCover: resolveSongCover,
+            );
+          }, childCount: section.songs.length),
+        ),
+      ),
+    ],
+    HomeDiscoverItemType.album || HomeDiscoverItemType.playlist => <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutTokens.compactPageGutter,
+        ),
+        sliver: SliverGrid(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final items = section.type == HomeDiscoverItemType.album
+                  ? section.albums
+                  : section.playlists;
+              if (section.type == HomeDiscoverItemType.album) {
+                final item = items[index] as AlbumInfo;
+                return _DiscoverGridCard(
+                  type: section.type,
+                  title: item.name,
+                  subtitle: item.artistText,
+                  coverUrl: resolveAlbumCover?.call(item) ?? item.cover,
+                  songCount: item.songCount,
+                  playCount: item.playCount,
+                  localeCode: config.localeCode,
+                  onTap: () => onTapAlbum(item),
+                );
+              }
+              final item = items[index] as PlaylistInfo;
+              return _DiscoverGridCard(
+                type: section.type,
+                title: item.name,
+                subtitle: item.creator,
+                coverUrl: resolvePlaylistCover?.call(item) ?? item.cover,
+                songCount: item.songCount,
+                playCount: item.playCount,
+                localeCode: config.localeCode,
+                onTap: () => onTapPlaylist(item),
+              );
+            },
+            childCount: section.type == HomeDiscoverItemType.album
+                ? section.albums.length
+                : section.playlists.length,
+          ),
+          gridDelegate: gridSpec.sliverDelegate,
+        ),
+      ),
+    ],
+    HomeDiscoverItemType.video => <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutTokens.compactPageGutter,
+        ),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final item = section.videos[index];
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == section.videos.length - 1 ? 0 : 8,
+              ),
+              child: VideoListCard(
+                title: item.name,
+                creator: item.creator,
+                duration: '${item.duration}',
+                coverUrl: item.cover,
+                playCount: item.playCount,
+                onTap: () => onTapVideo(item),
+              ),
+            );
+          }, childCount: section.videos.length),
+        ),
+      ),
+    ],
+  };
+}
+
 class _SectionBlock extends StatelessWidget {
   const _SectionBlock({
     required this.title,
@@ -124,7 +336,6 @@ class _SectionBlock extends StatelessWidget {
     if (section.isEmpty) {
       return const SizedBox.shrink();
     }
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
@@ -132,12 +343,7 @@ class _SectionBlock extends StatelessWidget {
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
-            child: Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            child: _SectionTitle(title: title),
           ),
           _buildSectionContent(context: context),
         ],
@@ -222,17 +428,71 @@ class _SectionBlock extends StatelessWidget {
   }
 
   Widget _buildSongItem(BuildContext context, int index, SongInfo item) {
-    final resolvedCover = resolveSongCover?.call(item) ?? item.cover;
-    return OnlineSongListItem(
+    return _DiscoverSongItem(
+      index: index,
       song: item,
-      artistAlbumText: item.artistAlbumText,
-      subtitleText: item.displaySubtitle,
+      songs: section.songs,
+      onTapSong: onTapSong,
+      onMoreSong: onMoreSong,
+      isSongLiked: isSongLiked,
+      onLikeSong: onLikeSong,
+      isCurrentSong: isCurrentSong,
+      resolveSongCover: resolveSongCover,
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      title,
+      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+    );
+  }
+}
+
+class _DiscoverSongItem extends StatelessWidget {
+  const _DiscoverSongItem({
+    required this.index,
+    required this.song,
+    required this.songs,
+    required this.onTapSong,
+    required this.onMoreSong,
+    required this.isSongLiked,
+    required this.onLikeSong,
+    required this.isCurrentSong,
+    this.resolveSongCover,
+  });
+
+  final int index;
+  final SongInfo song;
+  final List<SongInfo> songs;
+  final void Function(List<SongInfo> songs, int index) onTapSong;
+  final ValueChanged<SongInfo> onMoreSong;
+  final bool Function(SongInfo song) isSongLiked;
+  final Future<void> Function(SongInfo song) onLikeSong;
+  final bool Function(SongInfo song) isCurrentSong;
+  final String Function(SongInfo item)? resolveSongCover;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedCover = resolveSongCover?.call(song) ?? song.cover;
+    return OnlineSongListItem(
+      song: song,
+      artistAlbumText: song.artistAlbumText,
+      subtitleText: song.displaySubtitle,
       coverUrl: resolvedCover.isEmpty ? null : resolvedCover,
-      isCurrent: isCurrentSong(item),
-      isLiked: isSongLiked(item),
-      onTap: () => onTapSong(section.songs, index),
-      onLikeTap: () => onLikeSong(item),
-      onMoreTap: () => onMoreSong(item),
+      isCurrent: isCurrentSong(song),
+      isLiked: isSongLiked(song),
+      onTap: () => onTapSong(songs, index),
+      onLikeTap: () => onLikeSong(song),
+      onMoreTap: () => onMoreSong(song),
     );
   }
 }

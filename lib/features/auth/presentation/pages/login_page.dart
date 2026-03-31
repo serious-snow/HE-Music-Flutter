@@ -154,7 +154,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                         ? AppI18n.t(config, 'auth.oauth.title')
                                         : '${AppI18n.t(config, 'auth.oauth.title')} · ${_oauthProvider!}',
                                     style: theme.textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ),
@@ -794,7 +794,7 @@ class _DesktopLoginTabButton extends StatelessWidget {
             child: Text(
               label,
               style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -863,7 +863,7 @@ class _DesktopQrLoginSection extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: theme.textTheme.titleSmall?.copyWith(
                             color: Colors.white,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),

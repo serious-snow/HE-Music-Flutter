@@ -348,7 +348,6 @@ class _ArtistFilterRow extends StatelessWidget {
                           : colorScheme.outlineVariant,
                     ),
                     labelStyle: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                       color: selected
                           ? colorScheme.primary
                           : colorScheme.onSurfaceVariant,

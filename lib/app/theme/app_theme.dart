@@ -52,23 +52,23 @@ abstract final class AppTheme {
     ).textTheme;
     final textTheme = baseTextTheme.copyWith(
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w500,
         letterSpacing: -0.8,
         height: 1.05,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w500,
         letterSpacing: -0.5,
       ),
       titleLarge: baseTextTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w500,
         letterSpacing: -0.2,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w500,
       ),
       titleSmall: baseTextTheme.titleSmall?.copyWith(
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w500,
       ),
       bodyMedium: baseTextTheme.bodyMedium?.copyWith(height: 1.35),
       bodySmall: baseTextTheme.bodySmall?.copyWith(
@@ -76,7 +76,7 @@ abstract final class AppTheme {
         color: colorScheme.onSurfaceVariant,
       ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w500,
         letterSpacing: 0.1,
       ),
     );
@@ -149,7 +149,7 @@ abstract final class AppTheme {
         elevation: 0,
         labelTextStyle: WidgetStatePropertyAll(
           textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w500,
             color: colorScheme.onSurface,
           ),
         ),

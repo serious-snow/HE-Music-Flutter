@@ -214,7 +214,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleLarge?.copyWith(
                         color: const Color(0xFF101615),
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -262,7 +262,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                               _currentTimeLabel(videoController),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: Colors.white,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -295,7 +295,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                         '视频信息',
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF101615),
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -327,7 +327,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                         Text(
                           '清晰度切换',
                           style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w500,
                             color: const Color(0xFF111111),
                           ),
                         ),
@@ -359,9 +359,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                                   ),
                                   labelStyle: theme.textTheme.titleSmall
                                       ?.copyWith(
-                                        fontWeight: selected
-                                            ? FontWeight.w800
-                                            : FontWeight.w600,
                                         color: const Color(0xFF222222),
                                       ),
                                   padding: const EdgeInsets.symmetric(
@@ -948,7 +945,7 @@ class _VideoStage extends StatelessWidget {
                               style: Theme.of(context).textTheme.labelMedium
                                   ?.copyWith(
                                     color: Colors.white,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w500,
                                   ),
                             ),
                           ],
@@ -1056,7 +1053,7 @@ class _FullscreenGestureHudView extends StatelessWidget {
               '$label $percent%',
               style: theme.textTheme.titleSmall?.copyWith(
                 color: Colors.white,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 10),
@@ -1103,7 +1100,7 @@ class _VideoInfoRow extends StatelessWidget {
               '$label：',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF6C7777),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -1116,7 +1113,7 @@ class _VideoInfoRow extends StatelessWidget {
                   : TextOverflow.ellipsis,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: const Color(0xFF15201F),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
                 height: multiline ? 1.55 : null,
               ),
             ),
@@ -1170,7 +1167,7 @@ class _ErrorView extends StatelessWidget {
               title,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 10),
             Text(message, textAlign: TextAlign.center),

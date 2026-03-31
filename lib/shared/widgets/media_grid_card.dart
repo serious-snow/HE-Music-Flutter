@@ -81,7 +81,7 @@ class MediaGridCard extends StatelessWidget {
                                 formatCompactPlayCount(playCount!, locale),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w500,
                                   fontSize: _mediaGridOverlayFontSize,
                                 ),
                               ),
@@ -98,7 +98,7 @@ class MediaGridCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   height: 1.2,
                 ),
               ),
@@ -122,7 +122,7 @@ class MediaGridCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     height: 1.1,
                   ),
                 ),

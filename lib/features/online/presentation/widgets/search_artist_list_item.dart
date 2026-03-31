@@ -42,7 +42,7 @@ class SearchArtistListItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w500,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -111,7 +111,7 @@ class _StatText extends StatelessWidget {
           TextSpan(
             text: value,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               fontSize: 13,
               height: 1.0,
             ),

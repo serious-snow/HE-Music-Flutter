@@ -348,7 +348,7 @@ class _SettingsTile extends StatelessWidget {
         title,
         style: theme.textTheme.titleMedium?.copyWith(
           color: color,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(subtitle),

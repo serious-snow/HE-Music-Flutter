@@ -55,7 +55,7 @@ class _MyPageState extends ConsumerState<MyPage> {
               child: Text(
                 AppI18n.t(config, 'my.title'),
                 style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -302,7 +302,7 @@ class _AccountCard extends StatelessWidget {
                 Text(
                   displayName,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -401,7 +401,7 @@ class _EntryCard extends StatelessWidget {
                     Text(
                       title,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     if ((subtitle ?? '').trim().isNotEmpty) ...<Widget>[
@@ -449,7 +449,7 @@ class _CountBadge extends StatelessWidget {
         '$value',
         style: Theme.of(
           context,
-        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -643,7 +643,6 @@ class _PlaylistTabButton extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOutCubic,
                 style: theme.textTheme.titleSmall!.copyWith(
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   color: selected
                       ? colorScheme.onSurface
                       : colorScheme.onSurfaceVariant,
