@@ -67,6 +67,7 @@ class DiscoverSections extends StatelessWidget {
       return _EmptyBlock(label: emptyText);
     }
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: state.sections
           .map((section) {
             return _SectionBlock(
@@ -298,6 +299,7 @@ class _DiscoverLoadingSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _SongSectionSkeleton(),
         SizedBox(height: 18),
