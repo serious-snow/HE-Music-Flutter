@@ -103,6 +103,8 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
       'playlist' => SearchType.playlist,
       'album' => SearchType.album,
       'artist' => SearchType.artist,
+      'video' => SearchType.video,
+      'mv' => SearchType.video,
       _ => null,
     };
   }

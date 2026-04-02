@@ -1,7 +1,7 @@
 import '../../../../shared/models/he_music_models.dart';
 import '../../domain/entities/online_platform.dart';
 
-enum SearchType { song, playlist, album, artist }
+enum SearchType { song, playlist, album, artist, video }
 
 extension SearchTypeApi on SearchType {
   String get apiType {
@@ -10,6 +10,7 @@ extension SearchTypeApi on SearchType {
       SearchType.playlist => 'playlist',
       SearchType.album => 'album',
       SearchType.artist => 'artist',
+      SearchType.video => 'mv',
     };
   }
 }
@@ -21,6 +22,7 @@ extension SearchTypePlatformFeature on SearchType {
       SearchType.playlist => PlatformFeatureSupportFlag.searchPlaylist,
       SearchType.album => PlatformFeatureSupportFlag.searchAlbum,
       SearchType.artist => PlatformFeatureSupportFlag.searchSinger,
+      SearchType.video => PlatformFeatureSupportFlag.searchMv,
     };
   }
 }
@@ -33,6 +35,7 @@ String displayTitle(SearchType type, Map<String, dynamic> item) {
     SearchType.playlist => searchPlaylistInfo(item).name,
     SearchType.album => searchAlbumInfo(item).name,
     SearchType.artist => searchArtistInfo(item).name,
+    SearchType.video => searchVideoInfo(item).name,
     SearchType.song => searchSongInfo(item).name,
   };
 }
@@ -46,6 +49,7 @@ String displaySubtitle(SearchType type, Map<String, dynamic> item) {
           : searchPlaylistInfo(item).creator,
     SearchType.album => _artistNames(searchAlbumInfo(item).artists),
     SearchType.artist => _artistSearchSubtitle(searchArtistInfo(item)),
+    SearchType.video => _videoSearchSubtitle(searchVideoInfo(item)),
   };
 }
 
@@ -196,6 +200,13 @@ ArtistInfo searchArtistInfo(Map<String, dynamic> item) {
   );
 }
 
+MvInfo searchVideoInfo(Map<String, dynamic> item) {
+  return MvInfo.fromMap(
+    item,
+    fallbackPlatform: _safePlatform(item['platform']),
+  );
+}
+
 String _artistSearchSubtitle(ArtistInfo artist) {
   final platform = _safeText(artist.platform);
   final alias = artist.alias.trim();
@@ -203,6 +214,14 @@ String _artistSearchSubtitle(ArtistInfo artist) {
     return platform;
   }
   return '$platform · $alias';
+}
+
+String _videoSearchSubtitle(MvInfo video) {
+  final creator = video.creator.trim();
+  if (creator.isNotEmpty) {
+    return creator;
+  }
+  return _safeText(video.platform);
 }
 
 String text(dynamic value) {

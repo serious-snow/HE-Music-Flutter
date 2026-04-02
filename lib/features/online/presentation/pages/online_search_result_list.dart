@@ -7,7 +7,9 @@ import '../../../../features/player/presentation/providers/player_providers.dart
 import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/widgets/online_song_list_item.dart';
 import '../../../../shared/widgets/animated_skeleton.dart';
+import '../../../../shared/widgets/plaza_loading_skeleton.dart';
 import '../../../../shared/widgets/song_list_component.dart';
+import '../../../../shared/widgets/video_list_card.dart';
 import '../../../../shared/utils/cover_resolver.dart';
 import '../../../../shared/utils/playlist_song_count_text.dart';
 import '../../../../app/config/app_config_controller.dart';
@@ -109,6 +111,9 @@ class _OnlineSearchResultListState
       );
     }
     if (widget.initialLoading) {
+      if (widget.type == SearchType.video) {
+        return const PlazaVideoListSkeleton();
+      }
       return _SearchResultSkeletonList(type: widget.type);
     }
     if (widget.results.isEmpty) {
@@ -162,6 +167,14 @@ class _OnlineSearchResultListState
             songCount: artistSongCount(item),
             albumCount: artistAlbumCount(item),
             videoCount: artistVideoCount(item),
+            onTap: () => widget.onTapItem(item),
+          ),
+          SearchType.video => VideoListCard(
+            title: title,
+            creator: subtitle == '-' ? null : subtitle,
+            duration: '${searchVideoInfo(item).duration}',
+            coverUrl: image,
+            playCount: searchVideoInfo(item).playCount,
             onTap: () => widget.onTapItem(item),
           ),
           _ => const SizedBox.shrink(),

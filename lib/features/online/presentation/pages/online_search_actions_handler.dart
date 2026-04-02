@@ -183,6 +183,7 @@ String _detailRouteForSearchType(SearchType type) {
     SearchType.playlist => AppRoutes.playlistDetail,
     SearchType.album => AppRoutes.albumDetail,
     SearchType.artist => AppRoutes.artistDetail,
+    SearchType.video => AppRoutes.videoDetail,
     SearchType.song => AppRoutes.discoverDetail,
   };
 }

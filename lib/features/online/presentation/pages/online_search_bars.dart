@@ -149,6 +149,7 @@ class SearchTypeBar extends StatelessWidget {
       (SearchType.playlist, '歌单'),
       (SearchType.album, '专辑'),
       (SearchType.artist, '歌手'),
+      (SearchType.video, '视频'),
     ];
     return Row(
       children: tabs
