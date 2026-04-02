@@ -13,16 +13,22 @@ import '../../../../core/network/network_error_message.dart';
 import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/helpers/detail_cover_preview_helper.dart';
 import '../../../../shared/helpers/detail_song_action_handler.dart';
+import '../../../../shared/helpers/song_batch_helpers.dart';
+import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/utils/compact_number_formatter.dart';
 import '../../../../shared/utils/cover_resolver.dart';
 import '../../../../shared/utils/favorite_song_key.dart';
 import '../../../../shared/widgets/detail_description_sheet.dart';
 import '../../../../shared/widgets/detail_loading_skeleton.dart';
 import '../../../../shared/widgets/detail_page_shell.dart';
+import '../../../../shared/widgets/music_detail_slivers.dart';
 import '../../../../shared/widgets/online_song_list_item.dart';
 import '../../../../shared/widgets/animated_skeleton.dart';
+import '../../../../shared/widgets/select_user_playlist_sheet.dart';
+import '../../../../shared/widgets/song_batch_action_bar.dart';
 import '../../../my/presentation/providers/favorite_collection_status_providers.dart';
 import '../../../my/presentation/providers/favorite_song_status_providers.dart';
+import '../../../my/presentation/providers/user_playlist_song_providers.dart';
 import '../../../player/domain/entities/player_queue_source.dart';
 import '../../../player/domain/entities/player_track.dart';
 import '../../../player/presentation/providers/player_providers.dart';
@@ -68,10 +74,13 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
   bool _songsLoading = false;
   bool _albumsLoading = false;
   bool _videosLoading = false;
+  bool _isSongBatchMode = false;
+  bool _submittingSongBatch = false;
 
   String? _songsError;
   String? _albumsError;
   String? _videosError;
+  Set<String> _selectedSongKeys = <String>{};
 
   @override
   void initState() {
@@ -176,6 +185,17 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
     );
 
     return DetailPageShell(
+      bottomBar: _isSongBatchMode
+          ? SongBatchActionBar(
+              enabled: _selectedSongs(_songs).isNotEmpty,
+              loading: _submittingSongBatch,
+              onPlayPressed: () => unawaited(_playSelectedSongs(_songs)),
+              onAddToQueuePressed: () =>
+                  unawaited(_appendSelectedSongsToQueue(_songs)),
+              onAddToPlaylistPressed: () =>
+                  unawaited(_addSelectedSongsToPlaylist(_songs)),
+            )
+          : null,
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return <Widget>[
@@ -272,6 +292,19 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
               onPlayAll: _songs.isEmpty
                   ? null
                   : () => _songActions.playAll(context, _songs),
+              batchMode: _isSongBatchMode,
+              selectedSongKeys: _selectedSongKeys,
+              selectedCount: _selectedSongs(_songs).length,
+              allSelected: areAllLoadedSongsSelected(
+                _songs,
+                _selectedSongKeys,
+                songIdOf: (song) => song.id,
+                platformOf: (song) => song.platform,
+              ),
+              onEnterBatchMode: () => _setSongBatchMode(true),
+              onCancelBatch: () => _setSongBatchMode(false),
+              onSelectAllLoaded: () => _selectAllLoadedSongs(_songs),
+              onToggleSongSelection: _toggleSongSelection,
               resolveSongCover: _songActions.resolveCoverUrl,
               onTapSong: (song, coverUrl, index) =>
                   _songActions.playAll(context, _songs, startIndex: index),
@@ -355,10 +388,12 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
           unawaited(_loadSongs());
         }
       case _ArtistDetailTab.albums:
+        _setSongBatchMode(false);
         if (_albums.isEmpty && !_albumsLoading && _albumsError == null) {
           unawaited(_loadAlbums());
         }
       case _ArtistDetailTab.videos:
+        _setSongBatchMode(false);
         if (_videos.isEmpty && !_videosLoading && _videosError == null) {
           unawaited(_loadVideos());
         }
@@ -392,6 +427,12 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
           } else {
             _songs = <ArtistDetailSong>[..._songs, ...chunk.items];
           }
+          _selectedSongKeys = sanitizeSelectedSongBatchKeys(
+            _selectedSongKeys,
+            _songs,
+            songIdOf: (song) => song.id,
+            platformOf: (song) => song.platform,
+          );
           _songsLoading = chunk.hasMore;
         });
         if (!chunk.hasMore) {
@@ -568,6 +609,149 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage>
 
   ArtistDetailRepository get _repository {
     return ref.read(artistDetailRepositoryProvider);
+  }
+
+  void _setSongBatchMode(bool enabled) {
+    if (_isSongBatchMode == enabled && (enabled || _selectedSongKeys.isEmpty)) {
+      return;
+    }
+    setState(() {
+      _isSongBatchMode = enabled;
+      _submittingSongBatch = false;
+      if (!enabled) {
+        _selectedSongKeys = <String>{};
+      }
+    });
+  }
+
+  void _toggleSongSelection(ArtistDetailSong song) {
+    final key = buildSongBatchKey(songId: song.id, platform: song.platform);
+    setState(() {
+      if (_selectedSongKeys.contains(key)) {
+        _selectedSongKeys.remove(key);
+      } else {
+        _selectedSongKeys.add(key);
+      }
+    });
+  }
+
+  void _selectAllLoadedSongs(List<ArtistDetailSong> songs) {
+    final nextSelection = buildLoadedSongBatchKeys(
+      songs,
+      songIdOf: (song) => song.id,
+      platformOf: (song) => song.platform,
+    );
+    setState(() {
+      _selectedSongKeys =
+          nextSelection.isNotEmpty &&
+              nextSelection.every(_selectedSongKeys.contains)
+          ? <String>{}
+          : nextSelection;
+    });
+  }
+
+  List<IdPlatformInfo> _selectedSongs(List<ArtistDetailSong> songs) {
+    return collectSelectedSongIdPlatforms(
+      songs,
+      _selectedSongKeys,
+      songIdOf: (song) => song.id,
+      platformOf: (song) => song.platform,
+    );
+  }
+
+  List<ArtistDetailSong> _selectedSongItems(List<ArtistDetailSong> songs) {
+    return collectSelectedSongItems(
+      songs,
+      _selectedSongKeys,
+      songIdOf: (song) => song.id,
+      platformOf: (song) => song.platform,
+    );
+  }
+
+  Future<void> _playSelectedSongs(List<ArtistDetailSong> songs) async {
+    final selectedSongs = _selectedSongItems(songs);
+    if (selectedSongs.isEmpty || _submittingSongBatch) {
+      return;
+    }
+    await _songActions.playAll(context, selectedSongs);
+    if (!mounted) {
+      return;
+    }
+    _setSongBatchMode(false);
+  }
+
+  Future<void> _appendSelectedSongsToQueue(List<ArtistDetailSong> songs) async {
+    final selectedSongs = _selectedSongItems(songs);
+    if (selectedSongs.isEmpty || _submittingSongBatch) {
+      return;
+    }
+    setState(() {
+      _submittingSongBatch = true;
+    });
+    try {
+      await _songActions.appendAllToQueue(selectedSongs);
+      if (!mounted) {
+        return;
+      }
+      _setSongBatchMode(false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppI18n.t(ref.read(appConfigProvider), 'search.queue.appended'),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _submittingSongBatch = false;
+      });
+      AppMessageService.showError(
+        NetworkErrorMessage.resolve(error) ?? '$error',
+      );
+    }
+  }
+
+  Future<void> _addSelectedSongsToPlaylist(List<ArtistDetailSong> songs) async {
+    final selectedSongs = _selectedSongs(songs);
+    if (selectedSongs.isEmpty || _submittingSongBatch) {
+      return;
+    }
+    final playlistId = await showSelectUserPlaylistSheet(context);
+    if (playlistId == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _submittingSongBatch = true;
+    });
+    try {
+      await ref
+          .read(userPlaylistSongApiClientProvider)
+          .addSongs(playlistId: playlistId, songs: selectedSongs);
+      if (!mounted) {
+        return;
+      }
+      _setSongBatchMode(false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppI18n.t(ref.read(appConfigProvider), 'detail.batch.add_success'),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _submittingSongBatch = false;
+      });
+      AppMessageService.showError(
+        NetworkErrorMessage.resolve(error) ?? '$error',
+      );
+    }
   }
 }
 
@@ -987,6 +1171,14 @@ class _ArtistSongsTab extends StatelessWidget {
     required this.error,
     required this.onRetry,
     required this.onPlayAll,
+    required this.batchMode,
+    required this.selectedSongKeys,
+    required this.selectedCount,
+    required this.allSelected,
+    required this.onEnterBatchMode,
+    required this.onCancelBatch,
+    required this.onSelectAllLoaded,
+    required this.onToggleSongSelection,
     required this.resolveSongCover,
     required this.onTapSong,
     required this.isSongLiked,
@@ -1000,6 +1192,14 @@ class _ArtistSongsTab extends StatelessWidget {
   final String? error;
   final Future<void> Function() onRetry;
   final VoidCallback? onPlayAll;
+  final bool batchMode;
+  final Set<String> selectedSongKeys;
+  final int selectedCount;
+  final bool allSelected;
+  final VoidCallback onEnterBatchMode;
+  final VoidCallback onCancelBatch;
+  final VoidCallback onSelectAllLoaded;
+  final void Function(ArtistDetailSong song) onToggleSongSelection;
   final String Function(ArtistDetailSong song) resolveSongCover;
   final Future<void> Function(ArtistDetailSong song, String coverUrl, int index)
   onTapSong;
@@ -1014,14 +1214,23 @@ class _ArtistSongsTab extends StatelessWidget {
       key: const PageStorageKey<String>('artist-detail-songs'),
       slivers: <Widget>[
         SliverToBoxAdapter(
-          child: _InlinePlayAllRow(
-            countText: AppI18n.formatByLocaleCode(
-              localeCode,
-              'detail.play_all_count',
-              <String, String>{'count': '${songs.length}'},
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: MusicDetailPlayAllHeaderBox(
+              countText: AppI18n.formatByLocaleCode(
+                localeCode,
+                'detail.play_all_count',
+                <String, String>{'count': '${songs.length}'},
+              ),
+              enabled: songs.isNotEmpty,
+              onPlayAll: onPlayAll ?? () {},
+              onBatchAction: songs.isEmpty ? null : onEnterBatchMode,
+              batchMode: batchMode,
+              selectedCount: selectedCount,
+              allSelected: allSelected,
+              onSelectAll: songs.isEmpty ? null : onSelectAllLoaded,
+              onCancelBatch: batchMode ? onCancelBatch : null,
             ),
-            enabled: songs.isNotEmpty,
-            onTap: onPlayAll,
           ),
         ),
         if (loading && songs.isEmpty)
@@ -1051,9 +1260,17 @@ class _ArtistSongsTab extends StatelessWidget {
                 coverUrl: songCover.trim().isEmpty ? null : songCover,
                 isCurrent: isCurrentSongTrack(currentTrack, song),
                 isLiked: isSongLiked(song),
-                onTap: () => unawaited(onTapSong(song, songCover, index)),
-                onLikeTap: () => unawaited(onLikeSong(song)),
-                onMoreTap: () => onMoreSong(song, songCover),
+                selectable: batchMode,
+                selected: selectedSongKeys.contains(
+                  buildSongBatchKey(songId: song.id, platform: song.platform),
+                ),
+                showActions: !batchMode,
+                onTap: batchMode
+                    ? null
+                    : () => unawaited(onTapSong(song, songCover, index)),
+                onSelectTap: () => onToggleSongSelection(song),
+                onLikeTap: batchMode ? null : () => unawaited(onLikeSong(song)),
+                onMoreTap: batchMode ? null : () => onMoreSong(song, songCover),
               );
             }, childCount: songs.length),
           ),
@@ -1211,53 +1428,6 @@ class _ArtistListFooter extends StatelessWidget {
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
-        ),
-      ),
-    );
-  }
-}
-
-class _InlinePlayAllRow extends StatelessWidget {
-  const _InlinePlayAllRow({
-    required this.countText,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final String countText;
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final effectivePrimary = enabled
-        ? theme.colorScheme.primary
-        : theme.hintColor.withValues(alpha: 0.55);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(999),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 8, 10, 8),
-          child: Row(
-            children: <Widget>[
-              Icon(
-                Icons.play_circle_fill_rounded,
-                size: 22,
-                color: effectivePrimary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                countText,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: enabled ? null : theme.hintColor,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

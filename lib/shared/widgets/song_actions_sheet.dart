@@ -12,6 +12,7 @@ Future<void> showSongActionsSheet({
   required VoidCallback onPlay,
   required VoidCallback onPlayNext,
   required VoidCallback onAddToPlaylist,
+  VoidCallback? onAddToUserPlaylist,
   required VoidCallback onWatchMv,
   VoidCallback? onViewComment,
   String? albumActionLabel,
@@ -68,6 +69,20 @@ Future<void> showSongActionsSheet({
                   onAddToPlaylist();
                 },
               ),
+              if (onAddToUserPlaylist != null)
+                ListTile(
+                  leading: const Icon(Icons.library_add_rounded),
+                  title: Text(
+                    AppI18n.tByLocaleCode(
+                      localeCode,
+                      'detail.batch.add_to_playlist',
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onAddToUserPlaylist();
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.ondemand_video_rounded),
                 title: Text(

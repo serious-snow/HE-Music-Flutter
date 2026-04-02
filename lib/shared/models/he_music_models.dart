@@ -70,6 +70,10 @@ class IdPlatformInfo {
   final String id;
   final String platform;
 
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{'id': id, 'platform': platform};
+  }
+
   factory IdPlatformInfo.fromMap(Map<String, dynamic> raw) {
     return IdPlatformInfo(
       id: _string(raw['id']),

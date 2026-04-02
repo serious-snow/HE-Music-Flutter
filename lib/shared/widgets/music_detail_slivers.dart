@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../app/i18n/app_i18n.dart';
+
 class MusicDetailSliverAppBar extends StatelessWidget {
   const MusicDetailSliverAppBar({
     required this.title,
@@ -171,14 +173,26 @@ class MusicDetailPlayAllHeader extends SliverPersistentHeaderDelegate {
   MusicDetailPlayAllHeader({
     required this.countText,
     required this.onPlayAll,
+    this.onBatchAction,
     this.onMore,
     this.enabled = true,
+    this.batchMode = false,
+    this.selectedCount = 0,
+    this.allSelected = false,
+    this.onSelectAll,
+    this.onCancelBatch,
   });
 
   final String countText;
   final VoidCallback onPlayAll;
+  final VoidCallback? onBatchAction;
   final VoidCallback? onMore;
   final bool enabled;
+  final bool batchMode;
+  final int selectedCount;
+  final bool allSelected;
+  final VoidCallback? onSelectAll;
+  final VoidCallback? onCancelBatch;
 
   @override
   double get minExtent => _headerHeight;
@@ -193,60 +207,21 @@ class MusicDetailPlayAllHeader extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     final theme = Theme.of(context);
-    final effectivePrimary = enabled
-        ? theme.colorScheme.primary
-        : theme.hintColor.withValues(alpha: 0.55);
     // 重要：SliverPersistentHeader 的 extent 必须与 child 的真实高度一致，
     // 否则会触发 “layoutExtent exceeds paintExtent” 的断言并导致页面崩溃。
     return Material(
       color: theme.scaffoldBackgroundColor,
-      child: SizedBox(
-        height: maxExtent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: <Widget>[
-              InkWell(
-                onTap: enabled ? onPlayAll : null,
-                borderRadius: BorderRadius.circular(999),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(6, 8, 10, 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Icon(
-                        Icons.play_circle_fill_rounded,
-                        size: 22,
-                        color: effectivePrimary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        countText,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: enabled ? null : theme.hintColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (onMore != null)
-                IconButton(
-                  onPressed: onMore,
-                  icon: const Icon(Icons.more_horiz_rounded),
-                  tooltip: 'More',
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints.tightFor(
-                    width: 40,
-                    height: 40,
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-            ],
-          ),
-        ),
+      child: MusicDetailPlayAllHeaderBox(
+        countText: countText,
+        onPlayAll: onPlayAll,
+        onBatchAction: onBatchAction,
+        onMore: onMore,
+        enabled: enabled,
+        batchMode: batchMode,
+        selectedCount: selectedCount,
+        allSelected: allSelected,
+        onSelectAll: onSelectAll,
+        onCancelBatch: onCancelBatch,
       ),
     );
   }
@@ -254,9 +229,179 @@ class MusicDetailPlayAllHeader extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant MusicDetailPlayAllHeader oldDelegate) {
     return oldDelegate.countText != countText ||
+        oldDelegate.onBatchAction != onBatchAction ||
         oldDelegate.onMore != onMore ||
         oldDelegate.onPlayAll != onPlayAll ||
-        oldDelegate.enabled != enabled;
+        oldDelegate.enabled != enabled ||
+        oldDelegate.batchMode != batchMode ||
+        oldDelegate.selectedCount != selectedCount ||
+        oldDelegate.allSelected != allSelected ||
+        oldDelegate.onSelectAll != onSelectAll ||
+        oldDelegate.onCancelBatch != onCancelBatch;
+  }
+}
+
+class MusicDetailPlayAllHeaderBox extends StatelessWidget {
+  const MusicDetailPlayAllHeaderBox({
+    required this.countText,
+    required this.onPlayAll,
+    this.onBatchAction,
+    this.onMore,
+    this.enabled = true,
+    this.batchMode = false,
+    this.selectedCount = 0,
+    this.allSelected = false,
+    this.onSelectAll,
+    this.onCancelBatch,
+    super.key,
+  });
+
+  final String countText;
+  final VoidCallback onPlayAll;
+  final VoidCallback? onBatchAction;
+  final VoidCallback? onMore;
+  final bool enabled;
+  final bool batchMode;
+  final int selectedCount;
+  final bool allSelected;
+  final VoidCallback? onSelectAll;
+  final VoidCallback? onCancelBatch;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MusicDetailPlayAllHeader._headerHeight,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: _MusicDetailPlayAllHeaderContent(
+          countText: countText,
+          onPlayAll: onPlayAll,
+          onBatchAction: onBatchAction,
+          onMore: onMore,
+          enabled: enabled,
+          batchMode: batchMode,
+          selectedCount: selectedCount,
+          allSelected: allSelected,
+          onSelectAll: onSelectAll,
+          onCancelBatch: onCancelBatch,
+        ),
+      ),
+    );
+  }
+}
+
+class _MusicDetailPlayAllHeaderContent extends StatelessWidget {
+  const _MusicDetailPlayAllHeaderContent({
+    required this.countText,
+    required this.onPlayAll,
+    required this.onBatchAction,
+    required this.onMore,
+    required this.enabled,
+    required this.batchMode,
+    required this.selectedCount,
+    required this.allSelected,
+    required this.onSelectAll,
+    required this.onCancelBatch,
+  });
+
+  final String countText;
+  final VoidCallback onPlayAll;
+  final VoidCallback? onBatchAction;
+  final VoidCallback? onMore;
+  final bool enabled;
+  final bool batchMode;
+  final int selectedCount;
+  final bool allSelected;
+  final VoidCallback? onSelectAll;
+  final VoidCallback? onCancelBatch;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final effectivePrimary = enabled
+        ? theme.colorScheme.primary
+        : theme.hintColor.withValues(alpha: 0.55);
+    if (batchMode) {
+      return Row(
+        children: <Widget>[
+          Text(
+            AppI18n.formatByLocaleCode(
+              localeCode,
+              'detail.batch.selected_count',
+              <String, String>{'count': '$selectedCount'},
+            ),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: onSelectAll,
+            style: TextButton.styleFrom(
+              foregroundColor: allSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
+            ),
+            child: Text(
+              AppI18n.tByLocaleCode(localeCode, 'detail.batch.select_all'),
+            ),
+          ),
+          TextButton(
+            onPressed: onCancelBatch,
+            child: Text(
+              AppI18n.tByLocaleCode(localeCode, 'detail.batch.cancel'),
+            ),
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: <Widget>[
+        InkWell(
+          onTap: enabled ? onPlayAll : null,
+          borderRadius: BorderRadius.circular(999),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(6, 8, 10, 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.play_circle_fill_rounded,
+                  size: 22,
+                  color: effectivePrimary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  countText,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: enabled ? null : theme.hintColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Spacer(),
+        if (onBatchAction != null)
+          TextButton(
+            onPressed: onBatchAction,
+            child: Text(
+              AppI18n.tByLocaleCode(localeCode, 'detail.batch.action'),
+            ),
+          ),
+        if (onMore != null)
+          IconButton(
+            onPressed: onMore,
+            icon: const Icon(Icons.more_horiz_rounded),
+            tooltip: 'More',
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            padding: EdgeInsets.zero,
+          ),
+      ],
+    );
   }
 }
 

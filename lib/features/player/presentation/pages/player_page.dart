@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 
@@ -14,6 +15,8 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
 import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
+import '../../../../shared/helpers/user_playlist_song_action_helper.dart';
+import '../../../../shared/models/he_music_models.dart';
 import '../../../download/presentation/providers/download_providers.dart';
 import '../../../lyrics/domain/entities/lyric_document.dart';
 import '../../../lyrics/domain/entities/lyric_line.dart';
@@ -22,6 +25,7 @@ import '../../../lyrics/presentation/widgets/lyric_panel.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../../domain/entities/player_quality_option.dart';
+import '../../domain/entities/player_track.dart';
 import '../controllers/player_controller.dart';
 import '../providers/player_providers.dart';
 import '../widgets/player_control_bar.dart';
@@ -371,6 +375,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                   ),
                 if (canOnline)
                   _PlayerSheetActionTile(
+                    icon: Icons.library_add_rounded,
+                    title: AppI18n.t(config, 'detail.batch.add_to_playlist'),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      unawaited(_addCurrentSongToUserPlaylist(track!));
+                    },
+                  ),
+                if (canOnline)
+                  _PlayerSheetActionTile(
                     icon: Icons.share_rounded,
                     title: AppI18n.t(config, 'player.action.copy_share'),
                     onTap: () async {
@@ -663,6 +676,19 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _addCurrentSongToUserPlaylist(PlayerTrack track) async {
+    final platform = (track.platform ?? '').trim();
+    final id = track.id.trim();
+    if (platform.isEmpty || platform == 'local' || id.isEmpty) {
+      return;
+    }
+    await addSingleSongToUserPlaylist(
+      context: context,
+      ref: ref,
+      song: IdPlatformInfo(id: id, platform: platform),
+    );
   }
 
   String? _resolveSearchPlatformId(

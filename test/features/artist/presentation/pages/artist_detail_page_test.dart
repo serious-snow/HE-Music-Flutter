@@ -87,42 +87,79 @@ void main() {
     expect(find.text('没有更多了'), findsOneWidget);
   });
 
-  testWidgets('artist detail favorite action uses white icon theme when expanded', (
+  testWidgets(
+    'artist detail favorite action uses white icon theme when expanded',
+    (tester) async {
+      const themeIconColor = Colors.teal;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            appConfigProvider.overrideWith(_TestAppConfigController.new),
+            playerControllerProvider.overrideWith(_TestPlayerController.new),
+            artistDetailRepositoryProvider.overrideWithValue(
+              _TestArtistDetailRepository(),
+            ),
+            onlinePlatformsProvider.overrideWith(
+              _TestOnlinePlatformsController.new,
+            ),
+          ],
+          child: MaterialApp(
+            theme: ThemeData(
+              iconTheme: const IconThemeData(color: themeIconColor),
+            ),
+            home: const ArtistDetailPage(
+              id: 'artist-1',
+              platform: 'qq',
+              title: '测试歌手',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final iconElement = tester.element(
+        find.byIcon(Icons.favorite_border_rounded).first,
+      );
+      expect(IconTheme.of(iconElement).color, Colors.white);
+    },
+  );
+
+  testWidgets('artist songs batch mode clears when leaving songs tab', (
     tester,
   ) async {
-    const themeIconColor = Colors.teal;
+    final repository = _TestArtistDetailRepository();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
           appConfigProvider.overrideWith(_TestAppConfigController.new),
           playerControllerProvider.overrideWith(_TestPlayerController.new),
-          artistDetailRepositoryProvider.overrideWithValue(
-            _TestArtistDetailRepository(),
-          ),
+          artistDetailRepositoryProvider.overrideWithValue(repository),
           onlinePlatformsProvider.overrideWith(
             _TestOnlinePlatformsController.new,
           ),
         ],
-        child: MaterialApp(
-          theme: ThemeData(
-            iconTheme: const IconThemeData(color: themeIconColor),
-          ),
-          home: const ArtistDetailPage(
-            id: 'artist-1',
-            platform: 'qq',
-            title: '测试歌手',
-          ),
+        child: const MaterialApp(
+          home: ArtistDetailPage(id: 'artist-1', platform: 'qq', title: '测试歌手'),
         ),
       ),
     );
     await tester.pump();
     await tester.pump();
 
-    final iconElement = tester.element(
-      find.byIcon(Icons.favorite_border_rounded).first,
-    );
-    expect(IconTheme.of(iconElement).color, Colors.white);
+    await tester.tap(find.text('Batch'));
+    await tester.pump();
+    await tester.tap(find.text('首屏歌曲'));
+    await tester.pump();
+
+    expect(find.text('1 selected'), findsOneWidget);
+
+    await tester.tap(find.text('专辑'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 selected'), findsNothing);
   });
 }
 

@@ -100,7 +100,11 @@ class SongListItem extends StatelessWidget {
   const SongListItem({
     required this.data,
     this.isLiked = false,
+    this.selectable = false,
+    this.selected = false,
+    this.showActions = true,
     this.onTap,
+    this.onSelectTap,
     this.onLikeTap,
     this.onMoreTap,
     this.onMoreVersionTap,
@@ -109,7 +113,11 @@ class SongListItem extends StatelessWidget {
 
   final SongListItemData data;
   final bool isLiked;
+  final bool selectable;
+  final bool selected;
+  final bool showActions;
   final VoidCallback? onTap;
+  final VoidCallback? onSelectTap;
   final VoidCallback? onLikeTap;
   final VoidCallback? onMoreTap;
   final VoidCallback? onMoreVersionTap;
@@ -118,16 +126,19 @@ class SongListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isCurrent = data.isCurrent;
+    final isSelected = selectable && selected;
+    final effectiveOnTap = selectable ? (onSelectTap ?? onTap) : onTap;
+    final backgroundColor = isCurrent || isSelected
+        ? theme.colorScheme.primary.withValues(alpha: isCurrent ? 0.07 : 0.05)
+        : Colors.transparent;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: isCurrent
-            ? theme.colorScheme.primary.withValues(alpha: 0.07)
-            : Colors.transparent,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(14),
       ),
       child: InkWell(
-        onTap: onTap,
+        onTap: effectiveOnTap,
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -137,6 +148,10 @@ class SongListItem extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
+              if (selectable) ...<Widget>[
+                _SelectIndicator(selected: selected),
+                const SizedBox(width: 12),
+              ],
               _SongCover(
                 url: data.coverUrl,
                 bytes: data.coverBytes,
@@ -184,15 +199,52 @@ class SongListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
-              _ActionButtons(
-                liked: isLiked,
-                onLikeTap: onLikeTap,
-                onMoreTap: onMoreTap,
-              ),
+              if (showActions) ...<Widget>[
+                const SizedBox(width: 4),
+                _ActionButtons(
+                  liked: isLiked,
+                  onLikeTap: onLikeTap,
+                  onMoreTap: onMoreTap,
+                ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SelectIndicator extends StatelessWidget {
+  const _SelectIndicator({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final borderColor = selected
+        ? primary
+        : theme.colorScheme.outline.withValues(alpha: 0.72);
+    final fillColor = selected
+        ? primary
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.32);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: fillColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor),
+      ),
+      child: Icon(
+        selected ? Icons.check_rounded : Icons.circle_outlined,
+        size: selected ? 15 : 10,
+        color: selected
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.outline.withValues(alpha: 0.78),
       ),
     );
   }

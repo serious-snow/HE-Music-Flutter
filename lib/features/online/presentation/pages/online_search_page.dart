@@ -12,6 +12,8 @@ import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
 import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
+import '../../../../shared/helpers/user_playlist_song_action_helper.dart';
+import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/utils/cover_resolver.dart';
 import '../../../my/presentation/providers/favorite_song_status_providers.dart';
 import '../../data/online_api_client.dart';
@@ -653,6 +655,7 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
       onPlay: () => unawaited(_playSong(item)),
       onPlayNext: () => unawaited(_queuePlayNext(item)),
       onAddToPlaylist: () => unawaited(_appendToQueue(item)),
+      onAddToUserPlaylist: () => unawaited(_addToUserPlaylist(item)),
       onWatchMv: () => openSearchSongMvDetail(
         context: context,
         item: item,
@@ -820,6 +823,25 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
     } catch (error) {
       _showErrorMessage('$error');
     }
+  }
+
+  Future<void> _addToUserPlaylist(Map<String, dynamic> item) async {
+    final song = searchSongInfo(item);
+    final id = _safeValue(song.id);
+    if (id == '-') {
+      _showMessage(
+        AppI18n.t(ref.read(appConfigProvider), 'search.invalid_song'),
+      );
+      return;
+    }
+    await addSingleSongToUserPlaylist(
+      context: context,
+      ref: ref,
+      song: IdPlatformInfo(
+        id: id,
+        platform: resolveSearchPlatform(item, _selectedPlatformId),
+      ),
+    );
   }
 
   Future<PlayerTrack> _buildPlayerTrack(Map<String, dynamic> item) async {

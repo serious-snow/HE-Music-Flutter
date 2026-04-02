@@ -3,18 +3,26 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/app_message_service.dart';
 import '../../../../app/config/app_config_controller.dart';
+import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../core/network/network_error_message.dart';
 import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/helpers/detail_cover_preview_helper.dart';
 import '../../../../shared/helpers/detail_song_action_handler.dart';
+import '../../../../shared/helpers/song_batch_helpers.dart';
+import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/widgets/detail_description_sheet.dart';
 import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/music_detail_slivers.dart';
 import '../../../../shared/widgets/online_song_list_item.dart';
 import '../../../../shared/utils/cover_resolver.dart';
+import '../../../../shared/widgets/select_user_playlist_sheet.dart';
+import '../../../../shared/widgets/song_batch_action_bar.dart';
 import '../../../../shared/widgets/song_list_component.dart';
+import '../../../my/presentation/providers/user_playlist_song_providers.dart';
 import '../../../player/domain/entities/player_queue_source.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../online/domain/entities/online_platform.dart';
@@ -47,6 +55,9 @@ class RankingDetailPage extends ConsumerStatefulWidget {
 class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
   late final RankingDetailRequest _request;
   late final DetailSongActionHandler<RankingSong> _songActions;
+  bool _isBatchMode = false;
+  bool _submittingBatch = false;
+  Set<String> _selectedSongKeys = <String>{};
 
   @override
   void initState() {
@@ -88,6 +99,17 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
     final title = state.detail?.info.name ?? widget.title ?? '榜单';
 
     return DetailPageShell(
+      bottomBar: _isBatchMode
+          ? SongBatchActionBar(
+              enabled: _selectedSongs(state.songs).isNotEmpty,
+              loading: _submittingBatch,
+              onPlayPressed: () => unawaited(_playSelectedSongs(state.songs)),
+              onAddToQueuePressed: () =>
+                  unawaited(_appendSelectedSongsToQueue(state.songs)),
+              onAddToPlaylistPressed: () =>
+                  unawaited(_addSelectedSongsToPlaylist(state.songs)),
+            )
+          : null,
       child: state.loading
           ? DetailLoadingBody(title: widget.title ?? '榜单')
           : state.errorMessage != null
@@ -109,6 +131,19 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
                 coverUrl: coverUrl,
               ),
               onPlayAll: () => _songActions.playAll(context, state.songs),
+              batchMode: _isBatchMode,
+              selectedSongKeys: _selectedSongKeys,
+              selectedCount: _selectedSongs(state.songs).length,
+              allSelected: areAllLoadedSongsSelected(
+                state.songs,
+                _selectedSongKeys,
+                songIdOf: (song) => song.id,
+                platformOf: (song) => song.platform,
+              ),
+              onEnterBatchMode: () => _setBatchMode(true),
+              onCancelBatch: () => _setBatchMode(false),
+              onSelectAllLoaded: () => _selectAllLoadedSongs(state.songs),
+              onToggleSongSelection: _toggleSongSelection,
               onShowDescription: (text) =>
                   showDetailDescriptionSheet(context, title: title, text: text),
             ),
@@ -123,6 +158,146 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
       imageUrl: coverUrl,
     );
   }
+
+  void _setBatchMode(bool enabled) {
+    setState(() {
+      _isBatchMode = enabled;
+      _submittingBatch = false;
+      if (!enabled) {
+        _selectedSongKeys = <String>{};
+      }
+    });
+  }
+
+  void _toggleSongSelection(RankingSong song) {
+    final key = buildSongBatchKey(songId: song.id, platform: song.platform);
+    setState(() {
+      if (_selectedSongKeys.contains(key)) {
+        _selectedSongKeys.remove(key);
+      } else {
+        _selectedSongKeys.add(key);
+      }
+    });
+  }
+
+  void _selectAllLoadedSongs(List<RankingSong> songs) {
+    final nextSelection = buildLoadedSongBatchKeys(
+      songs,
+      songIdOf: (song) => song.id,
+      platformOf: (song) => song.platform,
+    );
+    setState(() {
+      _selectedSongKeys =
+          nextSelection.isNotEmpty &&
+              nextSelection.every(_selectedSongKeys.contains)
+          ? <String>{}
+          : nextSelection;
+    });
+  }
+
+  List<IdPlatformInfo> _selectedSongs(List<RankingSong> songs) {
+    return collectSelectedSongIdPlatforms(
+      songs,
+      _selectedSongKeys,
+      songIdOf: (song) => song.id,
+      platformOf: (song) => song.platform,
+    );
+  }
+
+  List<RankingSong> _selectedSongItems(List<RankingSong> songs) {
+    return collectSelectedSongItems(
+      songs,
+      _selectedSongKeys,
+      songIdOf: (song) => song.id,
+      platformOf: (song) => song.platform,
+    );
+  }
+
+  Future<void> _playSelectedSongs(List<RankingSong> songs) async {
+    final selectedSongs = _selectedSongItems(songs);
+    if (selectedSongs.isEmpty || _submittingBatch) {
+      return;
+    }
+    await _songActions.playAll(context, selectedSongs);
+    if (!mounted) {
+      return;
+    }
+    _setBatchMode(false);
+  }
+
+  Future<void> _appendSelectedSongsToQueue(List<RankingSong> songs) async {
+    final selectedSongs = _selectedSongItems(songs);
+    if (selectedSongs.isEmpty || _submittingBatch) {
+      return;
+    }
+    setState(() {
+      _submittingBatch = true;
+    });
+    try {
+      await _songActions.appendAllToQueue(selectedSongs);
+      if (!mounted) {
+        return;
+      }
+      _setBatchMode(false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppI18n.t(ref.read(appConfigProvider), 'search.queue.appended'),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _submittingBatch = false;
+      });
+      AppMessageService.showError(
+        NetworkErrorMessage.resolve(error) ?? '$error',
+      );
+    }
+  }
+
+  Future<void> _addSelectedSongsToPlaylist(List<RankingSong> songs) async {
+    final selectedSongs = _selectedSongs(songs);
+    if (selectedSongs.isEmpty || _submittingBatch) {
+      return;
+    }
+    final playlistId = await showSelectUserPlaylistSheet(context);
+    if (playlistId == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _submittingBatch = true;
+    });
+    try {
+      await ref
+          .read(userPlaylistSongApiClientProvider)
+          .addSongs(playlistId: playlistId, songs: selectedSongs);
+      if (!mounted) {
+        return;
+      }
+      _setBatchMode(false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppI18n.t(ref.read(appConfigProvider), 'detail.batch.add_success'),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _submittingBatch = false;
+      });
+      AppMessageService.showError(
+        NetworkErrorMessage.resolve(error) ?? '$error',
+      );
+    }
+  }
 }
 
 class _Body extends ConsumerWidget {
@@ -134,6 +309,14 @@ class _Body extends ConsumerWidget {
     required this.onPlaySong,
     required this.onMoreSong,
     required this.onPlayAll,
+    required this.batchMode,
+    required this.selectedSongKeys,
+    required this.selectedCount,
+    required this.allSelected,
+    required this.onEnterBatchMode,
+    required this.onCancelBatch,
+    required this.onSelectAllLoaded,
+    required this.onToggleSongSelection,
     required this.onShowDescription,
   });
 
@@ -144,6 +327,14 @@ class _Body extends ConsumerWidget {
   final void Function(RankingSong, String coverUrl, int index) onPlaySong;
   final void Function(RankingSong, String coverUrl) onMoreSong;
   final VoidCallback onPlayAll;
+  final bool batchMode;
+  final Set<String> selectedSongKeys;
+  final int selectedCount;
+  final bool allSelected;
+  final VoidCallback onEnterBatchMode;
+  final VoidCallback onCancelBatch;
+  final VoidCallback onSelectAllLoaded;
+  final void Function(RankingSong song) onToggleSongSelection;
   final ValueChanged<String> onShowDescription;
 
   @override
@@ -175,6 +366,12 @@ class _Body extends ConsumerWidget {
             delegate: MusicDetailPlayAllHeader(
               countText: '全部播放 ${state.songs.length}',
               onPlayAll: onPlayAll,
+              onBatchAction: state.songs.isEmpty ? null : onEnterBatchMode,
+              batchMode: batchMode,
+              selectedCount: selectedCount,
+              allSelected: allSelected,
+              onSelectAll: state.songs.isEmpty ? null : onSelectAllLoaded,
+              onCancelBatch: batchMode ? onCancelBatch : null,
             ),
           ),
         ];
@@ -207,9 +404,17 @@ class _Body extends ConsumerWidget {
               song: song,
               coverUrl: songCover.trim().isEmpty ? null : songCover,
               isCurrent: isCurrentSongTrack(currentTrack, song),
-              onTap: () => onPlaySong(song, songCover, index),
-              onLikeTap: () {},
-              onMoreTap: () => onMoreSong(song, songCover),
+              selectable: batchMode,
+              selected: selectedSongKeys.contains(
+                buildSongBatchKey(songId: song.id, platform: song.platform),
+              ),
+              showActions: !batchMode,
+              onTap: batchMode
+                  ? null
+                  : () => onPlaySong(song, songCover, index),
+              onSelectTap: () => onToggleSongSelection(song),
+              onLikeTap: batchMode ? null : () {},
+              onMoreTap: batchMode ? null : () => onMoreSong(song, songCover),
             );
           },
           initialLoading: state.loading && state.songs.isEmpty,

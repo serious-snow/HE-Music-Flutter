@@ -6,9 +6,10 @@ import '../../features/player/presentation/widgets/mini_player_bar.dart';
 import 'detail_loading_skeleton.dart';
 
 class DetailPageShell extends StatelessWidget {
-  const DetailPageShell({required this.child, super.key});
+  const DetailPageShell({required this.child, this.bottomBar, super.key});
 
   final Widget child;
+  final Widget? bottomBar;
 
   @override
   Widget build(BuildContext context) {
@@ -16,6 +17,7 @@ class DetailPageShell extends StatelessWidget {
       body: Column(
         children: <Widget>[
           Expanded(child: child),
+          ...<Widget?>[bottomBar].nonNulls,
           MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
         ],
       ),

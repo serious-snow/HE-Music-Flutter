@@ -96,6 +96,17 @@ class DetailSongActionHandler<T> {
     }
   }
 
+  Future<void> appendAllToQueue(List<T> songs) async {
+    if (songs.isEmpty) {
+      return;
+    }
+    final tracks = await _buildTracks(songs);
+    final playerController = ref.read(playerControllerProvider.notifier);
+    for (final track in tracks) {
+      await playerController.appendTrack(track);
+    }
+  }
+
   void showSongActions({
     required BuildContext context,
     required T song,
