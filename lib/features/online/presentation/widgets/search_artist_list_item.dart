@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/i18n/app_i18n.dart';
+
 class SearchArtistListItem extends StatelessWidget {
   const SearchArtistListItem({
+    required this.localeCode,
     required this.title,
     required this.coverUrl,
     required this.songCount,
@@ -11,6 +14,7 @@ class SearchArtistListItem extends StatelessWidget {
     super.key,
   });
 
+  final String localeCode;
   final String title;
   final String coverUrl;
   final String songCount;
@@ -48,6 +52,7 @@ class SearchArtistListItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _StatsLine(
+                      localeCode: localeCode,
                       songCount: songCount,
                       albumCount: albumCount,
                       videoCount: videoCount,
@@ -65,11 +70,13 @@ class SearchArtistListItem extends StatelessWidget {
 
 class _StatsLine extends StatelessWidget {
   const _StatsLine({
+    required this.localeCode,
     required this.songCount,
     required this.albumCount,
     required this.videoCount,
   });
 
+  final String localeCode;
   final String songCount;
   final String albumCount;
   final String videoCount;
@@ -79,15 +86,24 @@ class _StatsLine extends StatelessWidget {
     return Row(
       children: <Widget>[
         Expanded(
-          child: _StatText(value: songCount, label: '歌曲'),
+          child: _StatText(
+            value: songCount,
+            label: AppI18n.tByLocaleCode(localeCode, 'artist.label.song'),
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _StatText(value: albumCount, label: '专辑'),
+          child: _StatText(
+            value: albumCount,
+            label: AppI18n.tByLocaleCode(localeCode, 'artist.label.album'),
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _StatText(value: videoCount, label: '视频'),
+          child: _StatText(
+            value: videoCount,
+            label: AppI18n.tByLocaleCode(localeCode, 'artist.label.video'),
+          ),
         ),
       ],
     );

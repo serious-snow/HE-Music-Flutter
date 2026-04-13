@@ -23,7 +23,11 @@ import '../../../../shared/widgets/underline_tab.dart';
 import '../../../../shared/utils/cover_resolver.dart';
 import '../providers/home_discover_providers.dart';
 import '../../../my/presentation/providers/favorite_song_status_providers.dart';
+import '../../../download/domain/entities/download_task.dart';
+import '../../../download/presentation/providers/download_providers.dart';
+import '../../../download/presentation/widgets/download_quality_sheet.dart';
 import '../../../player/domain/entities/player_track.dart';
+import '../../../player/domain/entities/player_quality_option.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
@@ -318,6 +322,13 @@ class DiscoverHomeTab extends ConsumerWidget {
       platformId: platformId,
       song: song,
     );
+    final qualities = buildDownloadQualityOptions(
+      links: song.links,
+      qualityDescriptions: _platformQualityDescriptions(
+        platforms: platforms,
+        platformId: platformId,
+      ),
+    );
 
     showSongActionsSheet(
       context: context,
@@ -371,6 +382,18 @@ class DiscoverHomeTab extends ConsumerWidget {
           platformId: platformId,
         ),
       ),
+      onDownload: qualities.isEmpty
+          ? null
+          : () => unawaited(
+              _downloadDiscoverSong(
+                context: context,
+                ref: ref,
+                song: song,
+                platformId: platformId,
+                artworkUrl: artworkUrl.isEmpty ? null : artworkUrl,
+                qualities: qualities,
+              ),
+            ),
       onWatchMv: () => _openDiscoverSongMvDetail(
         context: context,
         platformId: platformId,
@@ -502,6 +525,75 @@ class DiscoverHomeTab extends ConsumerWidget {
       size: 300,
     );
     return resolved.isEmpty ? cover : resolved;
+  }
+
+  Map<String, String> _platformQualityDescriptions({
+    required List<OnlinePlatform> platforms,
+    required String platformId,
+  }) {
+    for (final platform in platforms) {
+      if (platform.id == platformId) {
+        return platform.qualities;
+      }
+    }
+    return const <String, String>{};
+  }
+
+  Future<void> _downloadDiscoverSong({
+    required BuildContext context,
+    required WidgetRef ref,
+    required SongInfo song,
+    required String platformId,
+    required String? artworkUrl,
+    required List<PlayerQualityOption> qualities,
+  }) async {
+    final config = ref.read(appConfigProvider);
+    final selected = await showDownloadQualitySheet(
+      context: context,
+      qualities: qualities,
+      selectedQualityName: qualities.isEmpty ? null : qualities.first.name,
+    );
+    if (selected == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(downloadControllerProvider.notifier)
+          .enqueue(
+            title: song.title,
+            quality: DownloadTaskQuality(
+              label: selected.name,
+              bitrate: selected.quality.toDouble(),
+              fileExtension: selected.format.trim().toLowerCase(),
+            ),
+            songId: song.id,
+            platform: platformId,
+            artist: song.artist,
+            album: song.album?.name,
+            artworkUrl: artworkUrl,
+          );
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppI18n.format(
+              config,
+              'player.download.added',
+              <String, String>{'title': song.title},
+            ),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppI18n.t(config, 'player.download.failed'))),
+      );
+    }
   }
 
   PlayerTrack _buildOnlineTrack({

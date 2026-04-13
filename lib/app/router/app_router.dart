@@ -9,6 +9,7 @@ import '../../features/auth/presentation/pages/captcha_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/qr_login_confirm_page.dart';
 import '../../features/auth/presentation/pages/qr_login_scan_page.dart';
+import '../../features/download/presentation/pages/download_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/music_library/presentation/pages/local_library_page.dart';
 import '../../features/my/presentation/pages/my_collection_page.dart';
@@ -91,6 +92,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.library,
         builder: (context, state) => const LocalLibraryPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.downloads,
+        builder: (context, state) => const DownloadPage(),
       ),
       GoRoute(
         path: AppRoutes.settings,

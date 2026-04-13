@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/i18n/app_i18n.dart';
 import '../../../../shared/widgets/plaza_loading_skeleton.dart';
 
 class OnlineSearchHotPanel extends StatelessWidget {
   const OnlineSearchHotPanel({
+    required this.localeCode,
     required this.historyKeywords,
     required this.hotKeywords,
     required this.loadingHistory,
@@ -13,6 +15,7 @@ class OnlineSearchHotPanel extends StatelessWidget {
     super.key,
   });
 
+  final String localeCode;
   final List<String> historyKeywords;
   final List<String> hotKeywords;
   final bool loadingHistory;
@@ -26,10 +29,10 @@ class OnlineSearchHotPanel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       children: <Widget>[
         _SectionHeader(
-          title: '搜索历史',
+          title: AppI18n.tByLocaleCode(localeCode, 'search.history.title'),
           trailing: IconButton(
             onPressed: onClearHistory,
-            tooltip: 'Clear',
+            tooltip: AppI18n.tByLocaleCode(localeCode, 'common.clear'),
             icon: const Icon(Icons.delete_outline_rounded),
           ),
         ),
@@ -38,15 +41,21 @@ class OnlineSearchHotPanel extends StatelessWidget {
             itemWidths: <double>[86, 72, 94, 68, 88, 76],
           )
         else if (historyKeywords.isEmpty)
-          const _SectionEmpty(text: '暂无搜索历史')
+          _SectionEmpty(
+            text: AppI18n.tByLocaleCode(localeCode, 'search.history.empty'),
+          )
         else
           _KeywordWrap(items: historyKeywords, onTap: onTapKeyword),
         const SizedBox(height: 14),
-        const _SectionHeader(title: '热门搜索'),
+        _SectionHeader(
+          title: AppI18n.tByLocaleCode(localeCode, 'search.hot.title'),
+        ),
         if (loadingHot)
           const HotKeywordListSkeleton()
         else if (hotKeywords.isEmpty)
-          const _SectionEmpty(text: '暂无热门搜索')
+          _SectionEmpty(
+            text: AppI18n.tByLocaleCode(localeCode, 'search.hot.empty'),
+          )
         else
           _HotKeywordList(items: hotKeywords, onTap: onTapKeyword),
       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/i18n/app_i18n.dart';
 import '../../domain/entities/online_platform.dart';
 import '../../../../shared/widgets/underline_tab.dart';
 import 'online_search_models.dart';
@@ -134,30 +135,32 @@ class SearchTopBox extends StatelessWidget {
 
 class SearchTypeBar extends StatelessWidget {
   const SearchTypeBar({
+    required this.localeCode,
     required this.selectedType,
     required this.onChanged,
     super.key,
   });
 
+  final String localeCode;
   final SearchType selectedType;
   final ValueChanged<SearchType> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    const tabs = <(SearchType, String)>[
-      (SearchType.song, '歌曲'),
-      (SearchType.playlist, '歌单'),
-      (SearchType.album, '专辑'),
-      (SearchType.artist, '歌手'),
-      (SearchType.video, '视频'),
+    const tabs = <SearchType>[
+      SearchType.song,
+      SearchType.playlist,
+      SearchType.album,
+      SearchType.artist,
+      SearchType.video,
     ];
     return Row(
       children: tabs
           .map(
             (tab) => _SimpleTab(
-              label: tab.$2,
-              selected: selectedType == tab.$1,
-              onTap: () => onChanged(tab.$1),
+              label: AppI18n.tByLocaleCode(localeCode, tab.labelKey),
+              selected: selectedType == tab,
+              onTap: () => onChanged(tab),
             ),
           )
           .toList(growable: false),

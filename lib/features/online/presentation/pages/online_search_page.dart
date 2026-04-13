@@ -18,8 +18,12 @@ import '../../../../shared/utils/cover_resolver.dart';
 import '../../../my/presentation/providers/favorite_song_status_providers.dart';
 import '../../data/online_api_client.dart';
 import '../../domain/entities/online_platform.dart';
+import '../../../player/domain/entities/player_quality_option.dart';
 import '../../../player/domain/entities/player_track.dart';
 import '../../../player/presentation/providers/player_providers.dart';
+import '../../../download/domain/entities/download_task.dart';
+import '../../../download/presentation/providers/download_providers.dart';
+import '../../../download/presentation/widgets/download_quality_sheet.dart';
 import '../../../player/presentation/widgets/mini_player_bar.dart';
 import '../providers/online_providers.dart';
 import 'online_search_actions_handler.dart';
@@ -189,6 +193,7 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
                 ),
                 child: showHotPanel
                     ? OnlineSearchHotPanel(
+                        localeCode: config.localeCode,
                         historyKeywords: _searchHistoryKeywords,
                         hotKeywords: _hotKeywords,
                         loadingHistory: _loadingSearchHistory,
@@ -203,6 +208,7 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
                         onTapKeyword: _onTapSuggestedKeyword,
                       )
                     : OnlineSearchResultPage(
+                        localeCode: config.localeCode,
                         selectedType: _selectedType,
                         onTypeChanged: _onTypeChanged,
                         loadingPlatforms: loadingPlatforms,
@@ -637,6 +643,10 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
     final platforms =
         ref.read(onlinePlatformsProvider).valueOrNull ??
         const <OnlinePlatform>[];
+    final qualities = buildDownloadQualityOptions(
+      links: song.links,
+      qualityDescriptions: _platformQualityDescriptions(platform, platforms),
+    );
     final coverUrl = resolveSongCoverUrl(
       baseUrl: config.apiBaseUrl,
       token: config.authToken ?? '',
@@ -657,6 +667,17 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
       onPlay: () => unawaited(_playSong(item)),
       onPlayNext: () => unawaited(_queuePlayNext(item)),
       onAddToPlaylist: () => unawaited(_appendToQueue(item)),
+      onDownload:
+          platform.trim().toLowerCase() == 'local' || qualities.isEmpty
+          ? null
+          : () => unawaited(
+              _downloadSongFromSearch(
+                item: item,
+                song: song,
+                artworkUrl: coverUrl.isEmpty ? null : coverUrl,
+                qualities: qualities,
+              ),
+            ),
       onAddToUserPlaylist: () => unawaited(_addToUserPlaylist(item)),
       onWatchMv: () => openSearchSongMvDetail(
         context: context,
@@ -725,6 +746,62 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _downloadSongFromSearch({
+    required Map<String, dynamic> item,
+    required SongInfo song,
+    required String? artworkUrl,
+    required List<PlayerQualityOption> qualities,
+  }) async {
+    final platform = resolveSearchPlatform(item, _selectedPlatformId);
+    final config = ref.read(appConfigProvider);
+    final selected = await showDownloadQualitySheet(
+      context: context,
+      qualities: qualities,
+      selectedQualityName: qualities.first.name,
+    );
+    if (selected == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(downloadControllerProvider.notifier)
+          .enqueue(
+            title: song.title,
+            quality: DownloadTaskQuality(
+              label: selected.name,
+              bitrate: selected.quality.toDouble(),
+              fileExtension: selected.format.trim().toLowerCase(),
+            ),
+            songId: song.id,
+            platform: platform,
+            artist: song.artist,
+            album: song.album?.name,
+            artworkUrl: artworkUrl,
+          );
+      _showMessage(
+        AppI18n.format(
+          config,
+          'player.download.added',
+          <String, String>{'title': song.title},
+        ),
+      );
+    } catch (_) {
+      _showMessage(AppI18n.t(config, 'player.download.failed'));
+    }
+  }
+
+  Map<String, String> _platformQualityDescriptions(
+    String platformId,
+    List<OnlinePlatform> platforms,
+  ) {
+    for (final platform in platforms) {
+      if (platform.id == platformId) {
+        return platform.qualities;
+      }
+    }
+    return const <String, String>{};
   }
 
   Future<void> _toggleSongLike(Map<String, dynamic> item) async {

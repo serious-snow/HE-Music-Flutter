@@ -92,6 +92,7 @@ class _ArtistPlazaPageState extends ConsumerState<ArtistPlazaPage> {
                   );
                 }
                 return _ArtistPlazaBody(
+                  localeCode: config.localeCode,
                   scrollController: _scrollController,
                   state: state,
                   onRetry: () =>
@@ -176,6 +177,7 @@ class _ArtistPlazaPageState extends ConsumerState<ArtistPlazaPage> {
 
 class _ArtistPlazaBody extends StatelessWidget {
   const _ArtistPlazaBody({
+    required this.localeCode,
     required this.scrollController,
     required this.state,
     required this.onRetry,
@@ -183,6 +185,7 @@ class _ArtistPlazaBody extends StatelessWidget {
     required this.onLoadMoreRetry,
   });
 
+  final String localeCode;
   final ScrollController scrollController;
   final ArtistPlazaState state;
   final VoidCallback onRetry;
@@ -240,6 +243,7 @@ class _ArtistPlazaBody extends StatelessWidget {
         }
         final artist = state.artists[index];
         return SearchArtistListItem(
+          localeCode: localeCode,
           title: artist.name,
           coverUrl: artist.cover,
           songCount: artist.songCount,

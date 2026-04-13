@@ -17,7 +17,9 @@ import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
 import '../../../../shared/helpers/user_playlist_song_action_helper.dart';
 import '../../../../shared/models/he_music_models.dart';
+import '../../../download/domain/entities/download_task.dart';
 import '../../../download/presentation/providers/download_providers.dart';
+import '../../../download/presentation/widgets/download_quality_sheet.dart';
 import '../../../lyrics/domain/entities/lyric_document.dart';
 import '../../../lyrics/domain/entities/lyric_line.dart';
 import '../../../lyrics/presentation/providers/lyrics_providers.dart';
@@ -303,8 +305,27 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                             currentSelectedQuality,
                           );
                         }
-                      : null,
+                        : null,
                 ),
+                if (canOnline)
+                  _PlayerSheetActionTile(
+                    icon: Icons.download_rounded,
+                    title: AppI18n.t(config, 'player.action.download'),
+                    enabled: currentAvailableQualities.isNotEmpty,
+                    onTap: currentAvailableQualities.isEmpty
+                        ? null
+                        : () {
+                            Navigator.of(sheetContext).pop();
+                            unawaited(
+                              _downloadCurrentTrack(
+                                track: track!,
+                                platformId: onlinePlatformId,
+                                qualities: currentAvailableQualities,
+                                selectedQualityName: currentSelectedQuality,
+                              ),
+                            );
+                          },
+                  ),
                 if (canOnline)
                   _PlayerSheetActionTile(
                     icon: Icons.album_outlined,
@@ -420,38 +441,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                           }
                         : null,
                   ),
-                if (canOnline)
-                  _PlayerSheetActionTile(
-                    icon: Icons.download_rounded,
-                    title: AppI18n.t(config, 'player.action.download'),
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      try {
-                        final url = await ref
-                            .read(onlineControllerProvider.notifier)
-                            .fetchSongUrl(
-                              songId: track!.id,
-                              platform: onlinePlatformId,
-                            );
-                        await ref
-                            .read(downloadControllerProvider.notifier)
-                            .enqueue(title: track.title, url: url);
-                        if (!mounted) return;
-                        _showMessage(
-                          AppI18n.format(
-                            config,
-                            'player.download.added',
-                            <String, String>{'title': track.title},
-                          ),
-                        );
-                      } catch (_) {
-                        if (!mounted) return;
-                        _showMessage(
-                          AppI18n.t(config, 'player.download.failed'),
-                        );
-                      }
-                    },
-                  ),
                 _PlayerSheetActionTile(
                   icon: Icons.copy_rounded,
                   title: AppI18n.t(config, 'player.action.copy_name'),
@@ -565,6 +554,55 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
         );
       },
     );
+  }
+
+  Future<void> _downloadCurrentTrack({
+    required PlayerTrack track,
+    required String platformId,
+    required List<PlayerQualityOption> qualities,
+    required String? selectedQualityName,
+  }) async {
+    final config = ref.read(appConfigProvider);
+    final selected = await showDownloadQualitySheet(
+      context: context,
+      qualities: qualities,
+      selectedQualityName: selectedQualityName ?? qualities.first.name,
+    );
+    if (selected == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(downloadControllerProvider.notifier)
+          .enqueue(
+            title: track.title,
+            quality: DownloadTaskQuality(
+              label: selected.name,
+              bitrate: selected.quality.toDouble(),
+              fileExtension: selected.format.trim().toLowerCase(),
+            ),
+            songId: track.id,
+            platform: platformId,
+            artist: track.artist,
+            album: track.album,
+            artworkUrl: track.artworkUrl,
+          );
+      if (!mounted) {
+        return;
+      }
+      _showMessage(
+        AppI18n.format(
+          config,
+          'player.download.added',
+          <String, String>{'title': track.title},
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage(AppI18n.t(config, 'player.download.failed'));
+    }
   }
 
   void _openVolumeSheet(

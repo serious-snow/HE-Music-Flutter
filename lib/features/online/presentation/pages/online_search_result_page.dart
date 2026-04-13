@@ -6,6 +6,7 @@ import 'online_search_result_list.dart';
 
 class OnlineSearchResultPage extends StatelessWidget {
   const OnlineSearchResultPage({
+    required this.localeCode,
     required this.selectedType,
     required this.onTypeChanged,
     required this.loadingPlatforms,
@@ -26,6 +27,7 @@ class OnlineSearchResultPage extends StatelessWidget {
     super.key,
   });
 
+  final String localeCode;
   final SearchType selectedType;
   final ValueChanged<SearchType> onTypeChanged;
   final bool loadingPlatforms;
@@ -49,7 +51,11 @@ class OnlineSearchResultPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        SearchTypeBar(selectedType: selectedType, onChanged: onTypeChanged),
+        SearchTypeBar(
+          localeCode: localeCode,
+          selectedType: selectedType,
+          onChanged: onTypeChanged,
+        ),
         const SizedBox(height: 10),
         SearchPlatformBar(
           loading: loadingPlatforms,

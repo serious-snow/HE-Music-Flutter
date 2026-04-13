@@ -7,6 +7,7 @@ import Foundation
 
 import audio_service
 import audio_session
+import audiotags
 import gocaptcha
 import just_audio
 import mobile_scanner
@@ -21,6 +22,7 @@ import volume_controller
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AudioServicePlugin.register(with: registry.registrar(forPlugin: "AudioServicePlugin"))
   AudioSessionPlugin.register(with: registry.registrar(forPlugin: "AudioSessionPlugin"))
+  AudiotagsPlugin.register(with: registry.registrar(forPlugin: "AudiotagsPlugin"))
   GocaptchaPlugin.register(with: registry.registrar(forPlugin: "GocaptchaPlugin"))
   JustAudioPlugin.register(with: registry.registrar(forPlugin: "JustAudioPlugin"))
   MobileScannerPlugin.register(with: registry.registrar(forPlugin: "MobileScannerPlugin"))

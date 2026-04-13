@@ -110,6 +110,12 @@ class _MyPageState extends ConsumerState<MyPage> {
           title: AppI18n.t(config, 'local.title'),
           onTap: () => context.push(AppRoutes.library),
         ),
+        const SizedBox(height: 10),
+        _EntryCard(
+          icon: Icons.download_rounded,
+          title: AppI18n.t(config, 'my.download'),
+          onTap: () => context.push(AppRoutes.downloads),
+        ),
         if (tokenSet) ...<Widget>[
           const SizedBox(height: 10),
           _EntryCard(

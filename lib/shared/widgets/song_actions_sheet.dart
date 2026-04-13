@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../app/i18n/app_i18n.dart';
+import 'adaptive_action_menu.dart';
 
 Future<void> showSongActionsSheet({
   required BuildContext context,
+  BuildContext? anchorContext,
+  Offset? anchorPosition,
   required String? coverUrl,
   required String title,
   required String subtitle,
@@ -12,6 +15,7 @@ Future<void> showSongActionsSheet({
   required VoidCallback onPlay,
   required VoidCallback onPlayNext,
   required VoidCallback onAddToPlaylist,
+  VoidCallback? onDownload,
   VoidCallback? onAddToUserPlaylist,
   required VoidCallback onWatchMv,
   VoidCallback? onViewComment,
@@ -24,163 +28,113 @@ Future<void> showSongActionsSheet({
   VoidCallback? onSearchSameName,
   required VoidCallback onCopySongId,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (sheetContext) {
-      final localeCode = Localizations.localeOf(sheetContext).languageCode;
-      final maxHeight = MediaQuery.of(sheetContext).size.height * 0.60;
-      return SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 8),
-            children: <Widget>[
-              _SongHeader(coverUrl: coverUrl, title: title, subtitle: subtitle),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.play_arrow_rounded),
-                title: Text(
-                  AppI18n.tByLocaleCode(localeCode, 'song.action.play'),
-                ),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  onPlay();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.skip_next_rounded),
-                title: Text(
-                  AppI18n.tByLocaleCode(localeCode, 'song.action.play_next'),
-                ),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  onPlayNext();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.playlist_add_rounded),
-                title: Text(
-                  AppI18n.tByLocaleCode(localeCode, 'song.action.add_to_queue'),
-                ),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  onAddToPlaylist();
-                },
-              ),
-              if (onAddToUserPlaylist != null)
-                ListTile(
-                  leading: const Icon(Icons.library_add_rounded),
-                  title: Text(
-                    AppI18n.tByLocaleCode(
-                      localeCode,
-                      'detail.batch.add_to_playlist',
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onAddToUserPlaylist();
-                  },
-                ),
-              ListTile(
-                leading: const Icon(Icons.ondemand_video_rounded),
-                title: Text(
-                  AppI18n.tByLocaleCode(localeCode, 'player.action.watch_mv'),
-                ),
-                enabled: hasMv,
-                onTap: hasMv
-                    ? () {
-                        Navigator.of(sheetContext).pop();
-                        onWatchMv();
-                      }
-                    : null,
-              ),
-              if (onViewComment != null)
-                ListTile(
-                  leading: const Icon(Icons.forum_rounded),
-                  title: Text(
-                    AppI18n.tByLocaleCode(localeCode, 'player.action.comments'),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onViewComment();
-                  },
-                ),
-              if (albumActionLabel != null && onViewAlbum != null)
-                ListTile(
-                  leading: const Icon(Icons.album_outlined),
-                  title: Text(albumActionLabel),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onViewAlbum();
-                  },
-                ),
-              if (artistActionLabel != null && onViewArtists != null)
-                ListTile(
-                  leading: const Icon(Icons.person_outline_rounded),
-                  title: Text(artistActionLabel),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onViewArtists();
-                  },
-                ),
-              ListTile(
-                leading: const Icon(Icons.drive_file_rename_outline_rounded),
-                title: Text(
-                  AppI18n.tByLocaleCode(localeCode, 'song.action.copy_name'),
-                ),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  onCopySongName();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.copy_rounded),
-                title: Text(
-                  AppI18n.tByLocaleCode(localeCode, 'song.action.copy_id'),
-                ),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  onCopySongId();
-                },
-              ),
-              if (onCopySongShareLink != null)
-                ListTile(
-                  leading: const Icon(Icons.share_rounded),
-                  title: Text(
-                    AppI18n.tByLocaleCode(
-                      localeCode,
-                      'player.action.copy_share',
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onCopySongShareLink();
-                  },
-                ),
-              if (onSearchSameName != null)
-                ListTile(
-                  leading: const Icon(Icons.search_rounded),
-                  title: Text(
-                    AppI18n.tByLocaleCode(
-                      localeCode,
-                      'player.action.search_same',
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onSearchSameName();
-                  },
-                ),
-              _SourceInfoRow(label: sourceLabel),
-              const SizedBox(height: 8),
-            ],
-          ),
+  final localeCode = Localizations.localeOf(context).languageCode;
+  final actions = <AdaptiveActionMenuItem<VoidCallback>>[
+    AdaptiveActionMenuItem<VoidCallback>(
+      value: onPlay,
+      label: AppI18n.tByLocaleCode(localeCode, 'song.action.play'),
+      icon: Icons.play_arrow_rounded,
+    ),
+    AdaptiveActionMenuItem<VoidCallback>(
+      value: onPlayNext,
+      label: AppI18n.tByLocaleCode(localeCode, 'song.action.play_next'),
+      icon: Icons.skip_next_rounded,
+    ),
+    AdaptiveActionMenuItem<VoidCallback>(
+      value: onAddToPlaylist,
+      label: AppI18n.tByLocaleCode(localeCode, 'song.action.add_to_queue'),
+      icon: Icons.playlist_add_rounded,
+    ),
+    if (onDownload != null)
+      AdaptiveActionMenuItem<VoidCallback>(
+        value: onDownload,
+        label: AppI18n.tByLocaleCode(localeCode, 'player.action.download'),
+        icon: Icons.download_rounded,
+      ),
+    if (onAddToUserPlaylist != null)
+      AdaptiveActionMenuItem<VoidCallback>(
+        value: onAddToUserPlaylist,
+        label: AppI18n.tByLocaleCode(
+          localeCode,
+          'detail.batch.add_to_playlist',
         ),
-      );
-    },
-  );
+        icon: Icons.library_add_rounded,
+      ),
+    AdaptiveActionMenuItem<VoidCallback>(
+      value: onWatchMv,
+      label: AppI18n.tByLocaleCode(localeCode, 'player.action.watch_mv'),
+      icon: Icons.ondemand_video_rounded,
+      enabled: hasMv,
+    ),
+    if (onViewComment != null)
+      AdaptiveActionMenuItem<VoidCallback>(
+        value: onViewComment,
+        label: AppI18n.tByLocaleCode(localeCode, 'player.action.comments'),
+        icon: Icons.forum_rounded,
+      ),
+    if (albumActionLabel != null && onViewAlbum != null)
+      AdaptiveActionMenuItem<VoidCallback>(
+        value: onViewAlbum,
+        label: albumActionLabel,
+        icon: Icons.album_outlined,
+      ),
+    if (artistActionLabel != null && onViewArtists != null)
+      AdaptiveActionMenuItem<VoidCallback>(
+        value: onViewArtists,
+        label: artistActionLabel,
+        icon: Icons.person_outline_rounded,
+      ),
+    AdaptiveActionMenuItem<VoidCallback>(
+      value: onCopySongName,
+      label: AppI18n.tByLocaleCode(localeCode, 'song.action.copy_name'),
+      icon: Icons.drive_file_rename_outline_rounded,
+      startsNewSection: true,
+    ),
+    AdaptiveActionMenuItem<VoidCallback>(
+      value: onCopySongId,
+      label: AppI18n.tByLocaleCode(localeCode, 'song.action.copy_id'),
+      icon: Icons.copy_rounded,
+    ),
+    if (onCopySongShareLink != null)
+      AdaptiveActionMenuItem<VoidCallback>(
+        value: onCopySongShareLink,
+        label: AppI18n.tByLocaleCode(localeCode, 'player.action.copy_share'),
+        icon: Icons.share_rounded,
+      ),
+    if (onSearchSameName != null)
+      AdaptiveActionMenuItem<VoidCallback>(
+        value: onSearchSameName,
+        label: AppI18n.tByLocaleCode(localeCode, 'player.action.search_same'),
+        icon: Icons.search_rounded,
+      ),
+  ];
+  return showAdaptiveActionMenu<VoidCallback>(
+    context: context,
+    items: actions,
+    anchorContext: anchorContext,
+    anchorPosition: anchorPosition,
+    mobileHeader: ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.60,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _SongHeader(coverUrl: coverUrl, title: title, subtitle: subtitle),
+          const Divider(height: 1),
+        ],
+      ),
+    ),
+    mobileFooter: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _SourceInfoRow(label: sourceLabel),
+        const SizedBox(height: 8),
+      ],
+    ),
+  ).then((callback) {
+    callback?.call();
+  });
 }
 
 class _SourceInfoRow extends StatelessWidget {

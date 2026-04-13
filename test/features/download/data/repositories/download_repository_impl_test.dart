@@ -1,0 +1,274 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:he_music_flutter/features/download/data/datasources/download_path_data_source.dart';
+import 'package:he_music_flutter/features/download/data/datasources/download_runner_data_source.dart';
+import 'package:he_music_flutter/features/download/data/datasources/download_task_store_data_source.dart';
+import 'package:he_music_flutter/features/download/data/repositories/download_repository_impl.dart';
+import 'package:he_music_flutter/features/download/domain/entities/download_task.dart';
+import 'package:he_music_flutter/features/download/domain/repositories/download_repository.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('repository enqueues runner task with resolved save path', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+    );
+    PathProviderPlatform.instance = _FakePathProviderPlatform('/tmp/app');
+
+    final savePath = await repository.resolveSavePath(
+      title: '测试下载',
+      artist: '歌手A / 歌手B',
+      fileExtension: 'flac',
+    );
+
+    final enqueued = await repository.enqueueTask(
+      DownloadEnqueueRequest(
+        taskId: 'task-1',
+        pluginTaskId: 'plugin-1',
+        url: 'https://example.com/song.flac',
+        savePath: savePath,
+      ),
+    );
+
+    expect(enqueued, isTrue);
+    expect(runner.enqueued.single.pluginTaskId, 'plugin-1');
+    expect(savePath, '/tmp/app/HEMusic/测试下载 - 歌手A、歌手B.flac');
+  });
+
+  test(
+    'repository preserves spaces and parentheses in download filename',
+    () async {
+      final runner = _FakeDownloadRunnerDataSource();
+      final store = _FakeDownloadTaskStoreDataSource();
+      final repository = DownloadRepositoryImpl(
+        runner,
+        store,
+        DownloadPathDataSource(),
+      );
+      PathProviderPlatform.instance = _FakePathProviderPlatform('/tmp/app');
+
+      final savePath = await repository.resolveSavePath(
+        title: 'Runway(Explicit)',
+        artist: 'Lady Gaga, Doechii',
+        fileExtension: 'mp3',
+      );
+
+      expect(
+        savePath,
+        '/tmp/app/HEMusic/Runway(Explicit) - Lady Gaga、Doechii.mp3',
+      );
+    },
+  );
+
+  test('repository replaces invalid filename characters only', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+    );
+    PathProviderPlatform.instance = _FakePathProviderPlatform('/tmp/app');
+
+    final savePath = await repository.resolveSavePath(
+      title: 'AC/DC: Live?',
+      artist: 'Guns N\' Roses / Jay-Z',
+      fileExtension: 'mp3',
+    );
+
+    expect(
+      savePath,
+      '/tmp/app/HEMusic/AC、DC、 Live、 - Guns N\' Roses、Jay-Z.mp3',
+    );
+  });
+
+  test('repository persists and restores tasks through store', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+    );
+
+    final task = DownloadTask(
+      id: 'task-1',
+      title: '夜曲',
+      url: 'https://example.com/song.mp3',
+      status: DownloadTaskStatus.queued,
+      progress: 0,
+      quality: DownloadTaskQuality(
+        label: 'standard',
+        bitrate: 320,
+        fileExtension: 'mp3',
+      ),
+      tagWriteStatus: DownloadTagWriteStatus.pending,
+      lyricFormat: DownloadLyricFormat.none,
+      createdAt: DateTime(2026, 4, 9),
+    );
+
+    await repository.saveTask(task);
+    final restored = await repository.restoreTasks();
+
+    expect(restored, hasLength(1));
+    expect(restored.single.id, 'task-1');
+    expect(restored.single.quality.label, 'standard');
+  });
+
+  test('repository reveals file in finder on macos', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final revealedPaths = <String>[];
+    final launchedDirectories = <Uri>[];
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+      platformResolver: () => _FakePlatform(isMacOS: true),
+      revealInFileManager: (filePath) async {
+        revealedPaths.add(filePath);
+      },
+      openDirectory: (directoryUri) async {
+        launchedDirectories.add(directoryUri);
+        return true;
+      },
+    );
+
+    await repository.openContainingFolder('/tmp/app/HEMusic/song.mp3');
+
+    expect(revealedPaths, <String>['/tmp/app/HEMusic/song.mp3']);
+    expect(launchedDirectories, isEmpty);
+  });
+
+  test('repository opens directory on non-macos platforms', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final revealedPaths = <String>[];
+    final launchedDirectories = <Uri>[];
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+      platformResolver: () => _FakePlatform(isMacOS: false),
+      revealInFileManager: (filePath) async {
+        revealedPaths.add(filePath);
+      },
+      openDirectory: (directoryUri) async {
+        launchedDirectories.add(directoryUri);
+        return true;
+      },
+    );
+
+    await repository.openContainingFolder('/tmp/app/HEMusic/song.mp3');
+
+    expect(revealedPaths, isEmpty);
+    expect(launchedDirectories, <Uri>[Uri.directory('/tmp/app/HEMusic/')]);
+  });
+
+  test('repository uses absolute open command for macos reveal', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final commands = <({String executable, List<String> arguments})>[];
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+      platformResolver: () => _FakePlatform(isMacOS: true),
+      revealInFileManager: DownloadRepositoryImpl.buildRevealInFileManager(
+        processRunner: (executable, arguments) async {
+          commands.add((
+            executable: executable,
+            arguments: List<String>.from(arguments),
+          ));
+          return ProcessResult(0, 0, '', '');
+        },
+      ),
+    );
+
+    await repository.openContainingFolder('/tmp/app/HEMusic/song.mp3');
+
+    expect(commands, hasLength(1));
+    expect(commands.single.executable, 'open');
+    expect(commands.single.arguments, <String>[
+      '-R',
+      '/tmp/app/HEMusic/song.mp3',
+    ]);
+  });
+}
+
+class _FakeDownloadRunnerDataSource extends DownloadRunnerDataSource {
+  _FakeDownloadRunnerDataSource() : super(null);
+
+  final List<DownloadEnqueueRequest> enqueued = <DownloadEnqueueRequest>[];
+
+  @override
+  Future<bool> enqueue(DownloadEnqueueRequest request) async {
+    enqueued.add(request);
+    return true;
+  }
+
+  @override
+  Future<void> download({
+    required String url,
+    required String savePath,
+    required DownloadProgressCallback onProgress,
+  }) async {
+    onProgress(1);
+  }
+
+  @override
+  Stream<DownloadRunnerEvent> watchEvents() {
+    return const Stream<DownloadRunnerEvent>.empty();
+  }
+}
+
+class _FakeDownloadTaskStoreDataSource extends DownloadTaskStoreDataSource {
+  final List<DownloadTask> _tasks = <DownloadTask>[];
+
+  @override
+  Future<List<DownloadTask>> loadTasks() async {
+    return List<DownloadTask>.from(_tasks);
+  }
+
+  @override
+  Future<void> saveTask(DownloadTask task) async {
+    _tasks
+      ..removeWhere((item) => item.id == task.id)
+      ..add(task);
+  }
+
+  @override
+  Future<void> deleteTask(String taskId) async {
+    _tasks.removeWhere((task) => task.id == taskId);
+  }
+}
+
+class _FakePathProviderPlatform extends PathProviderPlatform {
+  _FakePathProviderPlatform(this.path);
+
+  final String path;
+
+  @override
+  Future<String?> getDownloadsPath() async => path;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => path;
+}
+
+class _FakePlatform implements PlatformInfo {
+  const _FakePlatform({required this.isMacOS});
+
+  @override
+  bool get isAndroid => false;
+
+  @override
+  final bool isMacOS;
+}

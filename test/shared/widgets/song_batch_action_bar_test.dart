@@ -54,4 +54,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(addToPlaylistTapped, isTrue);
   });
+
+  testWidgets('batch action bar uses anchored context menu on desktop', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(1280, 900)),
+          child: Scaffold(
+            body: const SizedBox.shrink(),
+            bottomNavigationBar: SongBatchActionBar(
+              enabled: true,
+              onPlayPressed: null,
+              onAddToQueuePressed: null,
+              onAddToPlaylistPressed: null,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Batch'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(PopupMenuItem<VoidCallback>), findsWidgets);
+    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Add to Queue'), findsOneWidget);
+  });
 }

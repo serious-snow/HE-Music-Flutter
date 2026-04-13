@@ -13,6 +13,7 @@ import '../../../../shared/widgets/video_list_card.dart';
 import '../../../../shared/utils/cover_resolver.dart';
 import '../../../../shared/utils/playlist_song_count_text.dart';
 import '../../../../app/config/app_config_controller.dart';
+import '../../../../app/i18n/app_i18n.dart';
 import '../../domain/entities/online_platform.dart';
 import '../providers/online_providers.dart';
 import 'online_search_models.dart';
@@ -91,6 +92,7 @@ class _OnlineSearchResultListState
     final platforms =
         ref.watch(onlinePlatformsProvider).valueOrNull ??
         const <OnlinePlatform>[];
+    final localeCode = ref.watch(appConfigProvider).localeCode;
     if (widget.error != null) {
       return Center(
         child: Text(
@@ -117,10 +119,11 @@ class _OnlineSearchResultListState
       return _SearchResultSkeletonList(type: widget.type);
     }
     if (widget.results.isEmpty) {
-      return const Center(child: Text('暂无搜索结果'));
+      return Center(
+        child: Text(AppI18n.tByLocaleCode(localeCode, 'search.result.empty')),
+      );
     }
     final showFooter = widget.loadingMore || !widget.hasMore;
-    final localeCode = ref.watch(appConfigProvider).localeCode;
     return ListView.separated(
       controller: _commonScrollController,
       padding: const EdgeInsets.only(top: 2, bottom: 4),
@@ -162,6 +165,7 @@ class _OnlineSearchResultListState
             onTap: () => widget.onTapItem(item),
           ),
           SearchType.artist => SearchArtistListItem(
+            localeCode: localeCode,
             title: title,
             coverUrl: image,
             songCount: artistSongCount(item),
@@ -184,6 +188,7 @@ class _OnlineSearchResultListState
   }
 
   Widget _buildFooter(BuildContext context) {
+    final localeCode = ref.read(appConfigProvider).localeCode;
     if (widget.loadingMore) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
@@ -195,7 +200,7 @@ class _OnlineSearchResultListState
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Center(
           child: Text(
-            '没有更多了',
+            AppI18n.tByLocaleCode(localeCode, 'search.result.no_more'),
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),

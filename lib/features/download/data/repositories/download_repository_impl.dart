@@ -1,26 +1,134 @@
+import 'dart:io';
+
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../domain/entities/download_task.dart';
 import '../../domain/repositories/download_repository.dart';
-import '../datasources/download_file_data_source.dart';
 import '../datasources/download_path_data_source.dart';
+import '../datasources/download_runner_data_source.dart';
+import '../datasources/download_task_store_data_source.dart';
 
 const _fallbackExtension = 'mp3';
 const _safeNameFallback = 'audio';
 
-class DownloadRepositoryImpl implements DownloadRepository {
-  DownloadRepositoryImpl(this._fileDataSource, this._pathDataSource);
+abstract interface class PlatformInfo {
+  bool get isAndroid;
+  bool get isMacOS;
+}
 
-  final DownloadFileDataSource _fileDataSource;
+class _DefaultPlatformInfo implements PlatformInfo {
+  const _DefaultPlatformInfo();
+
+  @override
+  bool get isAndroid => Platform.isAndroid;
+
+  @override
+  bool get isMacOS => Platform.isMacOS;
+}
+
+typedef PlatformResolver = PlatformInfo Function();
+typedef DirectoryOpener = Future<bool> Function(Uri directoryUri);
+typedef FileRevealHandler = Future<void> Function(String filePath);
+typedef ProcessRunner =
+    Future<ProcessResult> Function(String executable, List<String> arguments);
+
+class DownloadRepositoryImpl implements DownloadRepository {
+  DownloadRepositoryImpl(
+    this._runnerDataSource,
+    this._taskStoreDataSource,
+    this._pathDataSource, {
+    PlatformResolver? platformResolver,
+    DirectoryOpener? openDirectory,
+    FileRevealHandler? revealInFileManager,
+  }) : _platformResolver = platformResolver ?? _defaultPlatformResolver,
+       _openDirectory = openDirectory ?? _defaultOpenDirectory,
+       _revealInFileManager = revealInFileManager ?? buildRevealInFileManager();
+
+  final DownloadRunnerDataSource _runnerDataSource;
+  final DownloadTaskStoreDataSource _taskStoreDataSource;
   final DownloadPathDataSource _pathDataSource;
+  final PlatformResolver _platformResolver;
+  final DirectoryOpener _openDirectory;
+  final FileRevealHandler _revealInFileManager;
+
+  @override
+  bool get shouldMoveToPublicDownloads => _platformResolver().isAndroid;
 
   @override
   Future<String> resolveSavePath({
     required String title,
-    required String url,
+    required String? artist,
+    required String fileExtension,
   }) async {
-    final extension = _resolveExtension(url);
-    final safeTitle = _sanitize(title);
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final extension = _normalizeExtension(fileExtension);
+    final fileBaseName = _buildFileBaseName(title: title, artist: artist);
     final dir = await _pathDataSource.ensureDownloadDirectory();
-    return '${dir.path}/${safeTitle}_$timestamp.$extension';
+    return '${dir.path}/$fileBaseName.$extension';
+  }
+
+  @override
+  Future<bool> enqueueTask(DownloadEnqueueRequest request) {
+    return _runnerDataSource.enqueue(request);
+  }
+
+  @override
+  Future<void> pauseTask(String pluginTaskId) {
+    return _runnerDataSource.pause(pluginTaskId);
+  }
+
+  @override
+  Future<void> resumeTask(String pluginTaskId) {
+    return _runnerDataSource.resume(pluginTaskId);
+  }
+
+  @override
+  Future<void> removeTask(String pluginTaskId) {
+    return _runnerDataSource.remove(pluginTaskId);
+  }
+
+  @override
+  Stream<DownloadRunnerEvent> watchEvents() {
+    return _runnerDataSource.watchEvents();
+  }
+
+  @override
+  Future<List<DownloadTask>> restoreTasks() {
+    return _taskStoreDataSource.loadTasks();
+  }
+
+  @override
+  Future<void> saveTask(DownloadTask task) {
+    return _taskStoreDataSource.saveTask(task);
+  }
+
+  @override
+  Future<void> deleteTask(String taskId) {
+    return _taskStoreDataSource.deleteTask(taskId);
+  }
+
+  @override
+  Future<void> openContainingFolder(String filePath) async {
+    final normalizedPath = filePath.trim();
+    if (normalizedPath.isEmpty) {
+      return;
+    }
+    if (_platformResolver().isMacOS) {
+      await _revealInFileManager(normalizedPath);
+      return;
+    }
+    final directoryUri = File(normalizedPath).parent.uri;
+    await _openDirectory(directoryUri);
+  }
+
+  @override
+  Future<String?> moveToPublicDownloads({
+    required String filePath,
+    String? mimeType,
+  }) {
+    return _runnerDataSource.moveToPublicDownloads(
+      filePath: filePath,
+      mimeType: mimeType,
+    );
   }
 
   @override
@@ -29,21 +137,19 @@ class DownloadRepositoryImpl implements DownloadRepository {
     required String savePath,
     required DownloadProgressCallback onProgress,
   }) {
-    return _fileDataSource.download(
+    return _runnerDataSource.download(
       url: url,
       savePath: savePath,
       onProgress: onProgress,
     );
   }
 
-  String _resolveExtension(String url) {
-    final uri = Uri.parse(url);
-    final last = uri.pathSegments.isEmpty ? '' : uri.pathSegments.last;
-    final dotIndex = last.lastIndexOf('.');
-    if (dotIndex < 0 || dotIndex == last.length - 1) {
+  String _normalizeExtension(String fileExtension) {
+    final normalized = fileExtension.trim().toLowerCase();
+    if (normalized.isEmpty) {
       return _fallbackExtension;
     }
-    return last.substring(dotIndex + 1).toLowerCase();
+    return normalized.startsWith('.') ? normalized.substring(1) : normalized;
   }
 
   String _sanitize(String input) {
@@ -51,10 +157,62 @@ class DownloadRepositoryImpl implements DownloadRepository {
     if (value.isEmpty) {
       return _safeNameFallback;
     }
-    final sanitized = value.replaceAll(
-      RegExp(r'[^a-zA-Z0-9_\-\u4e00-\u9fa5]+'),
-      '_',
-    );
+    final sanitized = value
+        .replaceAll(RegExp(r'[\\/:*?"<>|]+'), '、')
+        .replaceAll(RegExp(r'、+'), '、')
+        .replaceAll(RegExp(r'\.+$'), '')
+        .trim();
     return sanitized.isEmpty ? _safeNameFallback : sanitized;
+  }
+
+  String _buildFileBaseName({required String title, required String? artist}) {
+    final normalizedTitle = _sanitize(title);
+    final normalizedArtist = _normalizeArtist(artist);
+    if (normalizedArtist == null) {
+      return normalizedTitle;
+    }
+    return '$normalizedTitle - $normalizedArtist';
+  }
+
+  String? _normalizeArtist(String? artist) {
+    final raw = (artist ?? '').trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+    final parts = raw
+        .split(RegExp(r'\s*(?:/|,|，|&)\s*'))
+        .map((item) => _sanitize(item))
+        .where((item) => item.isNotEmpty && item != _safeNameFallback)
+        .toList(growable: false);
+    if (parts.isEmpty) {
+      return null;
+    }
+    return parts.join('、');
+  }
+
+  static PlatformInfo _defaultPlatformResolver() {
+    return const _DefaultPlatformInfo();
+  }
+
+  static Future<bool> _defaultOpenDirectory(Uri directoryUri) {
+    return launchUrl(directoryUri, mode: LaunchMode.externalApplication);
+  }
+
+  static FileRevealHandler buildRevealInFileManager({
+    ProcessRunner? processRunner,
+    String executablePath = 'open',
+  }) {
+    final runner = processRunner ?? Process.run;
+    return (filePath) async {
+      final result = await runner(executablePath, <String>['-R', filePath]);
+      if (result.exitCode != 0) {
+        throw ProcessException(
+          executablePath,
+          <String>['-R', filePath],
+          result.stderr?.toString() ?? '',
+          result.exitCode,
+        );
+      }
+    };
   }
 }

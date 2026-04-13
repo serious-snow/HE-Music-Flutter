@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import 'adaptive_action_menu.dart';
 import '../constants/layout_tokens.dart';
 import '../models/he_music_models.dart';
 
@@ -295,7 +296,7 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
-class _ActionIcon extends StatelessWidget {
+class _ActionIcon extends StatefulWidget {
   const _ActionIcon({
     required this.icon,
     required this.tooltip,
@@ -307,15 +308,37 @@ class _ActionIcon extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
+  State<_ActionIcon> createState() => _ActionIconState();
+}
+
+class _ActionIconState extends State<_ActionIcon> {
+  Offset? _lastGlobalPosition;
+
+  @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      constraints: const BoxConstraints.tightFor(width: 34, height: 34),
-      padding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
-      iconSize: 20,
-      icon: icon,
-      tooltip: tooltip,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapDown: (details) => _lastGlobalPosition = details.globalPosition,
+      onSecondaryTapDown: (details) {
+        _lastGlobalPosition = details.globalPosition;
+      },
+      child: IconButton(
+        onPressed: widget.onPressed == null
+            ? null
+            : () {
+                AdaptiveActionMenuAnchor.capture(
+                  context,
+                  globalPosition: _lastGlobalPosition,
+                );
+                widget.onPressed?.call();
+              },
+        constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        iconSize: 20,
+        icon: widget.icon,
+        tooltip: widget.tooltip,
+      ),
     );
   }
 }

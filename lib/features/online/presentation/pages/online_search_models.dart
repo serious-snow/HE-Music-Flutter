@@ -27,6 +27,18 @@ extension SearchTypePlatformFeature on SearchType {
   }
 }
 
+extension SearchTypeI18n on SearchType {
+  String get labelKey {
+    return switch (this) {
+      SearchType.song => 'search.type.song',
+      SearchType.playlist => 'search.type.playlist',
+      SearchType.album => 'search.type.album',
+      SearchType.artist => 'search.type.artist',
+      SearchType.video => 'search.type.video',
+    };
+  }
+}
+
 String displayTitle(SearchType type, Map<String, dynamic> item) {
   if (type == SearchType.song) {
     return searchSongInfo(item).name;

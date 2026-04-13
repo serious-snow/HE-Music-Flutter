@@ -108,14 +108,24 @@ List<LyricLine> parseLrc(String raw) {
   return parseLyricDocument(lyric: raw).lines;
 }
 
+bool hasTimedLyricEntries(String raw) {
+  return parseTimedLyricEntries(raw).isNotEmpty;
+}
+
+List<String> parseTimedLyricEntries(String raw) {
+  return _parseEntries(raw, normalizeWordLyric: true)
+      .map((entry) => entry.content)
+      .toList(growable: false);
+}
+
 LyricDocument _parseWordLyric({
   required String lyric,
   required String translation,
   required String romanization,
 }) {
-  final lyrics = _parseEntries(lyric, removeWordLyric: false);
-  final translations = _parseEntries(translation, removeWordLyric: true);
-  final romanizations = _parseEntries(romanization, removeWordLyric: true);
+  final lyrics = _parseEntries(lyric, normalizeWordLyric: false);
+  final translations = _parseEntries(translation, normalizeWordLyric: true);
+  final romanizations = _parseEntries(romanization, normalizeWordLyric: true);
   final result = <LyricLine>[];
   for (var index = 0; index < lyrics.length; index++) {
     final item = lyrics[index];
@@ -150,9 +160,9 @@ LyricDocument _parseLineLyric({
   required String translation,
   required String romanization,
 }) {
-  final lyrics = _parseEntries(lyric, removeWordLyric: true);
-  final translations = _parseEntries(translation, removeWordLyric: true);
-  final romanizations = _parseEntries(romanization, removeWordLyric: true);
+  final lyrics = _parseEntries(lyric, normalizeWordLyric: true);
+  final translations = _parseEntries(translation, normalizeWordLyric: true);
+  final romanizations = _parseEntries(romanization, normalizeWordLyric: true);
   final result = <LyricLine>[];
   for (var index = 0; index < lyrics.length; index++) {
     final item = lyrics[index];
@@ -198,8 +208,11 @@ String? _findByRawTimeOrStart(
       .firstOrNull;
 }
 
-String removeWordLyric(String input) {
-  return input.replaceAll(_tokenPattern, '');
+String normalizeWordLyric(String input) {
+  return input.replaceAllMapped(
+    _tokenPattern,
+    (match) => match.group(3) ?? '',
+  );
 }
 
 List<LyricToken> _parseTokens(String raw) {
@@ -220,9 +233,9 @@ List<LyricToken> _parseTokens(String raw) {
 
 List<_ParsedLrcEntry> _parseEntries(
   String raw, {
-  required bool removeWordLyric,
+  required bool normalizeWordLyric,
 }) {
-  final source = removeWordLyric ? removeWordLyricText(raw) : raw;
+  final source = normalizeWordLyric ? normalizeWordLyricText(raw) : raw;
   if (source.trim().isEmpty) {
     return const <_ParsedLrcEntry>[];
   }
@@ -263,7 +276,7 @@ List<_ParsedLrcEntry> _parseEntries(
   return result;
 }
 
-String removeWordLyricText(String input) => removeWordLyric(input);
+String normalizeWordLyricText(String input) => normalizeWordLyric(input);
 
 String _trimContent(String content) {
   final trimmed = content.trim();

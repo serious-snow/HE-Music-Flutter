@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:audio_metadata_reader/audio_metadata_reader.dart';
+import 'package:audiotags/audiotags.dart' as at;
 
 class LocalAudioMetadata {
   const LocalAudioMetadata({
@@ -25,7 +25,19 @@ class LocalAudioMetadata {
   final int? sampleRate;
 }
 
+typedef ReadAudioTagCallback = Future<at.Tag?> Function(String path);
+typedef FileExistsCallback = Future<bool> Function(String path);
+
 class LocalAudioMetadataReader {
+  const LocalAudioMetadataReader({
+    ReadAudioTagCallback? readTag,
+    FileExistsCallback? fileExists,
+  }) : _readTag = readTag,
+       _fileExists = fileExists;
+
+  final ReadAudioTagCallback? _readTag;
+  final FileExistsCallback? _fileExists;
+
   Future<LocalAudioMetadata?> read(
     String filePath, {
     bool fetchArtwork = false,
@@ -35,26 +47,26 @@ class LocalAudioMetadataReader {
       return null;
     }
 
-    final file = File(normalizedPath);
-    if (!await file.exists()) {
+    final exists = await (_fileExists ?? _defaultFileExists)(normalizedPath);
+    if (!exists) {
       return null;
     }
 
     try {
-      final metadata = await Future<LocalAudioMetadata>.sync(() {
-        final parsed = readMetadata(file, getImage: fetchArtwork);
-        return LocalAudioMetadata(
-          title: _normalizeText(parsed.title),
-          artist: _normalizeText(parsed.artist),
-          album: _normalizeText(parsed.album),
-          duration: parsed.duration,
-          artworkBytes: _pickArtwork(parsed.pictures),
-          embeddedLyrics: _normalizeText(parsed.lyrics),
-          bitrate: parsed.bitrate,
-          sampleRate: parsed.sampleRate,
-        );
-      });
-
+      final tag = await (_readTag ?? at.AudioTags.read)(normalizedPath);
+      if (tag == null) {
+        return null;
+      }
+      final metadata = LocalAudioMetadata(
+        title: _normalizeText(tag.title),
+        artist: _normalizeArtists(tag.artists, tag.albumArtists),
+        album: _normalizeText(tag.album),
+        duration: _toDuration(tag.duration),
+        artworkBytes: fetchArtwork ? _pickArtwork(tag.pictures) : null,
+        embeddedLyrics: _normalizeText(tag.lyrics),
+        bitrate: tag.bitrate,
+        sampleRate: tag.sampleRate,
+      );
       if (_isEmpty(metadata)) {
         return null;
       }
@@ -62,6 +74,10 @@ class LocalAudioMetadataReader {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<bool> _defaultFileExists(String path) async {
+    return File(path).exists();
   }
 
   bool _isEmpty(LocalAudioMetadata metadata) {
@@ -75,20 +91,49 @@ class LocalAudioMetadataReader {
         metadata.sampleRate == null;
   }
 
+  String? _normalizeArtists(
+    List<String> artists,
+    List<String> albumArtists,
+  ) {
+    final normalized = <String>{
+      ...artists
+          .map(_normalizeText)
+          .whereType<String>(),
+      ...albumArtists
+          .map(_normalizeText)
+          .whereType<String>(),
+    }.toList(growable: false);
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return normalized.join(' / ');
+  }
+
   String? _normalizeText(String? value) {
-    final normalized = value?.trim();
+    final normalized =
+        value
+            ?.replaceAll('\u0000', ' / ')
+            .replaceAll(RegExp(r'\s+/\s+'), ' / ')
+            .trim();
     if (normalized == null || normalized.isEmpty || normalized == '<unknown>') {
       return null;
     }
     return normalized;
   }
 
-  Uint8List? _pickArtwork(List<Picture> pictures) {
+  Duration? _toDuration(int? milliseconds) {
+    if (milliseconds == null || milliseconds <= 0) {
+      return null;
+    }
+    return Duration(milliseconds: milliseconds);
+  }
+
+  Uint8List? _pickArtwork(List<at.Picture> pictures) {
     if (pictures.isEmpty) {
       return null;
     }
     for (final picture in pictures) {
-      if (picture.pictureType == PictureType.coverFront &&
+      if (picture.pictureType == at.PictureType.coverFront &&
           picture.bytes.isNotEmpty) {
         return picture.bytes;
       }

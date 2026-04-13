@@ -70,6 +70,11 @@ void main() {
 
     expect(find.byIcon(Icons.favorite_border_rounded), findsNothing);
     expect(find.byIcon(Icons.favorite_rounded), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('下载'), findsNothing);
   });
 }
 

@@ -27,6 +27,7 @@ void main() {
     expect(find.byTooltip('设置'), findsOneWidget);
     expect(find.text('播放历史'), findsOneWidget);
     expect(find.text('本地歌曲'), findsOneWidget);
+    expect(find.text('下载管理'), findsOneWidget);
     expect(find.text('我的收藏'), findsOneWidget);
     expect(find.text('已登录'), findsOneWidget);
     expect(find.text('自建'), findsOneWidget);
@@ -56,6 +57,7 @@ void main() {
     expect(find.byTooltip('Settings'), findsOneWidget);
     expect(find.text('Play History'), findsOneWidget);
     expect(find.text('Local Songs'), findsOneWidget);
+    expect(find.text('Downloads'), findsOneWidget);
     expect(find.text('Collections'), findsOneWidget);
     expect(find.text('Signed In'), findsOneWidget);
     expect(find.text('Created'), findsOneWidget);

@@ -5,6 +5,8 @@ import 'online_search_models.dart';
 
 Future<void> showSearchSongActions({
   required BuildContext context,
+  BuildContext? anchorContext,
+  Offset? anchorPosition,
   required Map<String, dynamic> song,
   required String? coverUrl,
   required bool hasMv,
@@ -12,6 +14,7 @@ Future<void> showSearchSongActions({
   required VoidCallback onPlay,
   required VoidCallback onPlayNext,
   required VoidCallback onAddToPlaylist,
+  VoidCallback? onDownload,
   VoidCallback? onAddToUserPlaylist,
   required VoidCallback onWatchMv,
   required VoidCallback onViewComment,
@@ -28,6 +31,8 @@ Future<void> showSearchSongActions({
   final subtitle = songSubtitle(song);
   return showSongActionsSheet(
     context: context,
+    anchorContext: anchorContext,
+    anchorPosition: anchorPosition,
     coverUrl: coverUrl,
     title: title,
     subtitle: subtitle,
@@ -36,6 +41,7 @@ Future<void> showSearchSongActions({
     onPlay: onPlay,
     onPlayNext: onPlayNext,
     onAddToPlaylist: onAddToPlaylist,
+    onDownload: onDownload,
     onAddToUserPlaylist: onAddToUserPlaylist,
     onWatchMv: onWatchMv,
     onViewComment: onViewComment,

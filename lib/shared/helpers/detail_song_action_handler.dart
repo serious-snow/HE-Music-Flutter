@@ -10,8 +10,12 @@ import '../../app/config/app_config_controller.dart';
 import '../../app/i18n/app_i18n.dart';
 import '../../app/router/app_routes.dart';
 import '../../features/online/domain/entities/online_platform.dart';
+import '../../features/download/domain/entities/download_task.dart';
 import '../../features/online/presentation/providers/online_providers.dart';
+import '../../features/download/presentation/providers/download_providers.dart';
+import '../../features/download/presentation/widgets/download_quality_sheet.dart';
 import '../../features/player/domain/entities/player_queue_source.dart';
+import '../../features/player/domain/entities/player_quality_option.dart';
 import '../../features/player/domain/entities/player_track.dart';
 import '../../features/player/presentation/providers/player_providers.dart';
 import '../models/he_music_models.dart';
@@ -125,6 +129,11 @@ class DetailSongActionHandler<T> {
     final albumId = songAlbumIdOf?.call(song)?.trim() ?? '';
     final albumTitle = songAlbumTitleOf?.call(song)?.trim() ?? '';
     final canViewAlbum = hasValidAlbumId(albumId);
+    final availableQualities = _resolveDownloadQualities(
+      song: song,
+      platforms: platforms,
+      platformId: platformId,
+    );
     showSongActionsSheet(
       context: context,
       coverUrl: coverUrl.isEmpty ? null : coverUrl,
@@ -137,6 +146,21 @@ class DetailSongActionHandler<T> {
       onPlay: () => unawaited(_playNow(song, coverUrl)),
       onPlayNext: () => unawaited(_insertNext(song, coverUrl)),
       onAddToPlaylist: () => unawaited(_appendToQueue(song, coverUrl)),
+      onDownload:
+          _canDownload(platformId: platformId, qualities: availableQualities)
+          ? () => unawaited(
+              _downloadSong(
+                context: context,
+                songId: songIdOf(song),
+                title: songTitleOf(song),
+                platformId: platformId,
+                artist: songArtistOf(song),
+                album: albumTitle.isEmpty ? null : albumTitle,
+                artworkUrl: coverUrl.isEmpty ? null : coverUrl,
+                qualities: availableQualities,
+              ),
+            )
+          : null,
       onWatchMv: () {},
       onViewComment: () => _openSongComments(
         context: context,
@@ -213,6 +237,60 @@ class DetailSongActionHandler<T> {
     await ref.read(playerControllerProvider.notifier).appendTrack(track);
   }
 
+  Future<void> _downloadSong({
+    required BuildContext context,
+    required String songId,
+    required String title,
+    required String platformId,
+    required String artist,
+    required String? album,
+    required String? artworkUrl,
+    required List<PlayerQualityOption> qualities,
+  }) async {
+    final config = ref.read(appConfigProvider);
+    final selected = await showDownloadQualitySheet(
+      context: context,
+      qualities: qualities,
+      selectedQualityName: qualities.isEmpty ? null : qualities.first.name,
+    );
+    if (selected == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(downloadControllerProvider.notifier)
+          .enqueue(
+            title: title,
+            quality: DownloadTaskQuality(
+              label: selected.name,
+              bitrate: selected.quality.toDouble(),
+              fileExtension: selected.format.trim().toLowerCase(),
+            ),
+            songId: songId,
+            platform: platformId,
+            artist: artist,
+            album: album,
+            artworkUrl: artworkUrl,
+          );
+      if (!context.mounted) {
+        return;
+      }
+      _showMessage(
+        context,
+        AppI18n.format(
+          config,
+          'player.download.added',
+          <String, String>{'title': title},
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      _showMessage(context, AppI18n.t(config, 'player.download.failed'));
+    }
+  }
+
   Future<PlayerTrack> _buildTrack(T song, String coverUrl) async {
     return PlayerTrack(
       id: songIdOf(song),
@@ -252,6 +330,43 @@ class DetailSongActionHandler<T> {
       },
     );
     context.push(uri.toString());
+  }
+
+  bool _canDownload({
+    required String platformId,
+    required List<PlayerQualityOption> qualities,
+  }) {
+    final normalized = platformId.trim().toLowerCase();
+    return normalized.isNotEmpty && normalized != 'local' && qualities.isNotEmpty;
+  }
+
+  List<PlayerQualityOption> _resolveDownloadQualities({
+    required T song,
+    required List<OnlinePlatform> platforms,
+    required String platformId,
+  }) {
+    if (song is! SongInfo) {
+      return const <PlayerQualityOption>[];
+    }
+    return buildDownloadQualityOptions(
+      links: song.links,
+      qualityDescriptions: _platformQualityDescriptions(
+        platforms: platforms,
+        platformId: platformId,
+      ),
+    );
+  }
+
+  Map<String, String> _platformQualityDescriptions({
+    required List<OnlinePlatform> platforms,
+    required String platformId,
+  }) {
+    for (final platform in platforms) {
+      if (platform.id == platformId) {
+        return platform.qualities;
+      }
+    }
+    return const <String, String>{};
   }
 
   void _openSongComments({
