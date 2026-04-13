@@ -22,6 +22,9 @@ class DownloadRunnerDataSource {
             pluginTaskId: update.task.taskId,
             status: DownloadRunnerStatus.running,
             progress: update.progress,
+            expectedFileSize: update.hasExpectedFileSize
+                ? update.expectedFileSize
+                : null,
           );
         case bd.TaskStatusUpdate():
           yield DownloadRunnerEvent(
@@ -110,6 +113,11 @@ class DownloadRunnerDataSource {
       directory: downloadPublicSubdirectory,
       mimeType: mimeType,
     );
+  }
+
+  Future<bool> openFile({required String filePath, String? mimeType}) async {
+    await _ensureStarted();
+    return _downloader.openFile(filePath: filePath, mimeType: mimeType);
   }
 
   Future<void> _ensureStarted() async {

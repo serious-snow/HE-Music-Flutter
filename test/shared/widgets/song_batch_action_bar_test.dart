@@ -10,30 +10,35 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: const SizedBox.shrink(),
-          bottomNavigationBar: SongBatchActionBar(
-            enabled: true,
-            onPlayPressed: () {
-              playTapped = true;
-            },
-            onAddToQueuePressed: () {
-              addToQueueTapped = true;
-            },
-            onAddToPlaylistPressed: () {
-              addToPlaylistTapped = true;
-            },
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(390, 844)),
+          child: Scaffold(
+            body: const SizedBox.shrink(),
+            bottomNavigationBar: SongBatchActionBar(
+              enabled: true,
+              onPlayPressed: () {
+                playTapped = true;
+              },
+              onAddToQueuePressed: () {
+                addToQueueTapped = true;
+              },
+              onAddToPlaylistPressed: () {
+                addToPlaylistTapped = true;
+              },
+            ),
           ),
         ),
       ),
     );
 
     expect(find.text('Batch'), findsOneWidget);
+    expect(find.byIcon(Icons.more_horiz_rounded), findsNothing);
     expect(find.text('Play'), findsNothing);
 
     await tester.tap(find.text('Batch'));
     await tester.pumpAndSettle();
 
+    expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('Play'), findsOneWidget);
     expect(find.text('Add to Queue'), findsOneWidget);
     expect(find.text('Add to Playlist'), findsOneWidget);

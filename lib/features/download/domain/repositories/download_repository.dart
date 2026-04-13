@@ -34,6 +34,7 @@ class DownloadRunnerEvent {
     required this.pluginTaskId,
     required this.status,
     this.progress,
+    this.expectedFileSize,
     this.filePath,
     this.errorMessage,
   });
@@ -41,6 +42,7 @@ class DownloadRunnerEvent {
   final String pluginTaskId;
   final DownloadRunnerStatus status;
   final double? progress;
+  final int? expectedFileSize;
   final String? filePath;
   final String? errorMessage;
 }
@@ -69,6 +71,11 @@ abstract class DownloadRepository {
   Future<void> saveTask(DownloadTask task);
 
   Future<void> deleteTask(String taskId);
+
+  Future<void> deleteDownloadedArtifacts({
+    String? filePath,
+    String? lyricPath,
+  });
 
   Future<void> openContainingFolder(String filePath);
 

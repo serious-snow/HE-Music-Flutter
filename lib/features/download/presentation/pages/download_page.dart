@@ -38,7 +38,12 @@ class DownloadPage extends ConsumerWidget {
                 .read(downloadControllerProvider.notifier)
                 .openContainingFolder,
             onRetry: ref.read(downloadControllerProvider.notifier).retry,
-            onRemove: ref.read(downloadControllerProvider.notifier).removeTask,
+            onRemoveTask: ref
+                .read(downloadControllerProvider.notifier)
+                .removeTask,
+            onRemoveTaskAndFile: ref
+                .read(downloadControllerProvider.notifier)
+                .removeTaskAndFile,
             onClearCompleted: ref
                 .read(downloadControllerProvider.notifier)
                 .clearCompleted,
@@ -57,7 +62,8 @@ class _DownloadTaskList extends StatelessWidget {
     required this.onRedownload,
     required this.onOpenLocation,
     required this.onRetry,
-    required this.onRemove,
+    required this.onRemoveTask,
+    required this.onRemoveTaskAndFile,
     required this.onClearCompleted,
   });
 
@@ -67,7 +73,8 @@ class _DownloadTaskList extends StatelessWidget {
   final ValueChanged<String> onRedownload;
   final ValueChanged<String> onOpenLocation;
   final ValueChanged<String> onRetry;
-  final ValueChanged<String> onRemove;
+  final ValueChanged<String> onRemoveTask;
+  final ValueChanged<String> onRemoveTaskAndFile;
   final VoidCallback onClearCompleted;
 
   @override
@@ -93,7 +100,8 @@ class _DownloadTaskList extends StatelessWidget {
                 onRedownload: () => onRedownload(task.id),
                 onOpenLocation: () => onOpenLocation(task.id),
                 onRetry: () => onRetry(task.id),
-                onRemove: () => onRemove(task.id),
+                onRemoveTask: () => onRemoveTask(task.id),
+                onRemoveTaskAndFile: () => onRemoveTaskAndFile(task.id),
               );
             },
           ),
@@ -127,7 +135,8 @@ class _DownloadTaskRow extends StatelessWidget {
     required this.onRedownload,
     required this.onOpenLocation,
     required this.onRetry,
-    required this.onRemove,
+    required this.onRemoveTask,
+    required this.onRemoveTaskAndFile,
   });
 
   final DownloadTask task;
@@ -136,7 +145,8 @@ class _DownloadTaskRow extends StatelessWidget {
   final VoidCallback onRedownload;
   final VoidCallback onOpenLocation;
   final VoidCallback onRetry;
-  final VoidCallback onRemove;
+  final VoidCallback onRemoveTask;
+  final VoidCallback onRemoveTaskAndFile;
 
   @override
   Widget build(BuildContext context) {
@@ -150,8 +160,9 @@ class _DownloadTaskRow extends StatelessWidget {
           color: colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,51 +173,13 @@ class _DownloadTaskRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 13,
+                    fontSize: 14,
                     height: 1.15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 42,
-                child: Text(
-                  task.quality.fileExtension.trim().toUpperCase(),
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 11,
-                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 72,
-                child: Text(
-                  _speedLabel(),
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 11,
-                    color: _speedColor(colorScheme),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 54,
-                child: Text(
-                  _statusLabel(context),
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 11,
-                    color: _statusColor(colorScheme),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              const SizedBox(width: 8),
               SizedBox(
                 width: 28,
                 child: Align(
@@ -218,30 +191,48 @@ class _DownloadTaskRow extends StatelessWidget {
                     onRedownload: onRedownload,
                     onOpenLocation: onOpenLocation,
                     onRetry: onRetry,
-                    onRemove: onRemove,
+                    onRemoveTask: onRemoveTask,
+                    onRemoveTaskAndFile: onRemoveTaskAndFile,
                   ),
                 ),
               ),
             ],
           ),
-          if (_showProgress(task)) ...<Widget>[
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: task.status == DownloadTaskStatus.preparing
-                    ? null
-                    : task.progress,
-                minHeight: 3,
-                backgroundColor: colorScheme.outlineVariant.withValues(
-                  alpha: 0.22,
-                ),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  _progressColor(colorScheme),
+          const SizedBox(height: 6),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  _sizeLabel(context),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Text(
+                task.quality.fileExtension.trim().toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                _statusLabel(context),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 11,
+                  color: _statusColor(colorScheme),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -266,17 +257,19 @@ class _DownloadTaskRow extends StatelessWidget {
     return '$title - $artist.$extension';
   }
 
-  bool _showProgress(DownloadTask task) {
-    return task.status == DownloadTaskStatus.preparing ||
-        task.status == DownloadTaskStatus.downloading ||
-        task.status == DownloadTaskStatus.tagging;
-  }
-
-  String _speedLabel() {
-    if (task.status == DownloadTaskStatus.downloading) {
-      return '${task.quality.bitrate.toStringAsFixed(0)}kbps';
+  String _sizeLabel(BuildContext context) {
+    final downloaded = task.downloadedBytes;
+    final total = task.totalBytes;
+    if (downloaded != null && total != null && total > 0) {
+      return '${_formatBytes(downloaded)} / ${_formatBytes(total)}';
     }
-    return '-';
+    if (downloaded != null && downloaded > 0) {
+      return _formatBytes(downloaded);
+    }
+    if (total != null && total > 0) {
+      return _formatBytes(total);
+    }
+    return _statusLabel(context);
   }
 
   String _statusLabel(BuildContext context) {
@@ -299,13 +292,6 @@ class _DownloadTaskRow extends StatelessWidget {
     }
   }
 
-  Color _speedColor(ColorScheme colorScheme) {
-    if (task.status == DownloadTaskStatus.downloading) {
-      return const Color(0xFF3DAA7B);
-    }
-    return colorScheme.onSurfaceVariant;
-  }
-
   Color _statusColor(ColorScheme colorScheme) {
     switch (task.status) {
       case DownloadTaskStatus.downloading:
@@ -324,19 +310,16 @@ class _DownloadTaskRow extends StatelessWidget {
     }
   }
 
-  Color _progressColor(ColorScheme colorScheme) {
-    switch (task.status) {
-      case DownloadTaskStatus.tagging:
-        return const Color(0xFF4AB8F5);
-      case DownloadTaskStatus.downloading:
-      case DownloadTaskStatus.preparing:
-        return const Color(0xFFE0A446);
-      case DownloadTaskStatus.queued:
-      case DownloadTaskStatus.completed:
-      case DownloadTaskStatus.paused:
-      case DownloadTaskStatus.failed:
-        return colorScheme.primary;
+  String _formatBytes(int bytes) {
+    const units = <String>['B', 'KB', 'MB', 'GB', 'TB'];
+    var value = bytes.toDouble();
+    var index = 0;
+    while (value >= 1024 && index < units.length - 1) {
+      value /= 1024;
+      index += 1;
     }
+    final fractionDigits = value >= 100 || index == 0 ? 0 : 1;
+    return '${value.toStringAsFixed(fractionDigits)} ${units[index]}';
   }
 }
 
@@ -348,7 +331,8 @@ class _MoreButton extends StatelessWidget {
     required this.onRedownload,
     required this.onOpenLocation,
     required this.onRetry,
-    required this.onRemove,
+    required this.onRemoveTask,
+    required this.onRemoveTaskAndFile,
   });
 
   final DownloadTask task;
@@ -357,7 +341,8 @@ class _MoreButton extends StatelessWidget {
   final VoidCallback onRedownload;
   final VoidCallback onOpenLocation;
   final VoidCallback onRetry;
-  final VoidCallback onRemove;
+  final VoidCallback onRemoveTask;
+  final VoidCallback onRemoveTaskAndFile;
 
   String get _menuButtonKey => 'download_more_button_${task.id}';
   String get _pauseItemKey => 'download_more_pause_${task.id}';
@@ -365,36 +350,95 @@ class _MoreButton extends StatelessWidget {
   String get _redownloadItemKey => 'download_more_redownload_${task.id}';
   String get _openLocationItemKey => 'download_more_open_location_${task.id}';
   String get _retryItemKey => 'download_more_retry_${task.id}';
-  String get _removeItemKey => 'download_more_remove_${task.id}';
+  String get _removeTaskItemKey => 'download_more_remove_task_${task.id}';
+  String get _removeTaskAndFileItemKey =>
+      'download_more_remove_task_and_file_${task.id}';
 
   @override
   Widget build(BuildContext context) {
     final localeCode = Localizations.localeOf(context).languageCode;
-    return AdaptiveActionMenu<String>(
-      menuKey: Key(_menuButtonKey),
+    final platform = Theme.of(context).platform;
+    if (_shouldUseDesktopMenu(context)) {
+      return AdaptiveActionMenu<String>(
+        menuKey: Key(_menuButtonKey),
+        tooltip: AppI18n.tByLocaleCode(localeCode, 'common.more'),
+        icon: const Icon(Icons.more_horiz_rounded, size: 18),
+        items: _buildActions(localeCode, platform),
+        onSelected: _handleAction,
+      );
+    }
+    return IconButton(
+      key: Key(_menuButtonKey),
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
       tooltip: AppI18n.tByLocaleCode(localeCode, 'common.more'),
       icon: const Icon(Icons.more_horiz_rounded, size: 18),
-      items: _buildActions(localeCode),
-      onSelected: (action) {
-        switch (action) {
-          case 'pause':
-            onPause();
-          case 'resume':
-            onResume();
-          case 'redownload':
-            onRedownload();
-          case 'open_location':
-            onOpenLocation();
-          case 'retry':
-            onRetry();
-          case 'remove':
-            onRemove();
-        }
-      },
+      onPressed: () => _showMobileMenu(context, localeCode, platform),
     );
   }
 
-  List<AdaptiveActionMenuItem<String>> _buildActions(String localeCode) {
+  void _handleAction(String action) {
+    switch (action) {
+      case 'pause':
+        onPause();
+      case 'resume':
+        onResume();
+      case 'redownload':
+        onRedownload();
+      case 'open_location':
+        onOpenLocation();
+      case 'retry':
+        onRetry();
+      case 'remove_task':
+        onRemoveTask();
+      case 'remove_task_and_file':
+        onRemoveTaskAndFile();
+    }
+  }
+
+  Future<void> _showMobileMenu(
+    BuildContext context,
+    String localeCode,
+    TargetPlatform platform,
+  ) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.60;
+        final items = _buildActions(localeCode, platform);
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 8),
+              children: <Widget>[
+                for (final item in items)
+                  ListTile(
+                    key: item.key,
+                    leading: item.icon == null ? null : Icon(item.icon),
+                    enabled: item.enabled,
+                    title: Text(item.label),
+                    onTap: item.enabled
+                        ? () => Navigator.of(sheetContext).pop(item.value)
+                        : null,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (selected != null) {
+      _handleAction(selected);
+    }
+  }
+
+  List<AdaptiveActionMenuItem<String>> _buildActions(
+    String localeCode,
+    TargetPlatform platform,
+  ) {
     final items = <AdaptiveActionMenuItem<String>>[];
     if (task.status == DownloadTaskStatus.preparing ||
         task.status == DownloadTaskStatus.downloading ||
@@ -445,10 +489,12 @@ class _MoreButton extends StatelessWidget {
           AdaptiveActionMenuItem<String>(
             key: Key(_openLocationItemKey),
             value: 'open_location',
-            label: AppI18n.tByLocaleCode(
-              localeCode,
-              'download.action.open_location',
-            ),
+            label: platform == TargetPlatform.android
+                ? (localeCode == 'zh' ? '打开文件' : 'Open File')
+                : AppI18n.tByLocaleCode(
+                    localeCode,
+                    'download.action.open_location',
+                  ),
             icon: Icons.folder_open_rounded,
           ),
         );
@@ -456,14 +502,36 @@ class _MoreButton extends StatelessWidget {
     }
     items.add(
       AdaptiveActionMenuItem<String>(
-        key: Key(_removeItemKey),
-        value: 'remove',
-        label: AppI18n.tByLocaleCode(localeCode, 'download.action.remove'),
-        icon: Icons.delete_outline_rounded,
+        key: Key(_removeTaskItemKey),
+        value: 'remove_task',
+        label: AppI18n.tByLocaleCode(localeCode, 'download.action.remove_task'),
+        icon: Icons.remove_circle_outline_rounded,
         destructive: true,
         startsNewSection: items.isNotEmpty,
       ),
     );
+    items.add(
+      AdaptiveActionMenuItem<String>(
+        key: Key(_removeTaskAndFileItemKey),
+        value: 'remove_task_and_file',
+        label: AppI18n.tByLocaleCode(
+          localeCode,
+          'download.action.remove_task_and_file',
+        ),
+        icon: Icons.delete_outline_rounded,
+        destructive: true,
+      ),
+    );
     return items;
   }
+}
+
+bool _shouldUseDesktopMenu(BuildContext context) {
+  final platform = Theme.of(context).platform;
+  final width = MediaQuery.sizeOf(context).width;
+  final isDesktopPlatform =
+      platform == TargetPlatform.macOS ||
+      platform == TargetPlatform.windows ||
+      platform == TargetPlatform.linux;
+  return isDesktopPlatform || width >= 720;
 }

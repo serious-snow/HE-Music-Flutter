@@ -193,6 +193,7 @@ void main() {
         pluginTaskId: pluginTaskId,
         status: DownloadRunnerStatus.running,
         progress: 0.4,
+        expectedFileSize: 1000,
       ),
     );
     await Future<void>.delayed(Duration.zero);
@@ -200,6 +201,8 @@ void main() {
     var state = container.read(downloadControllerProvider);
     expect(state.tasks.first.status, DownloadTaskStatus.downloading);
     expect(state.tasks.first.progress, 0.4);
+    expect(state.tasks.first.downloadedBytes, 400);
+    expect(state.tasks.first.totalBytes, 1000);
 
     repository.emit(
       DownloadRunnerEvent(
@@ -209,11 +212,15 @@ void main() {
       ),
     );
     await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
 
     state = container.read(downloadControllerProvider);
     expect(state.tasks.first.status, DownloadTaskStatus.completed);
     expect(state.tasks.first.progress, 1);
     expect(state.tasks.first.filePath, '/tmp/测试下载.mp3');
+    expect(state.tasks.first.downloadedBytes, 1000);
+    expect(state.tasks.first.totalBytes, 1000);
     expect(metadataWriter.requests, isEmpty);
   });
 
@@ -348,7 +355,10 @@ void main() {
         repository.moveToPublicDownloadsCalls.last.filePath,
         '/tmp/测试下载.lrc',
       );
-      expect(repository.moveToPublicDownloadsCalls.last.mimeType, 'text/plain');
+      expect(
+        repository.moveToPublicDownloadsCalls.last.mimeType,
+        'application/octet-stream',
+      );
       expect(state.tasks.first.status, DownloadTaskStatus.completed);
       expect(
         state.tasks.first.filePath,
@@ -572,6 +582,93 @@ void main() {
 
     expect(repository.openContainingFolderCalls, <String>['/tmp/测试下载.mp3']);
   });
+
+  test('removeTask removes persisted task without deleting downloaded files', () async {
+    final repository = _FakeDownloadRepository(
+      initialTasks: <DownloadTask>[
+        DownloadTask(
+          id: 'task-1',
+          title: '测试下载',
+          url: 'https://example.com/song.mp3',
+          status: DownloadTaskStatus.completed,
+          progress: 1,
+          quality: DownloadTaskQuality(
+            label: 'standard',
+            bitrate: 320,
+            fileExtension: 'mp3',
+          ),
+          tagWriteStatus: DownloadTagWriteStatus.success,
+          lyricFormat: DownloadLyricFormat.timed,
+          createdAt: DateTime(2026, 4, 9),
+          filePath: '/tmp/测试下载.mp3',
+          lyricPath: '/tmp/测试下载.lrc',
+        ),
+      ],
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        downloadRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(downloadControllerProvider);
+    await Future<void>.delayed(Duration.zero);
+    await container.read(downloadControllerProvider.notifier).removeTask('task-1');
+
+    expect(repository.deletedTaskIds, <String>['task-1']);
+    expect(repository.removedPluginTaskIds, <String>['task-1']);
+    expect(repository.deleteDownloadedArtifactsCalls, isEmpty);
+    expect(container.read(downloadControllerProvider).tasks, isEmpty);
+  });
+
+  test('removeTaskAndFile removes task and deletes downloaded artifacts', () async {
+    final repository = _FakeDownloadRepository(
+      initialTasks: <DownloadTask>[
+        DownloadTask(
+          id: 'task-1',
+          title: '测试下载',
+          url: 'https://example.com/song.mp3',
+          status: DownloadTaskStatus.completed,
+          progress: 1,
+          quality: DownloadTaskQuality(
+            label: 'standard',
+            bitrate: 320,
+            fileExtension: 'mp3',
+          ),
+          tagWriteStatus: DownloadTagWriteStatus.success,
+          lyricFormat: DownloadLyricFormat.timed,
+          createdAt: DateTime(2026, 4, 9),
+          filePath: '/tmp/测试下载.mp3',
+          lyricPath: '/tmp/测试下载.lrc',
+        ),
+      ],
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        downloadRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(downloadControllerProvider);
+    await Future<void>.delayed(Duration.zero);
+    await container
+        .read(downloadControllerProvider.notifier)
+        .removeTaskAndFile('task-1');
+
+    expect(repository.deletedTaskIds, <String>['task-1']);
+    expect(repository.removedPluginTaskIds, <String>['task-1']);
+    expect(repository.deleteDownloadedArtifactsCalls, hasLength(1));
+    expect(
+      repository.deleteDownloadedArtifactsCalls.single,
+      (
+        filePath: '/tmp/测试下载.mp3',
+        lyricPath: '/tmp/测试下载.lrc',
+      ),
+    );
+    expect(container.read(downloadControllerProvider).tasks, isEmpty);
+  });
 }
 
 class _FakeDownloadRepository implements DownloadRepository {
@@ -592,9 +689,13 @@ class _FakeDownloadRepository implements DownloadRepository {
   final List<String> pauseTaskCalls = <String>[];
   final List<String> resumeTaskCalls = <String>[];
   final List<String> openContainingFolderCalls = <String>[];
+  final List<String> removedPluginTaskIds = <String>[];
+  final List<String> deletedTaskIds = <String>[];
   final List<DownloadTask> savedTasks;
   final List<({String filePath, String? mimeType})> moveToPublicDownloadsCalls =
       <({String filePath, String? mimeType})>[];
+  final List<({String? filePath, String? lyricPath})>
+  deleteDownloadedArtifactsCalls = <({String? filePath, String? lyricPath})>[];
   final List<DownloadEnqueueRequest> enqueueTaskRequests =
       <DownloadEnqueueRequest>[];
   final StreamController<DownloadRunnerEvent> _eventsController =
@@ -621,7 +722,9 @@ class _FakeDownloadRepository implements DownloadRepository {
   }
 
   @override
-  Future<void> removeTask(String pluginTaskId) async {}
+  Future<void> removeTask(String pluginTaskId) async {
+    removedPluginTaskIds.add(pluginTaskId);
+  }
 
   @override
   Stream<DownloadRunnerEvent> watchEvents() {
@@ -642,7 +745,19 @@ class _FakeDownloadRepository implements DownloadRepository {
 
   @override
   Future<void> deleteTask(String taskId) async {
+    deletedTaskIds.add(taskId);
     savedTasks.removeWhere((task) => task.id == taskId);
+  }
+
+  @override
+  Future<void> deleteDownloadedArtifacts({
+    String? filePath,
+    String? lyricPath,
+  }) async {
+    deleteDownloadedArtifactsCalls.add((
+      filePath: filePath,
+      lyricPath: lyricPath,
+    ));
   }
 
   @override

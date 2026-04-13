@@ -85,6 +85,8 @@ class DownloadTask {
     required this.tagWriteStatus,
     required this.lyricFormat,
     required this.createdAt,
+    this.downloadedBytes,
+    this.totalBytes,
     this.songId,
     this.platform,
     this.artist,
@@ -113,6 +115,8 @@ class DownloadTask {
   final DownloadTagWriteStatus tagWriteStatus;
   final DownloadLyricFormat lyricFormat;
   final DateTime createdAt;
+  final int? downloadedBytes;
+  final int? totalBytes;
   final DateTime? startedAt;
   final DateTime? finishedAt;
   final String? metadataPath;
@@ -133,6 +137,8 @@ class DownloadTask {
     DownloadTaskQuality? quality,
     DownloadTagWriteStatus? tagWriteStatus,
     DownloadLyricFormat? lyricFormat,
+    int? downloadedBytes,
+    int? totalBytes,
     DateTime? createdAt,
     DateTime? startedAt,
     DateTime? finishedAt,
@@ -162,6 +168,8 @@ class DownloadTask {
       quality: quality ?? this.quality,
       tagWriteStatus: tagWriteStatus ?? this.tagWriteStatus,
       lyricFormat: lyricFormat ?? this.lyricFormat,
+      downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+      totalBytes: totalBytes ?? this.totalBytes,
       createdAt: createdAt ?? this.createdAt,
       startedAt: clearStartedAt ? null : startedAt ?? this.startedAt,
       finishedAt: clearFinishedAt ? null : finishedAt ?? this.finishedAt,
@@ -188,6 +196,8 @@ class DownloadTask {
       'quality': quality.toJson(),
       'tag_write_status': tagWriteStatus.name,
       'lyric_format': lyricFormat.name,
+      'downloaded_bytes': downloadedBytes,
+      'total_bytes': totalBytes,
       'created_at': createdAt.toIso8601String(),
       'started_at': startedAt?.toIso8601String(),
       'finished_at': finishedAt?.toIso8601String(),
@@ -221,6 +231,8 @@ class DownloadTask {
       lyricFormat: DownloadLyricFormat.values.byName(
         '${json['lyric_format'] ?? 'none'}',
       ),
+      downloadedBytes: _nullableInt(json['downloaded_bytes']),
+      totalBytes: _nullableInt(json['total_bytes']),
       createdAt: DateTime.parse('${json['created_at']}'),
       startedAt: _nullableDateTime(json['started_at']),
       finishedAt: _nullableDateTime(json['finished_at']),
@@ -265,9 +277,11 @@ class DownloadTask {
             label: qualityLabel,
             bitrate: qualityBitrate,
             fileExtension: fileExtension,
-          ),
+      ),
       tagWriteStatus: DownloadTagWriteStatus.pending,
       lyricFormat: lyricFormat,
+      downloadedBytes: null,
+      totalBytes: null,
       createdAt: createdAt ?? DateTime.now(),
     );
   }
@@ -285,6 +299,16 @@ int _toInt(Object? value) {
     return value;
   }
   return int.tryParse('$value') ?? 0;
+}
+
+int? _nullableInt(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value;
+  }
+  return int.tryParse('$value');
 }
 
 String? _nullableString(Object? value) {

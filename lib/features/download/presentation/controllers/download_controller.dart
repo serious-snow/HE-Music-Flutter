@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -141,15 +142,11 @@ class DownloadController extends Notifier<DownloadState> {
   }
 
   Future<void> removeTask(String taskId) async {
-    await ref.read(downloadRepositoryProvider).deleteTask(taskId);
-    final target = _findTask(taskId);
-    if (target != null) {
-      await ref.read(downloadRepositoryProvider).removeTask(target.id);
-    }
-    final updated = state.tasks
-        .where((task) => task.id != taskId)
-        .toList(growable: false);
-    state = _withProcessing(updated);
+    await _removeTask(taskId);
+  }
+
+  Future<void> removeTaskAndFile(String taskId) async {
+    await _removeTask(taskId, deleteFiles: true);
   }
 
   void clearCompleted() {
@@ -173,6 +170,25 @@ class DownloadController extends Notifier<DownloadState> {
     ];
     state = _withProcessing(mergedTasks);
     await _dispatchQueuedTasks();
+  }
+
+  Future<void> _removeTask(String taskId, {bool deleteFiles = false}) async {
+    final repository = ref.read(downloadRepositoryProvider);
+    final target = _findTask(taskId);
+    await repository.deleteTask(taskId);
+    if (target != null) {
+      await repository.removeTask(target.id);
+      if (deleteFiles) {
+        await repository.deleteDownloadedArtifacts(
+          filePath: target.filePath,
+          lyricPath: target.lyricPath,
+        );
+      }
+    }
+    final updated = state.tasks
+        .where((task) => task.id != taskId)
+        .toList(growable: false);
+    state = _withProcessing(updated);
   }
 
   Future<void> _dispatchQueuedTasks() async {
@@ -295,18 +311,33 @@ class DownloadController extends Notifier<DownloadState> {
       case DownloadRunnerStatus.enqueued:
         await _updateTask(
           task.id,
-          (old) =>
-              old.copyWith(status: DownloadTaskStatus.preparing, progress: 0),
+          (old) => old.copyWith(
+            status: DownloadTaskStatus.preparing,
+            progress: 0,
+            downloadedBytes: 0,
+          ),
         );
       case DownloadRunnerStatus.running:
         await _updateTask(
           task.id,
-          (old) => old.copyWith(
-            status: DownloadTaskStatus.downloading,
-            progress: event.progress ?? old.progress,
-            filePath: event.filePath ?? old.filePath,
-            clearError: true,
-          ),
+          (old) {
+            final nextTotalBytes = _resolveTotalBytes(
+              previous: old.totalBytes,
+              incoming: event.expectedFileSize,
+            );
+            return old.copyWith(
+              status: DownloadTaskStatus.downloading,
+              progress: event.progress ?? old.progress,
+              downloadedBytes: _resolveDownloadedBytes(
+                progress: event.progress ?? old.progress,
+                totalBytes: nextTotalBytes,
+                previous: old.downloadedBytes,
+              ),
+              totalBytes: nextTotalBytes,
+              filePath: event.filePath ?? old.filePath,
+              clearError: true,
+            );
+          },
         );
       case DownloadRunnerStatus.complete:
         await _completeTask(task: task, eventFilePath: event.filePath);
@@ -442,12 +473,16 @@ class DownloadController extends Notifier<DownloadState> {
     required String? eventFilePath,
   }) async {
     final filePath = eventFilePath ?? task.filePath;
+    final completedBytes = await _resolveCompletedFileSize(filePath);
+    final totalBytes = completedBytes ?? task.totalBytes;
     if (filePath == null) {
       await _updateTask(
         task.id,
         (old) => old.copyWith(
           status: DownloadTaskStatus.completed,
           progress: 1,
+          downloadedBytes: old.totalBytes ?? old.downloadedBytes,
+          totalBytes: old.totalBytes,
           clearError: true,
         ),
       );
@@ -462,6 +497,8 @@ class DownloadController extends Notifier<DownloadState> {
         (old) => old.copyWith(
           status: DownloadTaskStatus.completed,
           progress: 1,
+          downloadedBytes: completedBytes ?? totalBytes ?? old.downloadedBytes,
+          totalBytes: totalBytes ?? old.totalBytes,
           filePath: finalizedPaths.filePath,
           lyricPath: finalizedPaths.lyricPath,
           clearError: true,
@@ -474,6 +511,8 @@ class DownloadController extends Notifier<DownloadState> {
       (old) => old.copyWith(
         status: DownloadTaskStatus.tagging,
         progress: 1,
+        downloadedBytes: completedBytes ?? totalBytes ?? old.downloadedBytes,
+        totalBytes: totalBytes ?? old.totalBytes,
         filePath: filePath,
         clearError: true,
       ),
@@ -534,9 +573,49 @@ class DownloadController extends Notifier<DownloadState> {
       return 'audio/wav';
     }
     if (normalized.endsWith('.lrc')) {
-      return 'text/plain';
+      return 'application/octet-stream';
     }
     return null;
+  }
+
+  int? _resolveTotalBytes({required int? previous, required int? incoming}) {
+    if (incoming != null && incoming > 0) {
+      return incoming;
+    }
+    return previous;
+  }
+
+  int? _resolveDownloadedBytes({
+    required double progress,
+    required int? totalBytes,
+    required int? previous,
+  }) {
+    if (totalBytes == null || totalBytes <= 0) {
+      return previous;
+    }
+    if (progress <= 0) {
+      return 0;
+    }
+    if (progress >= 1) {
+      return totalBytes;
+    }
+    return (totalBytes * progress).round();
+  }
+
+  Future<int?> _resolveCompletedFileSize(String? filePath) async {
+    final normalized = filePath?.trim() ?? '';
+    if (normalized.isEmpty) {
+      return null;
+    }
+    try {
+      final file = File(normalized);
+      if (!await file.exists()) {
+        return null;
+      }
+      return await file.length();
+    } catch (_) {
+      return null;
+    }
   }
 
   DownloadState _withProcessing(List<DownloadTask> tasks) {

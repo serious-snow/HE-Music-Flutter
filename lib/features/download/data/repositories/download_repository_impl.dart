@@ -107,13 +107,30 @@ class DownloadRepositoryImpl implements DownloadRepository {
   }
 
   @override
+  Future<void> deleteDownloadedArtifacts({
+    String? filePath,
+    String? lyricPath,
+  }) async {
+    await _deleteFileIfExists(filePath);
+    await _deleteFileIfExists(lyricPath);
+  }
+
+  @override
   Future<void> openContainingFolder(String filePath) async {
     final normalizedPath = filePath.trim();
     if (normalizedPath.isEmpty) {
       return;
     }
-    if (_platformResolver().isMacOS) {
+    final platform = _platformResolver();
+    if (platform.isMacOS) {
       await _revealInFileManager(normalizedPath);
+      return;
+    }
+    if (platform.isAndroid) {
+      await _runnerDataSource.openFile(
+        filePath: normalizedPath,
+        mimeType: _mimeTypeForPath(normalizedPath),
+      );
       return;
     }
     final directoryUri = File(normalizedPath).parent.uri;
@@ -188,6 +205,44 @@ class DownloadRepositoryImpl implements DownloadRepository {
       return null;
     }
     return parts.join('、');
+  }
+
+  String? _mimeTypeForPath(String filePath) {
+    final normalized = filePath.trim().toLowerCase();
+    if (normalized.endsWith('.mp3')) {
+      return 'audio/mpeg';
+    }
+    if (normalized.endsWith('.flac')) {
+      return 'audio/flac';
+    }
+    if (normalized.endsWith('.m4a')) {
+      return 'audio/mp4';
+    }
+    if (normalized.endsWith('.aac')) {
+      return 'audio/aac';
+    }
+    if (normalized.endsWith('.ogg')) {
+      return 'audio/ogg';
+    }
+    if (normalized.endsWith('.wav')) {
+      return 'audio/wav';
+    }
+    if (normalized.endsWith('.lrc')) {
+      return 'application/octet-stream';
+    }
+    return null;
+  }
+
+  Future<void> _deleteFileIfExists(String? path) async {
+    final normalizedPath = (path ?? '').trim();
+    if (normalizedPath.isEmpty) {
+      return;
+    }
+    final file = File(normalizedPath);
+    if (!await file.exists()) {
+      return;
+    }
+    await file.delete();
   }
 
   static PlatformInfo _defaultPlatformResolver() {

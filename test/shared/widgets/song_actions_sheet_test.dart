@@ -240,4 +240,51 @@ void main() {
     expect(find.byType(Scrollable), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('song actions sheet uses previous mobile list tile style', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(390, 844)),
+          child: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: Center(
+                  child: FilledButton(
+                    onPressed: () {
+                      showSongActionsSheet(
+                        context: context,
+                        coverUrl: null,
+                        title: '在线歌曲',
+                        subtitle: '在线歌手',
+                        hasMv: false,
+                        sourceLabel: 'QQ 音乐',
+                        onPlay: () {},
+                        onPlayNext: () {},
+                        onAddToPlaylist: () {},
+                        onDownload: () {},
+                        onWatchMv: () {},
+                        onCopySongName: () {},
+                        onCopySongId: () {},
+                      );
+                    },
+                    child: const Text('Open regular'),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open regular'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ListTile), findsWidgets);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(find.byType(Divider), findsOneWidget);
+  });
 }

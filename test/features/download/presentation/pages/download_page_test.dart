@@ -68,6 +68,9 @@ void main() {
     expect(find.text('失败'), findsOneWidget);
     expect(find.text('已暂停'), findsOneWidget);
     expect(find.text('daoxiang.mp3'), findsOneWidget);
+    expect(find.text('-'), findsNothing);
+    expect(find.text('4.0 MB / 10.0 MB'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 
   testWidgets('more menu shows pause for downloading task', (tester) async {
@@ -83,7 +86,8 @@ void main() {
 
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('暂停'), findsOneWidget);
-    expect(find.text('移除'), findsOneWidget);
+    expect(find.text('移除任务'), findsOneWidget);
+    expect(find.text('移除任务和文件'), findsOneWidget);
     expect(find.text('重试'), findsNothing);
   });
 
@@ -99,7 +103,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.text('继续'), findsOneWidget);
-    expect(find.text('移除'), findsOneWidget);
+    expect(find.text('移除任务'), findsOneWidget);
+    expect(find.text('移除任务和文件'), findsOneWidget);
     expect(find.text('暂停'), findsNothing);
   });
 
@@ -115,10 +120,31 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.text('重试'), findsOneWidget);
-    expect(find.text('移除'), findsOneWidget);
+    expect(find.text('移除任务'), findsOneWidget);
+    expect(find.text('移除任务和文件'), findsOneWidget);
   });
 
   testWidgets('more menu shows completed actions for finished task', (tester) async {
+    await _pumpDownloadPage(
+      tester,
+      size: const Size(390, 844),
+      platform: TargetPlatform.android,
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('download_more_button_4')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.text('重新下载'), findsOneWidget);
+    expect(find.text('打开文件'), findsOneWidget);
+    expect(find.text('移除任务'), findsOneWidget);
+    expect(find.text('移除任务和文件'), findsOneWidget);
+  });
+
+  testWidgets('download page more menu uses previous mobile list tile style', (
+    tester,
+  ) async {
     await _pumpDownloadPage(
       tester,
       size: const Size(390, 844),
@@ -129,9 +155,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
 
-    expect(find.text('重新下载'), findsOneWidget);
-    expect(find.text('打开所在位置'), findsOneWidget);
-    expect(find.text('移除'), findsOneWidget);
+    expect(find.byType(ListTile), findsWidgets);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
   });
 
   testWidgets('desktop layout shows anchored context menu instead of bottom sheet', (
@@ -152,6 +177,8 @@ void main() {
     expect(find.byType(PopupMenuItem<String>), findsWidgets);
     expect(find.text('重新下载'), findsOneWidget);
     expect(find.text('打开所在位置'), findsOneWidget);
+    expect(find.text('移除任务'), findsOneWidget);
+    expect(find.text('移除任务和文件'), findsOneWidget);
   });
 }
 
@@ -211,6 +238,8 @@ class _FilledDownloadController extends DownloadController {
           album: '十一月的萧邦',
           status: DownloadTaskStatus.downloading,
           progress: 0.42,
+          downloadedBytes: 4194304,
+          totalBytes: 10485760,
           quality: DownloadTaskQuality(
             label: 'hq',
             bitrate: 320,
@@ -227,6 +256,8 @@ class _FilledDownloadController extends DownloadController {
           url: 'https://example.com/2.mp3',
           status: DownloadTaskStatus.paused,
           progress: 0.18,
+          downloadedBytes: 1887437,
+          totalBytes: 10485760,
           quality: DownloadTaskQuality(
             label: 'sq',
             bitrate: 192,
@@ -243,6 +274,8 @@ class _FilledDownloadController extends DownloadController {
           url: 'https://example.com/3.mp3',
           status: DownloadTaskStatus.failed,
           progress: 0.7,
+          downloadedBytes: 7340032,
+          totalBytes: 10485760,
           quality: DownloadTaskQuality(
             label: 'hq',
             bitrate: 320,
@@ -260,6 +293,8 @@ class _FilledDownloadController extends DownloadController {
           url: 'https://example.com/4.mp3',
           status: DownloadTaskStatus.completed,
           progress: 1,
+          downloadedBytes: 10485760,
+          totalBytes: 10485760,
           quality: DownloadTaskQuality(
             label: 'lossless',
             bitrate: 999,
@@ -276,6 +311,7 @@ class _FilledDownloadController extends DownloadController {
           url: 'https://example.com/5.mp3',
           status: DownloadTaskStatus.preparing,
           progress: 0,
+          downloadedBytes: 0,
           quality: DownloadTaskQuality(
             label: 'hq',
             bitrate: 320,

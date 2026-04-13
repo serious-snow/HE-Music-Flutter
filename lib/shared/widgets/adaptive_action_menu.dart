@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum AdaptiveActionMenuMobileDensity { regular, compact }
+
 class AdaptiveActionMenuAnchor {
   AdaptiveActionMenuAnchor._();
 
@@ -59,6 +61,7 @@ class AdaptiveActionMenu<T> extends StatefulWidget {
     required this.icon,
     required this.items,
     required this.onSelected,
+    this.mobileDensity = AdaptiveActionMenuMobileDensity.compact,
     super.key,
   });
 
@@ -67,6 +70,7 @@ class AdaptiveActionMenu<T> extends StatefulWidget {
   final Widget icon;
   final List<AdaptiveActionMenuItem<T>> items;
   final ValueChanged<T> onSelected;
+  final AdaptiveActionMenuMobileDensity mobileDensity;
 
   @override
   State<AdaptiveActionMenu<T>> createState() => _AdaptiveActionMenuState<T>();
@@ -148,6 +152,7 @@ class _AdaptiveActionMenuState<T> extends State<AdaptiveActionMenu<T>> {
       builder: (bottomSheetContext) => _AdaptiveActionMenuBottomSheetBody<T>(
         items: widget.items,
         onSelected: (value) => Navigator.of(bottomSheetContext).pop(value),
+        density: widget.mobileDensity,
       ),
     );
   }
@@ -189,6 +194,8 @@ Future<T?> showAdaptiveActionMenu<T>({
   Offset? anchorPosition,
   Widget? mobileHeader,
   Widget? mobileFooter,
+  AdaptiveActionMenuMobileDensity mobileDensity =
+      AdaptiveActionMenuMobileDensity.compact,
 }) {
   final useContextMenu = _shouldUseContextMenu(context);
   if (useContextMenu) {
@@ -228,6 +235,7 @@ Future<T?> showAdaptiveActionMenu<T>({
       onSelected: (value) => Navigator.of(bottomSheetContext).pop(value),
       header: mobileHeader,
       footer: mobileFooter,
+      density: mobileDensity,
     ),
   );
 }
@@ -285,12 +293,14 @@ class _AdaptiveActionMenuBottomSheetBody<T> extends StatelessWidget {
   const _AdaptiveActionMenuBottomSheetBody({
     required this.items,
     required this.onSelected,
+    required this.density,
     this.header,
     this.footer,
   });
 
   final List<AdaptiveActionMenuItem<T>> items;
   final ValueChanged<T> onSelected;
+  final AdaptiveActionMenuMobileDensity density;
   final Widget? header;
   final Widget? footer;
 
@@ -299,16 +309,17 @@ class _AdaptiveActionMenuBottomSheetBody<T> extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final maxHeight = mediaQuery.size.height * 0.82;
     final colorScheme = Theme.of(context).colorScheme;
+    final isCompact = density == AdaptiveActionMenuMobileDensity.compact;
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        padding: EdgeInsets.fromLTRB(12, 0, 12, isCompact ? 12 : 14),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: maxHeight),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(isCompact ? 24 : 28),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -318,7 +329,12 @@ class _AdaptiveActionMenuBottomSheetBody<T> extends StatelessWidget {
                   fit: FlexFit.loose,
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+                      padding: EdgeInsets.fromLTRB(
+                        isCompact ? 8 : 10,
+                        isCompact ? 4 : 8,
+                        isCompact ? 8 : 10,
+                        isCompact ? 6 : 10,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
@@ -326,6 +342,7 @@ class _AdaptiveActionMenuBottomSheetBody<T> extends StatelessWidget {
                             _buildActionTile(
                               context,
                               item: items[index],
+                              isCompact: isCompact,
                               showSectionDivider:
                                   index > 0 && items[index].startsNewSection,
                             ),
@@ -346,30 +363,34 @@ class _AdaptiveActionMenuBottomSheetBody<T> extends StatelessWidget {
   Widget _buildActionTile(
     BuildContext context, {
     required AdaptiveActionMenuItem<T> item,
+    required bool isCompact,
     required bool showSectionDivider,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final tile = InkWell(
       key: item.key,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(isCompact ? 16 : 18),
       onTap: item.enabled ? () => onSelected(item.value) : null,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 10 : 12,
+          vertical: isCompact ? 10 : 12,
+        ),
         child: Row(
           children: <Widget>[
             if (item.icon != null) ...<Widget>[
               Icon(
                 item.icon,
-                size: 18,
+                size: isCompact ? 18 : 20,
                 color: item.enabled
                     ? (item.destructive
                           ? colorScheme.error
                           : colorScheme.onSurfaceVariant)
                     : colorScheme.onSurface.withValues(alpha: 0.38),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isCompact ? 12 : 14),
             ],
-            Expanded(child: _ActionMenuLabel(item: item, compact: true)),
+            Expanded(child: _ActionMenuLabel(item: item, compact: isCompact)),
           ],
         ),
       ),
@@ -381,7 +402,12 @@ class _AdaptiveActionMenuBottomSheetBody<T> extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+          padding: EdgeInsets.fromLTRB(
+            isCompact ? 10 : 12,
+            isCompact ? 4 : 6,
+            isCompact ? 10 : 12,
+            isCompact ? 8 : 10,
+          ),
           child: Divider(
             height: 1,
             thickness: 0.8,

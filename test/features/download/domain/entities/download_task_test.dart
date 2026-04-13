@@ -57,6 +57,8 @@ void main() {
       expect(task.metadataPath, isNull);
       expect(task.lyricPath, isNull);
       expect(task.errorMessage, isNull);
+      expect(task.downloadedBytes, isNull);
+      expect(task.totalBytes, isNull);
     });
 
     test('copyWith applies metadata updates and clears error', () {
@@ -85,6 +87,8 @@ void main() {
         ),
         tagWriteStatus: DownloadTagWriteStatus.success,
         lyricFormat: DownloadLyricFormat.plain,
+        downloadedBytes: 1024,
+        totalBytes: 2048,
         filePath: '/tmp/song.flac',
         metadataPath: '/tmp/song.json',
         lyricPath: '/tmp/song.lrc',
@@ -102,6 +106,8 @@ void main() {
       expect(updated.quality.fileExtension, 'flac');
       expect(updated.tagWriteStatus, DownloadTagWriteStatus.success);
       expect(updated.lyricFormat, DownloadLyricFormat.plain);
+      expect(updated.downloadedBytes, 1024);
+      expect(updated.totalBytes, 2048);
       expect(updated.filePath, '/tmp/song.flac');
       expect(updated.metadataPath, '/tmp/song.json');
       expect(updated.lyricPath, '/tmp/song.lrc');
