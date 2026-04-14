@@ -146,6 +146,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                               if (currentAvailableQualities.isEmpty) {
                                 return;
                               }
+                              if (!context.mounted) {
+                                return;
+                              }
                               _openQualitySheet(
                                 context,
                                 controller,
@@ -335,6 +338,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                                   ref: ref,
                                 )
                               : displayQualities;
+                          if (!rootContext.mounted) {
+                            return;
+                          }
                           _openQualitySheet(
                             rootContext,
                             controller,

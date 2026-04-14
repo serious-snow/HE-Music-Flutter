@@ -5,7 +5,7 @@ import 'package:he_music_flutter/features/player/domain/entities/player_quality_
 import 'package:he_music_flutter/shared/models/he_music_models.dart';
 
 void main() {
-  test('build download quality options keeps quality choices and deduplicates', () {
+  test('build download quality options reverses quality choices and deduplicates', () {
     final qualities = buildDownloadQualityOptions(
       links: const <LinkInfo>[
         LinkInfo(
@@ -44,11 +44,11 @@ void main() {
     );
 
     expect(qualities, hasLength(3));
-    expect(qualities.first.name, 'FLAC');
-    expect(qualities.first.description, '无损音质');
+    expect(qualities.first.name, '128MP3');
+    expect(qualities.first.url, isEmpty);
     expect(qualities[1].name, '320MP3');
-    expect(qualities.last.name, '128MP3');
-    expect(qualities.last.url, isEmpty);
+    expect(qualities.last.name, 'FLAC');
+    expect(qualities.last.description, '无损音质');
   });
 
   testWidgets('download quality sheet renders qualities and returns selection', (

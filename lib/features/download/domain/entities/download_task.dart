@@ -250,7 +250,7 @@ class DownloadTask {
           _nullableString(json['resolved_file_extension']) ??
           _nullableString(
             (json['quality'] as Map?)
-                ?.cast<String, dynamic>()?['file_extension'],
+                ?.cast<String, dynamic>()['file_extension'],
           ),
       lyricPath: _nullableString(json['lyric_path']),
       errorMessage: _nullableString(json['error_message']),

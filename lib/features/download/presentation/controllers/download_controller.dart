@@ -11,7 +11,6 @@ import '../../data/services/download_metadata_writer.dart';
 import '../../domain/entities/download_state.dart';
 import '../../domain/entities/download_task.dart';
 import '../../domain/repositories/download_repository.dart';
-import '../../../online/presentation/controllers/online_controller.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../providers/download_providers.dart';
 
