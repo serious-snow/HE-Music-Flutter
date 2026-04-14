@@ -19,7 +19,7 @@ class AudioTags {
     if (_initialized) {
       return;
     }
-    if (Platform.isMacOS) {
+    if (Platform.isMacOS || Platform.isIOS) {
       await RustLib.init(
         externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true),
       );

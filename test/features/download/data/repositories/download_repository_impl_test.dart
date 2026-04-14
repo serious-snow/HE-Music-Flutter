@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/features/download/data/datasources/download_path_data_source.dart';
@@ -201,6 +202,34 @@ void main() {
     expect(runner.openedFiles.single.mimeType, 'audio/mpeg');
   });
 
+  test('repository opens file directly on ios', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final revealedPaths = <String>[];
+    final launchedDirectories = <Uri>[];
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+      platformResolver: () => _FakePlatform(isIOS: true, isMacOS: false),
+      revealInFileManager: (filePath) async {
+        revealedPaths.add(filePath);
+      },
+      openDirectory: (directoryUri) async {
+        launchedDirectories.add(directoryUri);
+        return true;
+      },
+    );
+
+    await repository.openContainingFolder('/tmp/app/HEMusic/song.mp3');
+
+    expect(revealedPaths, isEmpty);
+    expect(launchedDirectories, isEmpty);
+    expect(runner.openedFiles, hasLength(1));
+    expect(runner.openedFiles.single.filePath, '/tmp/app/HEMusic/song.mp3');
+    expect(runner.openedFiles.single.mimeType, 'audio/mpeg');
+  });
+
   test('repository uses absolute open command for macos reveal', () async {
     final runner = _FakeDownloadRunnerDataSource();
     final store = _FakeDownloadTaskStoreDataSource();
@@ -231,29 +260,92 @@ void main() {
     ]);
   });
 
-  test('repository deletes downloaded audio and lyric files when requested', () async {
+  test('repository exports audio and lyric files together', () async {
     final runner = _FakeDownloadRunnerDataSource();
     final store = _FakeDownloadTaskStoreDataSource();
+    final exported = <({String path, String? mimeType})>[];
     final repository = DownloadRepositoryImpl(
       runner,
       store,
       DownloadPathDataSource(),
-    );
-    final tempDir = await Directory.systemTemp.createTemp('download-repo-test');
-    addTearDown(() => tempDir.delete(recursive: true));
-    final audioFile = File('${tempDir.path}/song.mp3');
-    final lyricFile = File('${tempDir.path}/song.lrc');
-    await audioFile.writeAsString('audio');
-    await lyricFile.writeAsString('lyric');
-
-    await repository.deleteDownloadedArtifacts(
-      filePath: audioFile.path,
-      lyricPath: lyricFile.path,
+      shareFiles: (files, {sharePositionOrigin}) async {
+        exported.addAll(
+          files.map((file) => (path: file.path, mimeType: file.mimeType)),
+        );
+        expect(sharePositionOrigin, isNull);
+      },
     );
 
-    expect(await audioFile.exists(), isFalse);
-    expect(await lyricFile.exists(), isFalse);
+    await repository.exportFiles(
+      filePath: '/tmp/app/HEMusic/song.mp3',
+      lyricPath: '/tmp/app/HEMusic/song.lrc',
+    );
+
+    expect(exported, <({String path, String? mimeType})>[
+      (path: '/tmp/app/HEMusic/song.mp3', mimeType: 'audio/mpeg'),
+      (path: '/tmp/app/HEMusic/song.lrc', mimeType: 'application/octet-stream'),
+    ]);
   });
+
+  test('repository forwards share position origin to share handler', () async {
+    final runner = _FakeDownloadRunnerDataSource();
+    final store = _FakeDownloadTaskStoreDataSource();
+    final exported = <({String path, String? mimeType})>[];
+    Rect? receivedSharePositionOrigin;
+    final repository = DownloadRepositoryImpl(
+      runner,
+      store,
+      DownloadPathDataSource(),
+      shareFiles: (files, {sharePositionOrigin}) async {
+        exported.addAll(
+          files.map((file) => (path: file.path, mimeType: file.mimeType)),
+        );
+        receivedSharePositionOrigin = sharePositionOrigin;
+      },
+    );
+    const sharePositionOrigin = Rect.fromLTWH(16, 32, 28, 28);
+
+    await repository.exportFiles(
+      filePath: '/tmp/app/HEMusic/song.mp3',
+      lyricPath: '/tmp/app/HEMusic/song.lrc',
+      sharePositionOrigin: sharePositionOrigin,
+    );
+
+    expect(exported, <({String path, String? mimeType})>[
+      (path: '/tmp/app/HEMusic/song.mp3', mimeType: 'audio/mpeg'),
+      (path: '/tmp/app/HEMusic/song.lrc', mimeType: 'application/octet-stream'),
+    ]);
+    expect(receivedSharePositionOrigin, sharePositionOrigin);
+  });
+
+  test(
+    'repository deletes downloaded audio and lyric files when requested',
+    () async {
+      final runner = _FakeDownloadRunnerDataSource();
+      final store = _FakeDownloadTaskStoreDataSource();
+      final repository = DownloadRepositoryImpl(
+        runner,
+        store,
+        DownloadPathDataSource(),
+      );
+      final tempDir = await Directory.systemTemp.createTemp(
+        'download-repo-test',
+      );
+      addTearDown(() => tempDir.delete(recursive: true));
+      final audioFile = File('${tempDir.path}/song.mp3');
+      final lyricFile = File('${tempDir.path}/song.lrc');
+      await audioFile.writeAsString('audio');
+      await lyricFile.writeAsString('lyric');
+
+      await repository.deleteDownloadedArtifacts(
+        filePath: audioFile.path,
+        lyricPath: lyricFile.path,
+      );
+
+      expect(await audioFile.exists(), isFalse);
+      expect(await lyricFile.exists(), isFalse);
+    },
+  );
 
   test('repository ignores missing downloaded artifacts', () async {
     final runner = _FakeDownloadRunnerDataSource();
@@ -339,10 +431,17 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
 }
 
 class _FakePlatform implements PlatformInfo {
-  const _FakePlatform({this.isAndroid = false, required this.isMacOS});
+  const _FakePlatform({
+    this.isAndroid = false,
+    this.isIOS = false,
+    required this.isMacOS,
+  });
 
   @override
   final bool isAndroid;
+
+  @override
+  final bool isIOS;
 
   @override
   final bool isMacOS;

@@ -53,6 +53,10 @@ uintptr_t new_dart_opaque(Dart_Handle handle);
 
 intptr_t init_frb_dart_api_dl(void *obj);
 
+int32_t frb_get_rust_content_hash(void);
+
+intptr_t frb_init_frb_dart_api_dl(void *obj);
+
 void wire_read(int64_t port_, struct wire_uint_8_list *path);
 
 void wire_write(int64_t port_, struct wire_uint_8_list *path, struct wire_Tag *data);
@@ -83,5 +87,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) get_dart_object);
     dummy_var ^= ((int64_t) (void*) drop_dart_object);
     dummy_var ^= ((int64_t) (void*) new_dart_opaque);
+    dummy_var ^= ((int64_t) (void*) frb_get_rust_content_hash);
+    dummy_var ^= ((int64_t) (void*) frb_init_frb_dart_api_dl);
     return dummy_var;
 }

@@ -38,7 +38,9 @@ void main() {
     expect(find.text('暂无下载任务。'), findsOneWidget);
   });
 
-  testWidgets('download page renders tasks in created order as compact rows', (tester) async {
+  testWidgets('download page renders tasks in created order as compact rows', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
@@ -74,10 +76,7 @@ void main() {
   });
 
   testWidgets('more menu shows pause for downloading task', (tester) async {
-    await _pumpDownloadPage(
-      tester,
-      size: const Size(390, 844),
-    );
+    await _pumpDownloadPage(tester, size: const Size(390, 844));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('download_more_button_1')));
@@ -92,10 +91,7 @@ void main() {
   });
 
   testWidgets('more menu shows resume for paused task', (tester) async {
-    await _pumpDownloadPage(
-      tester,
-      size: const Size(390, 844),
-    );
+    await _pumpDownloadPage(tester, size: const Size(390, 844));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('download_more_button_2')));
@@ -109,10 +105,7 @@ void main() {
   });
 
   testWidgets('more menu shows retry for failed task', (tester) async {
-    await _pumpDownloadPage(
-      tester,
-      size: const Size(390, 844),
-    );
+    await _pumpDownloadPage(tester, size: const Size(390, 844));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('download_more_button_3')));
@@ -124,7 +117,9 @@ void main() {
     expect(find.text('移除任务和文件'), findsOneWidget);
   });
 
-  testWidgets('more menu shows completed actions for finished task', (tester) async {
+  testWidgets('more menu shows completed actions for finished task', (
+    tester,
+  ) async {
     await _pumpDownloadPage(
       tester,
       size: const Size(390, 844),
@@ -138,17 +133,35 @@ void main() {
 
     expect(find.text('重新下载'), findsOneWidget);
     expect(find.text('打开文件'), findsOneWidget);
+    expect(find.text('导出文件'), findsOneWidget);
     expect(find.text('移除任务'), findsOneWidget);
     expect(find.text('移除任务和文件'), findsOneWidget);
   });
 
-  testWidgets('download page more menu uses previous mobile list tile style', (
+  testWidgets('more menu shows open file for completed task on ios', (
     tester,
   ) async {
     await _pumpDownloadPage(
       tester,
       size: const Size(390, 844),
+      platform: TargetPlatform.iOS,
     );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('download_more_button_4')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.text('重新下载'), findsOneWidget);
+    expect(find.text('打开文件'), findsOneWidget);
+    expect(find.text('导出文件'), findsOneWidget);
+    expect(find.text('打开所在位置'), findsNothing);
+  });
+
+  testWidgets('download page more menu uses previous mobile list tile style', (
+    tester,
+  ) async {
+    await _pumpDownloadPage(tester, size: const Size(390, 844));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('download_more_button_4')));
@@ -159,27 +172,28 @@ void main() {
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
   });
 
-  testWidgets('desktop layout shows anchored context menu instead of bottom sheet', (
-    tester,
-  ) async {
-    await _pumpDownloadPage(
-      tester,
-      size: const Size(1280, 900),
-      platform: TargetPlatform.macOS,
-    );
-    await tester.pump();
+  testWidgets(
+    'desktop layout shows anchored context menu instead of bottom sheet',
+    (tester) async {
+      await _pumpDownloadPage(
+        tester,
+        size: const Size(1280, 900),
+        platform: TargetPlatform.macOS,
+      );
+      await tester.pump();
 
-    await tester.tap(find.byKey(const Key('download_more_button_4')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.byKey(const Key('download_more_button_4')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
 
-    expect(find.byType(BottomSheet), findsNothing);
-    expect(find.byType(PopupMenuItem<String>), findsWidgets);
-    expect(find.text('重新下载'), findsOneWidget);
-    expect(find.text('打开所在位置'), findsOneWidget);
-    expect(find.text('移除任务'), findsOneWidget);
-    expect(find.text('移除任务和文件'), findsOneWidget);
-  });
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.byType(PopupMenuItem<String>), findsWidgets);
+      expect(find.text('重新下载'), findsOneWidget);
+      expect(find.text('打开所在位置'), findsOneWidget);
+      expect(find.text('移除任务'), findsOneWidget);
+      expect(find.text('移除任务和文件'), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _pumpDownloadPage(

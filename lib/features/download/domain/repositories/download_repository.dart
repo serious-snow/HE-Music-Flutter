@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import '../entities/download_task.dart';
 
 typedef DownloadProgressCallback = void Function(double progress);
@@ -72,12 +74,15 @@ abstract class DownloadRepository {
 
   Future<void> deleteTask(String taskId);
 
-  Future<void> deleteDownloadedArtifacts({
-    String? filePath,
-    String? lyricPath,
-  });
+  Future<void> deleteDownloadedArtifacts({String? filePath, String? lyricPath});
 
   Future<void> openContainingFolder(String filePath);
+
+  Future<void> exportFiles({
+    required String filePath,
+    String? lyricPath,
+    Rect? sharePositionOrigin,
+  });
 
   Future<String?> moveToPublicDownloads({
     required String filePath,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -583,92 +584,144 @@ void main() {
     expect(repository.openContainingFolderCalls, <String>['/tmp/测试下载.mp3']);
   });
 
-  test('removeTask removes persisted task without deleting downloaded files', () async {
-    final repository = _FakeDownloadRepository(
-      initialTasks: <DownloadTask>[
-        DownloadTask(
-          id: 'task-1',
-          title: '测试下载',
-          url: 'https://example.com/song.mp3',
-          status: DownloadTaskStatus.completed,
-          progress: 1,
-          quality: DownloadTaskQuality(
-            label: 'standard',
-            bitrate: 320,
-            fileExtension: 'mp3',
+  test(
+    'exportFiles delegates audio, lyric paths and share origin to repository',
+    () async {
+      final repository = _FakeDownloadRepository(
+        initialTasks: <DownloadTask>[
+          DownloadTask(
+            id: 'task-1',
+            title: '测试下载',
+            url: 'https://example.com/song.mp3',
+            status: DownloadTaskStatus.completed,
+            progress: 1,
+            quality: DownloadTaskQuality(
+              label: 'standard',
+              bitrate: 320,
+              fileExtension: 'mp3',
+            ),
+            tagWriteStatus: DownloadTagWriteStatus.success,
+            lyricFormat: DownloadLyricFormat.timed,
+            createdAt: DateTime(2026, 4, 9),
+            filePath: '/tmp/测试下载.mp3',
+            lyricPath: '/tmp/测试下载.lrc',
           ),
-          tagWriteStatus: DownloadTagWriteStatus.success,
-          lyricFormat: DownloadLyricFormat.timed,
-          createdAt: DateTime(2026, 4, 9),
-          filePath: '/tmp/测试下载.mp3',
-          lyricPath: '/tmp/测试下载.lrc',
-        ),
-      ],
-    );
-    final container = ProviderContainer(
-      overrides: <Override>[
-        downloadRepositoryProvider.overrideWithValue(repository),
-      ],
-    );
-    addTearDown(container.dispose);
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: <Override>[
+          downloadRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    container.read(downloadControllerProvider);
-    await Future<void>.delayed(Duration.zero);
-    await container.read(downloadControllerProvider.notifier).removeTask('task-1');
+      container.read(downloadControllerProvider);
+      await Future<void>.delayed(Duration.zero);
+      const sharePositionOrigin = Rect.fromLTWH(24, 48, 36, 36);
+      await container
+          .read(downloadControllerProvider.notifier)
+          .exportFiles('task-1', sharePositionOrigin: sharePositionOrigin);
 
-    expect(repository.deletedTaskIds, <String>['task-1']);
-    expect(repository.removedPluginTaskIds, <String>['task-1']);
-    expect(repository.deleteDownloadedArtifactsCalls, isEmpty);
-    expect(container.read(downloadControllerProvider).tasks, isEmpty);
-  });
-
-  test('removeTaskAndFile removes task and deletes downloaded artifacts', () async {
-    final repository = _FakeDownloadRepository(
-      initialTasks: <DownloadTask>[
-        DownloadTask(
-          id: 'task-1',
-          title: '测试下载',
-          url: 'https://example.com/song.mp3',
-          status: DownloadTaskStatus.completed,
-          progress: 1,
-          quality: DownloadTaskQuality(
-            label: 'standard',
-            bitrate: 320,
-            fileExtension: 'mp3',
-          ),
-          tagWriteStatus: DownloadTagWriteStatus.success,
-          lyricFormat: DownloadLyricFormat.timed,
-          createdAt: DateTime(2026, 4, 9),
-          filePath: '/tmp/测试下载.mp3',
-          lyricPath: '/tmp/测试下载.lrc',
-        ),
-      ],
-    );
-    final container = ProviderContainer(
-      overrides: <Override>[
-        downloadRepositoryProvider.overrideWithValue(repository),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    container.read(downloadControllerProvider);
-    await Future<void>.delayed(Duration.zero);
-    await container
-        .read(downloadControllerProvider.notifier)
-        .removeTaskAndFile('task-1');
-
-    expect(repository.deletedTaskIds, <String>['task-1']);
-    expect(repository.removedPluginTaskIds, <String>['task-1']);
-    expect(repository.deleteDownloadedArtifactsCalls, hasLength(1));
-    expect(
-      repository.deleteDownloadedArtifactsCalls.single,
-      (
+      expect(repository.exportFilesCalls, hasLength(1));
+      expect(repository.exportFilesCalls.single, (
         filePath: '/tmp/测试下载.mp3',
         lyricPath: '/tmp/测试下载.lrc',
-      ),
-    );
-    expect(container.read(downloadControllerProvider).tasks, isEmpty);
-  });
+        sharePositionOrigin: sharePositionOrigin,
+      ));
+    },
+  );
+
+  test(
+    'removeTask removes persisted task without deleting downloaded files',
+    () async {
+      final repository = _FakeDownloadRepository(
+        initialTasks: <DownloadTask>[
+          DownloadTask(
+            id: 'task-1',
+            title: '测试下载',
+            url: 'https://example.com/song.mp3',
+            status: DownloadTaskStatus.completed,
+            progress: 1,
+            quality: DownloadTaskQuality(
+              label: 'standard',
+              bitrate: 320,
+              fileExtension: 'mp3',
+            ),
+            tagWriteStatus: DownloadTagWriteStatus.success,
+            lyricFormat: DownloadLyricFormat.timed,
+            createdAt: DateTime(2026, 4, 9),
+            filePath: '/tmp/测试下载.mp3',
+            lyricPath: '/tmp/测试下载.lrc',
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: <Override>[
+          downloadRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(downloadControllerProvider);
+      await Future<void>.delayed(Duration.zero);
+      await container
+          .read(downloadControllerProvider.notifier)
+          .removeTask('task-1');
+
+      expect(repository.deletedTaskIds, <String>['task-1']);
+      expect(repository.removedPluginTaskIds, <String>['task-1']);
+      expect(repository.deleteDownloadedArtifactsCalls, isEmpty);
+      expect(container.read(downloadControllerProvider).tasks, isEmpty);
+    },
+  );
+
+  test(
+    'removeTaskAndFile removes task and deletes downloaded artifacts',
+    () async {
+      final repository = _FakeDownloadRepository(
+        initialTasks: <DownloadTask>[
+          DownloadTask(
+            id: 'task-1',
+            title: '测试下载',
+            url: 'https://example.com/song.mp3',
+            status: DownloadTaskStatus.completed,
+            progress: 1,
+            quality: DownloadTaskQuality(
+              label: 'standard',
+              bitrate: 320,
+              fileExtension: 'mp3',
+            ),
+            tagWriteStatus: DownloadTagWriteStatus.success,
+            lyricFormat: DownloadLyricFormat.timed,
+            createdAt: DateTime(2026, 4, 9),
+            filePath: '/tmp/测试下载.mp3',
+            lyricPath: '/tmp/测试下载.lrc',
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: <Override>[
+          downloadRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(downloadControllerProvider);
+      await Future<void>.delayed(Duration.zero);
+      await container
+          .read(downloadControllerProvider.notifier)
+          .removeTaskAndFile('task-1');
+
+      expect(repository.deletedTaskIds, <String>['task-1']);
+      expect(repository.removedPluginTaskIds, <String>['task-1']);
+      expect(repository.deleteDownloadedArtifactsCalls, hasLength(1));
+      expect(repository.deleteDownloadedArtifactsCalls.single, (
+        filePath: '/tmp/测试下载.mp3',
+        lyricPath: '/tmp/测试下载.lrc',
+      ));
+      expect(container.read(downloadControllerProvider).tasks, isEmpty);
+    },
+  );
 }
 
 class _FakeDownloadRepository implements DownloadRepository {
@@ -689,6 +742,9 @@ class _FakeDownloadRepository implements DownloadRepository {
   final List<String> pauseTaskCalls = <String>[];
   final List<String> resumeTaskCalls = <String>[];
   final List<String> openContainingFolderCalls = <String>[];
+  final List<({String filePath, String? lyricPath, Rect? sharePositionOrigin})>
+  exportFilesCalls =
+      <({String filePath, String? lyricPath, Rect? sharePositionOrigin})>[];
   final List<String> removedPluginTaskIds = <String>[];
   final List<String> deletedTaskIds = <String>[];
   final List<DownloadTask> savedTasks;
@@ -763,6 +819,19 @@ class _FakeDownloadRepository implements DownloadRepository {
   @override
   Future<void> openContainingFolder(String filePath) async {
     openContainingFolderCalls.add(filePath);
+  }
+
+  @override
+  Future<void> exportFiles({
+    required String filePath,
+    String? lyricPath,
+    Rect? sharePositionOrigin,
+  }) async {
+    exportFilesCalls.add((
+      filePath: filePath,
+      lyricPath: lyricPath,
+      sharePositionOrigin: sharePositionOrigin,
+    ));
   }
 
   @override

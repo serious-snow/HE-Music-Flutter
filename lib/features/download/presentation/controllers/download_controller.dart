@@ -1,5 +1,6 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -139,6 +140,21 @@ class DownloadController extends Notifier<DownloadState> {
       return;
     }
     await ref.read(downloadRepositoryProvider).openContainingFolder(filePath);
+  }
+
+  Future<void> exportFiles(String taskId, {Rect? sharePositionOrigin}) async {
+    final task = _findTask(taskId);
+    final filePath = task?.filePath?.trim() ?? '';
+    if (filePath.isEmpty) {
+      return;
+    }
+    await ref
+        .read(downloadRepositoryProvider)
+        .exportFiles(
+          filePath: filePath,
+          lyricPath: task?.lyricPath?.trim(),
+          sharePositionOrigin: sharePositionOrigin,
+        );
   }
 
   Future<void> removeTask(String taskId) async {
@@ -318,27 +334,24 @@ class DownloadController extends Notifier<DownloadState> {
           ),
         );
       case DownloadRunnerStatus.running:
-        await _updateTask(
-          task.id,
-          (old) {
-            final nextTotalBytes = _resolveTotalBytes(
-              previous: old.totalBytes,
-              incoming: event.expectedFileSize,
-            );
-            return old.copyWith(
-              status: DownloadTaskStatus.downloading,
+        await _updateTask(task.id, (old) {
+          final nextTotalBytes = _resolveTotalBytes(
+            previous: old.totalBytes,
+            incoming: event.expectedFileSize,
+          );
+          return old.copyWith(
+            status: DownloadTaskStatus.downloading,
+            progress: event.progress ?? old.progress,
+            downloadedBytes: _resolveDownloadedBytes(
               progress: event.progress ?? old.progress,
-              downloadedBytes: _resolveDownloadedBytes(
-                progress: event.progress ?? old.progress,
-                totalBytes: nextTotalBytes,
-                previous: old.downloadedBytes,
-              ),
               totalBytes: nextTotalBytes,
-              filePath: event.filePath ?? old.filePath,
-              clearError: true,
-            );
-          },
-        );
+              previous: old.downloadedBytes,
+            ),
+            totalBytes: nextTotalBytes,
+            filePath: event.filePath ?? old.filePath,
+            clearError: true,
+          );
+        });
       case DownloadRunnerStatus.complete:
         await _completeTask(task: task, eventFilePath: event.filePath);
         await _dispatchQueuedTasks();

@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:ui';
 
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/download_task.dart';
@@ -13,6 +15,7 @@ const _safeNameFallback = 'audio';
 
 abstract interface class PlatformInfo {
   bool get isAndroid;
+  bool get isIOS;
   bool get isMacOS;
 }
 
@@ -23,6 +26,9 @@ class _DefaultPlatformInfo implements PlatformInfo {
   bool get isAndroid => Platform.isAndroid;
 
   @override
+  bool get isIOS => Platform.isIOS;
+
+  @override
   bool get isMacOS => Platform.isMacOS;
 }
 
@@ -31,6 +37,15 @@ typedef DirectoryOpener = Future<bool> Function(Uri directoryUri);
 typedef FileRevealHandler = Future<void> Function(String filePath);
 typedef ProcessRunner =
     Future<ProcessResult> Function(String executable, List<String> arguments);
+typedef SharedFileHandler =
+    Future<void> Function(List<SharedFile> files, {Rect? sharePositionOrigin});
+
+class SharedFile {
+  const SharedFile({required this.path, this.mimeType});
+
+  final String path;
+  final String? mimeType;
+}
 
 class DownloadRepositoryImpl implements DownloadRepository {
   DownloadRepositoryImpl(
@@ -40,9 +55,11 @@ class DownloadRepositoryImpl implements DownloadRepository {
     PlatformResolver? platformResolver,
     DirectoryOpener? openDirectory,
     FileRevealHandler? revealInFileManager,
+    SharedFileHandler? shareFiles,
   }) : _platformResolver = platformResolver ?? _defaultPlatformResolver,
        _openDirectory = openDirectory ?? _defaultOpenDirectory,
-       _revealInFileManager = revealInFileManager ?? buildRevealInFileManager();
+       _revealInFileManager = revealInFileManager ?? buildRevealInFileManager(),
+       _shareFilesOverride = shareFiles;
 
   final DownloadRunnerDataSource _runnerDataSource;
   final DownloadTaskStoreDataSource _taskStoreDataSource;
@@ -50,6 +67,7 @@ class DownloadRepositoryImpl implements DownloadRepository {
   final PlatformResolver _platformResolver;
   final DirectoryOpener _openDirectory;
   final FileRevealHandler _revealInFileManager;
+  final SharedFileHandler? _shareFilesOverride;
 
   @override
   bool get shouldMoveToPublicDownloads => _platformResolver().isAndroid;
@@ -126,7 +144,7 @@ class DownloadRepositoryImpl implements DownloadRepository {
       await _revealInFileManager(normalizedPath);
       return;
     }
-    if (platform.isAndroid) {
+    if (platform.isAndroid || platform.isIOS) {
       await _runnerDataSource.openFile(
         filePath: normalizedPath,
         mimeType: _mimeTypeForPath(normalizedPath),
@@ -135,6 +153,37 @@ class DownloadRepositoryImpl implements DownloadRepository {
     }
     final directoryUri = File(normalizedPath).parent.uri;
     await _openDirectory(directoryUri);
+  }
+
+  @override
+  Future<void> exportFiles({
+    required String filePath,
+    String? lyricPath,
+    Rect? sharePositionOrigin,
+  }) async {
+    final normalizedFilePath = filePath.trim();
+    if (normalizedFilePath.isEmpty) {
+      return;
+    }
+    final files = <SharedFile>[
+      SharedFile(
+        path: normalizedFilePath,
+        mimeType: _mimeTypeForPath(normalizedFilePath),
+      ),
+    ];
+    final normalizedLyricPath = lyricPath?.trim() ?? '';
+    if (normalizedLyricPath.isNotEmpty) {
+      files.add(
+        SharedFile(
+          path: normalizedLyricPath,
+          mimeType: _mimeTypeForPath(normalizedLyricPath),
+        ),
+      );
+    }
+    await (_shareFilesOverride ?? _defaultShareFiles)(
+      files,
+      sharePositionOrigin: sharePositionOrigin,
+    );
   }
 
   @override
@@ -251,6 +300,23 @@ class DownloadRepositoryImpl implements DownloadRepository {
 
   static Future<bool> _defaultOpenDirectory(Uri directoryUri) {
     return launchUrl(directoryUri, mode: LaunchMode.externalApplication);
+  }
+
+  static Future<void> _defaultShareFiles(
+    List<SharedFile> files, {
+    Rect? sharePositionOrigin,
+  }) async {
+    if (files.isEmpty) {
+      return;
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        sharePositionOrigin: sharePositionOrigin,
+        files: files
+            .map((file) => XFile(file.path, mimeType: file.mimeType))
+            .toList(growable: false),
+      ),
+    );
   }
 
   static FileRevealHandler buildRevealInFileManager({

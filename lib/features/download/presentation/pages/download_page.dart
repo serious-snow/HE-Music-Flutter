@@ -37,6 +37,9 @@ class DownloadPage extends ConsumerWidget {
             onOpenLocation: ref
                 .read(downloadControllerProvider.notifier)
                 .openContainingFolder,
+            onExportFiles: (taskId, sharePositionOrigin) => ref
+                .read(downloadControllerProvider.notifier)
+                .exportFiles(taskId, sharePositionOrigin: sharePositionOrigin),
             onRetry: ref.read(downloadControllerProvider.notifier).retry,
             onRemoveTask: ref
                 .read(downloadControllerProvider.notifier)
@@ -61,6 +64,7 @@ class _DownloadTaskList extends StatelessWidget {
     required this.onResume,
     required this.onRedownload,
     required this.onOpenLocation,
+    required this.onExportFiles,
     required this.onRetry,
     required this.onRemoveTask,
     required this.onRemoveTaskAndFile,
@@ -72,6 +76,8 @@ class _DownloadTaskList extends StatelessWidget {
   final ValueChanged<String> onResume;
   final ValueChanged<String> onRedownload;
   final ValueChanged<String> onOpenLocation;
+  final Future<void> Function(String taskId, Rect? sharePositionOrigin)
+  onExportFiles;
   final ValueChanged<String> onRetry;
   final ValueChanged<String> onRemoveTask;
   final ValueChanged<String> onRemoveTaskAndFile;
@@ -99,6 +105,8 @@ class _DownloadTaskList extends StatelessWidget {
                 onResume: () => onResume(task.id),
                 onRedownload: () => onRedownload(task.id),
                 onOpenLocation: () => onOpenLocation(task.id),
+                onExportFiles: (sharePositionOrigin) =>
+                    onExportFiles(task.id, sharePositionOrigin),
                 onRetry: () => onRetry(task.id),
                 onRemoveTask: () => onRemoveTask(task.id),
                 onRemoveTaskAndFile: () => onRemoveTaskAndFile(task.id),
@@ -134,6 +142,7 @@ class _DownloadTaskRow extends StatelessWidget {
     required this.onResume,
     required this.onRedownload,
     required this.onOpenLocation,
+    required this.onExportFiles,
     required this.onRetry,
     required this.onRemoveTask,
     required this.onRemoveTaskAndFile,
@@ -144,6 +153,7 @@ class _DownloadTaskRow extends StatelessWidget {
   final VoidCallback onResume;
   final VoidCallback onRedownload;
   final VoidCallback onOpenLocation;
+  final Future<void> Function(Rect? sharePositionOrigin) onExportFiles;
   final VoidCallback onRetry;
   final VoidCallback onRemoveTask;
   final VoidCallback onRemoveTaskAndFile;
@@ -190,6 +200,7 @@ class _DownloadTaskRow extends StatelessWidget {
                     onResume: onResume,
                     onRedownload: onRedownload,
                     onOpenLocation: onOpenLocation,
+                    onExportFiles: onExportFiles,
                     onRetry: onRetry,
                     onRemoveTask: onRemoveTask,
                     onRemoveTaskAndFile: onRemoveTaskAndFile,
@@ -330,6 +341,7 @@ class _MoreButton extends StatelessWidget {
     required this.onResume,
     required this.onRedownload,
     required this.onOpenLocation,
+    required this.onExportFiles,
     required this.onRetry,
     required this.onRemoveTask,
     required this.onRemoveTaskAndFile,
@@ -340,6 +352,7 @@ class _MoreButton extends StatelessWidget {
   final VoidCallback onResume;
   final VoidCallback onRedownload;
   final VoidCallback onOpenLocation;
+  final Future<void> Function(Rect? sharePositionOrigin) onExportFiles;
   final VoidCallback onRetry;
   final VoidCallback onRemoveTask;
   final VoidCallback onRemoveTaskAndFile;
@@ -349,6 +362,7 @@ class _MoreButton extends StatelessWidget {
   String get _resumeItemKey => 'download_more_resume_${task.id}';
   String get _redownloadItemKey => 'download_more_redownload_${task.id}';
   String get _openLocationItemKey => 'download_more_open_location_${task.id}';
+  String get _exportFilesItemKey => 'download_more_export_files_${task.id}';
   String get _retryItemKey => 'download_more_retry_${task.id}';
   String get _removeTaskItemKey => 'download_more_remove_task_${task.id}';
   String get _removeTaskAndFileItemKey =>
@@ -364,7 +378,9 @@ class _MoreButton extends StatelessWidget {
         tooltip: AppI18n.tByLocaleCode(localeCode, 'common.more'),
         icon: const Icon(Icons.more_horiz_rounded, size: 18),
         items: _buildActions(localeCode, platform),
-        onSelected: _handleAction,
+        onSelected: (action) {
+          _handleAction(context, action);
+        },
       );
     }
     return IconButton(
@@ -377,7 +393,8 @@ class _MoreButton extends StatelessWidget {
     );
   }
 
-  void _handleAction(String action) {
+  Future<void> _handleAction(BuildContext context, String action) async {
+    final sharePositionOrigin = _resolveSharePositionOrigin(context);
     switch (action) {
       case 'pause':
         onPause();
@@ -387,6 +404,8 @@ class _MoreButton extends StatelessWidget {
         onRedownload();
       case 'open_location':
         onOpenLocation();
+      case 'export_files':
+        await onExportFiles(sharePositionOrigin);
       case 'retry':
         onRetry();
       case 'remove_task':
@@ -430,9 +449,21 @@ class _MoreButton extends StatelessWidget {
         );
       },
     );
-    if (selected != null) {
-      _handleAction(selected);
+    if (!context.mounted) {
+      return;
     }
+    if (selected != null) {
+      await _handleAction(context, selected);
+    }
+  }
+
+  Rect _resolveSharePositionOrigin(BuildContext context) {
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return const Rect.fromLTWH(0, 0, 1, 1);
+    }
+    final topLeft = renderObject.localToGlobal(Offset.zero);
+    return topLeft & renderObject.size;
   }
 
   List<AdaptiveActionMenuItem<String>> _buildActions(
@@ -489,7 +520,9 @@ class _MoreButton extends StatelessWidget {
           AdaptiveActionMenuItem<String>(
             key: Key(_openLocationItemKey),
             value: 'open_location',
-            label: platform == TargetPlatform.android
+            label:
+                platform == TargetPlatform.android ||
+                    platform == TargetPlatform.iOS
                 ? (localeCode == 'zh' ? '打开文件' : 'Open File')
                 : AppI18n.tByLocaleCode(
                     localeCode,
@@ -498,6 +531,17 @@ class _MoreButton extends StatelessWidget {
             icon: Icons.folder_open_rounded,
           ),
         );
+        if (platform == TargetPlatform.iOS ||
+            platform == TargetPlatform.android) {
+          items.add(
+            AdaptiveActionMenuItem<String>(
+              key: Key(_exportFilesItemKey),
+              value: 'export_files',
+              label: localeCode == 'zh' ? '导出文件' : 'Export File',
+              icon: Icons.ios_share_rounded,
+            ),
+          );
+        }
       }
     }
     items.add(
