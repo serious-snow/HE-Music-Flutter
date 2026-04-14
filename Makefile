@@ -14,7 +14,7 @@ help:
 	@printf "  make fix            自动应用 Dart 可修复项\n"
 	@printf "  make gen            执行代码生成\n"
 	@printf "  make clean          清理构建产物\n"
-	@printf "  make build-apk      构建 Android release APK\n"
+	@printf "  make build-apk      构建 Android release APK（按 ABI 拆分）\n"
 	@printf "  make build-aab      构建 Android release AAB\n"
 	@printf "  make release-check  发布前执行检查与测试\n\n"
 
@@ -46,7 +46,7 @@ clean:
 	$(FLUTTER) clean
 
 build-apk:
-	$(FLUTTER) build apk --release
+	$(FLUTTER) build apk --release --split-per-abi
 
 build-aab:
 	$(FLUTTER) build appbundle --release

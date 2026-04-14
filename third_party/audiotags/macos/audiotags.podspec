@@ -1,18 +1,7 @@
-# Download the binary from GitHub.
-version = "1.4.5"
-lib_url = "https://github.com/erikas-taroza/audiotags/releases/download/v#{version}/macos.zip"
-
-`
-mkdir Libs
-cd Libs
-if [ ! -f macos.zip ]
-then
-  curl -L "#{lib_url}" -o macos.zip
-  unzip macos.zip
-  rm macos.zip
-fi
-cd ..
-`
+library_path = File.join(__dir__, 'Libs', 'libaudiotags.a')
+unless File.exist?(library_path)
+  raise "Missing vendored audiotags macOS library at #{library_path}. Commit the prebuilt libaudiotags.a before building."
+end
 
 Pod::Spec.new do |s|
   s.name             = 'audiotags'

@@ -1,17 +1,7 @@
-# Download the binaries from GitHub.
-version = "1.4.5"
-lib_url = "https://github.com/erikas-taroza/audiotags/releases/download/v#{version}/ios.zip"
-
-`
-mkdir Frameworks
-cd Frameworks
-if [ ! -f ios.zip ]
-then
-  curl -L "#{lib_url}" -o ios.zip
-  unzip ios.zip -d 'audiotags.xcframework'
-fi
-cd ..
-`
+framework_path = File.join(__dir__, 'Frameworks', 'audiotags.xcframework')
+unless File.exist?(framework_path)
+  raise "Missing vendored audiotags iOS framework at #{framework_path}. Commit the prebuilt xcframework before building."
+end
 
 Pod::Spec.new do |s|
   s.name             = 'audiotags'
