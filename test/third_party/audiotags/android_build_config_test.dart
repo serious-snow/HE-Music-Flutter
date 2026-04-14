@@ -13,7 +13,7 @@ void main() {
       content,
       contains("main.jniLibs.srcDirs = ['src/main/jniLibs']"),
     );
-    expect(content, contains('externalNativeBuild'));
+    expect(content, isNot(contains('externalNativeBuild')));
     expect(content, isNot(contains("apply from: '../rust_builder/cargokit/gradle/plugin.gradle'")));
   });
 }
