@@ -24,11 +24,7 @@ void main() {
 
     test('rejects invalid quality payload', () {
       expect(
-        () => DownloadTaskQuality(
-          label: ' ',
-          bitrate: -1,
-          fileExtension: ' ',
-        ),
+        () => DownloadTaskQuality(label: ' ', bitrate: -1, fileExtension: ' '),
         throwsArgumentError,
       );
     });
@@ -53,6 +49,7 @@ void main() {
       expect(task.quality.label, '320kbps');
       expect(task.quality.bitrate, 320.0);
       expect(task.quality.fileExtension, 'mp3');
+      expect(task.effectiveFileExtension, 'mp3');
       expect(task.tagWriteStatus, DownloadTagWriteStatus.pending);
       expect(task.metadataPath, isNull);
       expect(task.lyricPath, isNull);
@@ -94,6 +91,7 @@ void main() {
         lyricPath: '/tmp/song.lrc',
         startedAt: startedAt,
         finishedAt: finishedAt,
+        resolvedFileExtension: 'aac',
         attempts: 2,
         errorMessage: 'will clear',
         clearError: true,
@@ -109,6 +107,7 @@ void main() {
       expect(updated.downloadedBytes, 1024);
       expect(updated.totalBytes, 2048);
       expect(updated.filePath, '/tmp/song.flac');
+      expect(updated.effectiveFileExtension, 'aac');
       expect(updated.metadataPath, '/tmp/song.json');
       expect(updated.lyricPath, '/tmp/song.lrc');
       expect(updated.startedAt, startedAt);
@@ -118,18 +117,19 @@ void main() {
     });
 
     test('copyWith can clear nullable lifecycle fields', () {
-      final task = DownloadTask.queued(
-        id: 'id',
-        title: 'title',
-        url: 'https://example.com',
-        createdAt: DateTime(2024, 1, 1),
-      ).copyWith(
-        startedAt: DateTime(2024, 1, 1, 0, 0, 5),
-        finishedAt: DateTime(2024, 1, 1, 0, 1),
-        metadataPath: '/tmp/meta.json',
-        filePath: '/tmp/song.mp3',
-        lyricPath: '/tmp/song.lrc',
-      );
+      final task =
+          DownloadTask.queued(
+            id: 'id',
+            title: 'title',
+            url: 'https://example.com',
+            createdAt: DateTime(2024, 1, 1),
+          ).copyWith(
+            startedAt: DateTime(2024, 1, 1, 0, 0, 5),
+            finishedAt: DateTime(2024, 1, 1, 0, 1),
+            metadataPath: '/tmp/meta.json',
+            filePath: '/tmp/song.mp3',
+            lyricPath: '/tmp/song.lrc',
+          );
 
       final cleared = task.copyWith(
         clearStartedAt: true,
@@ -144,6 +144,28 @@ void main() {
       expect(cleared.metadataPath, isNull);
       expect(cleared.filePath, isNull);
       expect(cleared.lyricPath, isNull);
+    });
+
+    test('fromJson falls back to quality file extension for old payload', () {
+      final task = DownloadTask.fromJson(<String, dynamic>{
+        'id': 'id',
+        'title': 'title',
+        'url': 'https://example.com',
+        'status': 'queued',
+        'progress': 0,
+        'quality': <String, dynamic>{
+          'label': '320kbps',
+          'bitrate': 320.0,
+          'file_extension': 'mp3',
+        },
+        'tag_write_status': 'pending',
+        'lyric_format': 'none',
+        'created_at': '2024-01-01T00:00:00.000',
+        'attempts': 0,
+      });
+
+      expect(task.resolvedFileExtension, 'mp3');
+      expect(task.effectiveFileExtension, 'mp3');
     });
   });
 
@@ -182,9 +204,7 @@ void main() {
         status: DownloadTaskStatus.failed,
         errorMessage: 'error',
       );
-      final paused = queued.copyWith(
-        status: DownloadTaskStatus.paused,
-      );
+      final paused = queued.copyWith(status: DownloadTaskStatus.paused);
 
       final state = DownloadState(
         tasks: [queued, preparing, downloading, completed, failed, paused],

@@ -8,17 +8,9 @@ enum DownloadTaskStatus {
   failed,
 }
 
-enum DownloadTagWriteStatus {
-  pending,
-  success,
-  failed,
-}
+enum DownloadTagWriteStatus { pending, success, failed }
 
-enum DownloadLyricFormat {
-  none,
-  plain,
-  timed,
-}
+enum DownloadLyricFormat { none, plain, timed }
 
 class DownloadTaskQuality {
   DownloadTaskQuality({
@@ -96,6 +88,7 @@ class DownloadTask {
     this.finishedAt,
     this.metadataPath,
     this.filePath,
+    this.resolvedFileExtension,
     this.lyricPath,
     this.errorMessage,
     this.attempts = 0,
@@ -121,9 +114,18 @@ class DownloadTask {
   final DateTime? finishedAt;
   final String? metadataPath;
   final String? filePath;
+  final String? resolvedFileExtension;
   final String? lyricPath;
   final String? errorMessage;
   final int attempts;
+
+  String get effectiveFileExtension {
+    final resolved = (resolvedFileExtension ?? '').trim();
+    if (resolved.isNotEmpty) {
+      return resolved;
+    }
+    return quality.fileExtension;
+  }
 
   DownloadTask copyWith({
     String? url,
@@ -144,6 +146,7 @@ class DownloadTask {
     DateTime? finishedAt,
     String? metadataPath,
     String? filePath,
+    String? resolvedFileExtension,
     String? lyricPath,
     String? errorMessage,
     int? attempts,
@@ -173,8 +176,12 @@ class DownloadTask {
       createdAt: createdAt ?? this.createdAt,
       startedAt: clearStartedAt ? null : startedAt ?? this.startedAt,
       finishedAt: clearFinishedAt ? null : finishedAt ?? this.finishedAt,
-      metadataPath: clearMetadataPath ? null : metadataPath ?? this.metadataPath,
+      metadataPath: clearMetadataPath
+          ? null
+          : metadataPath ?? this.metadataPath,
       filePath: clearFilePath ? null : filePath ?? this.filePath,
+      resolvedFileExtension:
+          resolvedFileExtension ?? this.resolvedFileExtension,
       lyricPath: clearLyricPath ? null : lyricPath ?? this.lyricPath,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       attempts: attempts ?? this.attempts,
@@ -203,6 +210,7 @@ class DownloadTask {
       'finished_at': finishedAt?.toIso8601String(),
       'metadata_path': metadataPath,
       'file_path': filePath,
+      'resolved_file_extension': resolvedFileExtension,
       'lyric_path': lyricPath,
       'error_message': errorMessage,
       'attempts': attempts,
@@ -238,6 +246,12 @@ class DownloadTask {
       finishedAt: _nullableDateTime(json['finished_at']),
       metadataPath: _nullableString(json['metadata_path']),
       filePath: _nullableString(json['file_path']),
+      resolvedFileExtension:
+          _nullableString(json['resolved_file_extension']) ??
+          _nullableString(
+            (json['quality'] as Map?)
+                ?.cast<String, dynamic>()?['file_extension'],
+          ),
       lyricPath: _nullableString(json['lyric_path']),
       errorMessage: _nullableString(json['error_message']),
       attempts: _toInt(json['attempts']),
@@ -277,7 +291,8 @@ class DownloadTask {
             label: qualityLabel,
             bitrate: qualityBitrate,
             fileExtension: fileExtension,
-      ),
+          ),
+      resolvedFileExtension: fileExtension,
       tagWriteStatus: DownloadTagWriteStatus.pending,
       lyricFormat: lyricFormat,
       downloadedBytes: null,

@@ -8,11 +8,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/error/failure.dart';
 import '../../data/services/download_metadata_writer.dart';
-import '../../domain/repositories/download_repository.dart';
 import '../../domain/entities/download_state.dart';
 import '../../domain/entities/download_task.dart';
+import '../../domain/repositories/download_repository.dart';
+import '../../../online/presentation/controllers/online_controller.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../providers/download_providers.dart';
+
+class _ResolvedDownloadSource {
+  const _ResolvedDownloadSource({
+    required this.url,
+    required this.fileExtension,
+  });
+
+  final String url;
+  final String fileExtension;
+}
 
 class DownloadController extends Notifier<DownloadState> {
   StreamSubscription<DownloadRunnerEvent>? _eventsSubscription;
@@ -243,18 +254,16 @@ class DownloadController extends Notifier<DownloadState> {
     if (currentTask == null) {
       return;
     }
-    final savePath =
-        currentTask.filePath ??
-        await repository.resolveSavePath(
-          title: currentTask.title,
-          artist: currentTask.artist,
-          fileExtension: currentTask.quality.fileExtension,
-        );
-    final url = await _resolveDownloadUrl(currentTask);
+    final resolvedSource = await _resolveDownloadSource(currentTask);
+    final savePath = await repository.resolveSavePath(
+      title: currentTask.title,
+      artist: currentTask.artist,
+      fileExtension: resolvedSource.fileExtension,
+    );
     final request = DownloadEnqueueRequest(
       taskId: task.id,
       pluginTaskId: task.id,
-      url: url,
+      url: resolvedSource.url,
       savePath: savePath,
     );
     final enqueued = await repository.enqueueTask(request);
@@ -274,17 +283,23 @@ class DownloadController extends Notifier<DownloadState> {
         status: DownloadTaskStatus.preparing,
         progress: 0,
         filePath: savePath,
-        url: url,
+        resolvedFileExtension: resolvedSource.fileExtension,
+        url: resolvedSource.url,
         clearError: true,
       ),
     );
   }
 
-  Future<String> _resolveDownloadUrl(DownloadTask task) async {
+  Future<_ResolvedDownloadSource> _resolveDownloadSource(
+    DownloadTask task,
+  ) async {
     final directUrl = task.url.trim();
     if (directUrl.isNotEmpty) {
       _validateUrl(directUrl);
-      return directUrl;
+      return _ResolvedDownloadSource(
+        url: directUrl,
+        fileExtension: task.effectiveFileExtension,
+      );
     }
     final songId = (task.songId ?? '').trim();
     final platform = (task.platform ?? '').trim();
@@ -293,9 +308,9 @@ class DownloadController extends Notifier<DownloadState> {
         ValidationFailure('Download task missing song source metadata.'),
       );
     }
-    return ref
+    final resolution = await ref
         .read(onlineControllerProvider.notifier)
-        .fetchSongUrl(
+        .resolveSongUrl(
           songId: songId,
           platform: platform,
           quality: task.quality.bitrate > 0
@@ -303,6 +318,10 @@ class DownloadController extends Notifier<DownloadState> {
               : null,
           format: task.quality.fileExtension,
         );
+    return _ResolvedDownloadSource(
+      url: resolution.url,
+      fileExtension: resolution.format.trim().toLowerCase(),
+    );
   }
 
   void _bindRunnerEvents() {

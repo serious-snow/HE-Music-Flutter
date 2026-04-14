@@ -116,12 +116,28 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                             onOpenQueue: _openQueueSheet,
                             onOpenMore: _openMoreSheet,
                             onOpenLyrics: () => _animateToPage(1),
-                            onOpenQuality: () {
-                              final currentAvailableQualities = ref.read(
+                            onOpenQuality: () async {
+                              final track = ref.read(
                                 playerControllerProvider.select(
-                                  (s) => s.currentAvailableQualities,
+                                  (s) => s.currentTrack,
                                 ),
                               );
+                              final onlinePlatformId = (track?.platform ?? '')
+                                  .trim();
+                              final currentAvailableQualities =
+                                  track != null &&
+                                      onlinePlatformId.isNotEmpty &&
+                                      onlinePlatformId != 'local'
+                                  ? await _resolveSongQualityOptions(
+                                      track: track,
+                                      platformId: onlinePlatformId,
+                                      ref: ref,
+                                    )
+                                  : ref.read(
+                                      playerControllerProvider.select(
+                                        (s) => s.currentAvailableQualities,
+                                      ),
+                                    );
                               final currentSelectedQuality = ref.read(
                                 playerControllerProvider.select(
                                   (s) => s.currentSelectedQualityName,
@@ -206,13 +222,27 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
               (s) => s.currentSelectedQualityName,
             ),
           );
-          final currentSelectedQualityOption = _findQualityOptionByName(
-            currentAvailableQualities,
-            currentSelectedQuality,
-          );
           final onlinePlatformId = (track?.platform ?? '').trim();
           final canOnline =
               onlinePlatformId.isNotEmpty && onlinePlatformId != 'local';
+          final displayQualities = canOnline && track != null
+              ? _buildSongQualityOptions(
+                  track: track,
+                  platformId: onlinePlatformId,
+                  ref: ref,
+                )
+              : currentAvailableQualities;
+          final currentSelectedQualityOption = _findQualityOptionByName(
+            displayQualities,
+            currentSelectedQuality,
+          );
+          final downloadQualities = canOnline && track != null
+              ? _buildSongQualityOptions(
+                  track: track,
+                  platformId: onlinePlatformId,
+                  ref: ref,
+                )
+              : const <PlayerQualityOption>[];
           final searchPlatformId = _resolveSearchPlatformId(
             ref,
             preferredPlatformId: canOnline ? onlinePlatformId : null,
@@ -296,23 +326,30 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                   subtitle: currentSelectedQualityOption?.name,
                   enabled: canOnline && currentAvailableQualities.isNotEmpty,
                   onTap: canOnline && currentAvailableQualities.isNotEmpty
-                      ? () {
+                      ? () async {
                           Navigator.of(sheetContext).pop();
+                          final qualities = track != null
+                              ? await _resolveSongQualityOptions(
+                                  track: track,
+                                  platformId: onlinePlatformId,
+                                  ref: ref,
+                                )
+                              : displayQualities;
                           _openQualitySheet(
                             rootContext,
                             controller,
-                            currentAvailableQualities,
+                            qualities,
                             currentSelectedQuality,
                           );
                         }
-                        : null,
+                      : null,
                 ),
                 if (canOnline)
                   _PlayerSheetActionTile(
                     icon: Icons.download_rounded,
                     title: AppI18n.t(config, 'player.action.download'),
-                    enabled: currentAvailableQualities.isNotEmpty,
-                    onTap: currentAvailableQualities.isEmpty
+                    enabled: downloadQualities.isNotEmpty,
+                    onTap: downloadQualities.isEmpty
                         ? null
                         : () {
                             Navigator.of(sheetContext).pop();
@@ -320,7 +357,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                               _downloadCurrentTrack(
                                 track: track!,
                                 platformId: onlinePlatformId,
-                                qualities: currentAvailableQualities,
+                                qualities: downloadQualities,
                                 selectedQualityName: currentSelectedQuality,
                               ),
                             );
@@ -591,11 +628,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
         return;
       }
       _showMessage(
-        AppI18n.format(
-          config,
-          'player.download.added',
-          <String, String>{'title': track.title},
-        ),
+        AppI18n.format(config, 'player.download.added', <String, String>{
+          'title': track.title,
+        }),
       );
     } catch (_) {
       if (!mounted) {
@@ -603,6 +638,51 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
       }
       _showMessage(AppI18n.t(config, 'player.download.failed'));
     }
+  }
+
+  Future<List<PlayerQualityOption>> _resolveSongQualityOptions({
+    required WidgetRef ref,
+    required PlayerTrack track,
+    required String platformId,
+  }) async {
+    final immediate = _buildSongQualityOptions(
+      ref: ref,
+      track: track,
+      platformId: platformId,
+    );
+    if (immediate.any(
+      (quality) => (quality.description ?? '').trim().isNotEmpty,
+    )) {
+      return immediate;
+    }
+    final platforms = await ref.read(onlinePlatformsProvider.future);
+    return _buildSongQualityOptions(
+      ref: ref,
+      track: track,
+      platformId: platformId,
+      platforms: platforms,
+    );
+  }
+
+  List<PlayerQualityOption> _buildSongQualityOptions({
+    required WidgetRef ref,
+    required PlayerTrack track,
+    required String platformId,
+    List<OnlinePlatform>? platforms,
+  }) {
+    final resolvedPlatforms =
+        platforms ?? ref.read(onlinePlatformsProvider).valueOrNull;
+    final qualityDescriptions = <String, String>{};
+    for (final platform in resolvedPlatforms ?? const <OnlinePlatform>[]) {
+      if (platform.id == platformId) {
+        qualityDescriptions.addAll(platform.qualities);
+        break;
+      }
+    }
+    return buildDownloadQualityOptions(
+      links: track.links,
+      qualityDescriptions: qualityDescriptions,
+    );
   }
 
   void _openVolumeSheet(

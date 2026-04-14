@@ -79,7 +79,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(downloadControllerProvider);
-      expect(repository.resolveSavePathCalls, 1);
+      expect(repository.resolveSavePathCalls, 2);
       expect(online.fetchSongUrlCalls, 1);
       expect(repository.enqueueTaskRequests, hasLength(1));
       expect(repository.downloadFileCalls, 0);
@@ -159,6 +159,48 @@ void main() {
     expect(repository.enqueueTaskRequests.single.savePath, '/tmp/测试下载.flac');
   });
 
+  test(
+    'dispatch uses final format for file path but keeps selected quality',
+    () async {
+      final repository = _FakeDownloadRepository();
+      final online = _FakeOnlineController(resolvedFormat: 'flac');
+      final container = ProviderContainer(
+        overrides: <Override>[
+          downloadRepositoryProvider.overrideWithValue(repository),
+          onlineControllerProvider.overrideWith(() => online),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(downloadControllerProvider);
+      await Future<void>.delayed(Duration.zero);
+      await container
+          .read(downloadControllerProvider.notifier)
+          .enqueue(
+            title: '格式回退测试',
+            songId: 'song-1',
+            platform: 'qq',
+            quality: DownloadTaskQuality(
+              label: 'hq',
+              bitrate: 320,
+              fileExtension: 'mp3',
+            ),
+          );
+      await Future<void>.delayed(Duration.zero);
+
+      final task = container.read(downloadControllerProvider).tasks.single;
+      expect(task.quality.label, 'hq');
+      expect(task.quality.bitrate, 320);
+      expect(task.quality.fileExtension, 'mp3');
+      expect(task.effectiveFileExtension, 'flac');
+      expect(task.filePath, '/tmp/格式回退测试.flac');
+      expect(
+        repository.enqueueTaskRequests.single.savePath,
+        '/tmp/格式回退测试.flac',
+      );
+    },
+  );
+
   test('runner events drive progress and completion state', () async {
     final repository = _FakeDownloadRepository();
     final metadataWriter = _FakeDownloadMetadataWriter();
@@ -215,6 +257,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
 
     state = container.read(downloadControllerProvider);
     expect(state.tasks.first.status, DownloadTaskStatus.completed);
@@ -900,7 +943,10 @@ class _FakeDownloadMetadataWriter extends DownloadMetadataWriter {
 }
 
 class _FakeOnlineController extends OnlineController {
+  _FakeOnlineController({this.resolvedFormat});
+
   int fetchSongUrlCalls = 0;
+  final String? resolvedFormat;
 
   @override
   OnlineFeatureState build() {
@@ -908,14 +954,20 @@ class _FakeOnlineController extends OnlineController {
   }
 
   @override
-  Future<String> fetchSongUrl({
+  Future<SongUrlResolution> resolveSongUrl({
     required String songId,
     required String platform,
     int? quality,
     String? format,
   }) async {
     fetchSongUrlCalls += 1;
-    return 'https://example.com/song.${(format ?? 'mp3').trim().toLowerCase()}';
+    final finalFormat = (resolvedFormat ?? format ?? 'mp3')
+        .trim()
+        .toLowerCase();
+    return SongUrlResolution(
+      url: 'https://example.com/song.$finalFormat',
+      format: finalFormat,
+    );
   }
 }
 

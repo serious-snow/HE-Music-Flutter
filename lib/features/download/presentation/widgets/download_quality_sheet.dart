@@ -27,8 +27,8 @@ List<PlayerQualityOption> buildDownloadQualityOptions({
       ),
     );
   }
-  options.sort((left, right) => right.quality.compareTo(left.quality));
-  return List<PlayerQualityOption>.unmodifiable(options);
+  // options.sort((left, right) => right.quality.compareTo(left.quality));
+  return List<PlayerQualityOption>.unmodifiable(options.reversed);
 }
 
 Future<PlayerQualityOption?> showDownloadQualitySheet({

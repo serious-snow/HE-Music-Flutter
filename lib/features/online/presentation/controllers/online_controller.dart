@@ -9,6 +9,13 @@ import '../../../my/presentation/providers/favorite_song_status_providers.dart';
 import '../../domain/entities/online_feature_state.dart';
 import '../providers/online_providers.dart';
 
+class SongUrlResolution {
+  const SongUrlResolution({required this.url, required this.format});
+
+  final String url;
+  final String format;
+}
+
 class OnlineController extends Notifier<OnlineFeatureState> {
   @override
   OnlineFeatureState build() {
@@ -88,6 +95,21 @@ class OnlineController extends Notifier<OnlineFeatureState> {
     int? quality,
     String? format,
   }) async {
+    final resolution = await resolveSongUrl(
+      songId: songId,
+      platform: platform,
+      quality: quality,
+      format: format,
+    );
+    return resolution.url;
+  }
+
+  Future<SongUrlResolution> resolveSongUrl({
+    required String songId,
+    required String platform,
+    int? quality,
+    String? format,
+  }) async {
     _validateNotEmpty(songId, 'Song id is required.');
     _validateNotEmpty(platform, 'Platform is required.');
     final client = ref.read(onlineApiClientProvider);
@@ -103,7 +125,14 @@ class OnlineController extends Notifier<OnlineFeatureState> {
         NetworkFailure('Invalid /v1/song/url response: missing url'),
       );
     }
-    return url;
+    final requestedFormat = (format ?? '').trim();
+    final resolvedFormat = '${payload['format'] ?? ''}'.trim();
+    return SongUrlResolution(
+      url: url,
+      format: resolvedFormat.isNotEmpty
+          ? resolvedFormat
+          : (requestedFormat.isNotEmpty ? requestedFormat : 'mp3'),
+    );
   }
 
   Future<void> createPlaylist(String name) async {

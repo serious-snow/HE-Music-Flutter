@@ -76,6 +76,29 @@ void main() {
     expect(find.text('SQ'), findsWidgets);
     expect(find.text('HQ'), findsWidgets);
   });
+
+  testWidgets('player switch quality sheet shows quality description', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Quality'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('HQ'), findsWidgets);
+    expect(find.textContaining('High Quality'), findsOneWidget);
+  });
 }
 
 Widget _buildPlayerTestApp({
@@ -177,6 +200,10 @@ class _TestOnlinePlatformsController extends OnlinePlatformsController {
         shortName: 'QQ',
         status: 1,
         featureSupportFlag: BigInt.zero,
+        qualities: const <String, String>{
+          'SQ': 'Standard Quality',
+          'HQ': 'High Quality',
+        },
       ),
     ];
   }

@@ -1008,7 +1008,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         ),
       );
     }
-    return available;
+    return List<PlayerQualityOption>.unmodifiable(available.reversed);
   }
 
   Map<String, String> _platformQualityDescriptions(String platformId) {

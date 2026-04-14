@@ -38,7 +38,7 @@ void main() {
     expect(find.text('暂无下载任务。'), findsOneWidget);
   });
 
-  testWidgets('download page renders tasks in created order as compact rows', (
+  testWidgets('download page renders newest tasks first as compact rows', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -73,6 +73,10 @@ void main() {
     expect(find.text('-'), findsNothing);
     expect(find.text('4.0 MB / 10.0 MB'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(
+      tester.getTopLeft(find.text('反方向的钟.mp3')).dy,
+      lessThan(tester.getTopLeft(find.text('夜曲 - 周杰伦.mp3')).dy),
+    );
   });
 
   testWidgets('more menu shows pause for downloading task', (tester) async {
@@ -261,7 +265,7 @@ class _FilledDownloadController extends DownloadController {
           ),
           tagWriteStatus: DownloadTagWriteStatus.pending,
           lyricFormat: DownloadLyricFormat.none,
-          createdAt: DateTime(2026, 4, 9),
+          createdAt: DateTime(2026, 4, 9, 12, 0, 0),
           filePath: '/tmp/夜曲 - 周杰伦.mp3',
         ),
         DownloadTask(
@@ -279,7 +283,7 @@ class _FilledDownloadController extends DownloadController {
           ),
           tagWriteStatus: DownloadTagWriteStatus.pending,
           lyricFormat: DownloadLyricFormat.none,
-          createdAt: DateTime(2026, 4, 9),
+          createdAt: DateTime(2026, 4, 9, 12, 1, 0),
           filePath: '/tmp/稻香.mp3',
         ),
         DownloadTask(
@@ -297,7 +301,7 @@ class _FilledDownloadController extends DownloadController {
           ),
           tagWriteStatus: DownloadTagWriteStatus.failed,
           lyricFormat: DownloadLyricFormat.none,
-          createdAt: DateTime(2026, 4, 9),
+          createdAt: DateTime(2026, 4, 9, 12, 2, 0),
           errorMessage: '网络错误',
           filePath: '/tmp/晴天.mp3',
         ),
@@ -316,7 +320,8 @@ class _FilledDownloadController extends DownloadController {
           ),
           tagWriteStatus: DownloadTagWriteStatus.success,
           lyricFormat: DownloadLyricFormat.timed,
-          createdAt: DateTime(2026, 4, 9),
+          createdAt: DateTime(2026, 4, 9, 12, 3, 0),
+          resolvedFileExtension: 'mp3',
           filePath: '/tmp/daoxiang.mp3',
         ),
         DownloadTask(
@@ -333,7 +338,7 @@ class _FilledDownloadController extends DownloadController {
           ),
           tagWriteStatus: DownloadTagWriteStatus.pending,
           lyricFormat: DownloadLyricFormat.none,
-          createdAt: DateTime(2026, 4, 9),
+          createdAt: DateTime(2026, 4, 9, 12, 4, 0),
           filePath: '/tmp/反方向的钟.mp3',
         ),
       ],

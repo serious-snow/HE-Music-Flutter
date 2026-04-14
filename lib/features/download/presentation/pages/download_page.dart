@@ -91,14 +91,16 @@ class _DownloadTaskList extends StatelessWidget {
         child: Text(AppI18n.tByLocaleCode(localeCode, 'download.empty')),
       );
     }
+    final tasks = List<DownloadTask>.from(state.tasks)
+      ..sort((left, right) => right.createdAt.compareTo(left.createdAt));
     return Column(
       children: <Widget>[
         Expanded(
           child: ListView.separated(
-            itemCount: state.tasks.length,
+            itemCount: tasks.length,
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final task = state.tasks[index];
+              final task = tasks[index];
               return _DownloadTaskRow(
                 task: task,
                 onPause: () => onPause(task.id),
@@ -226,7 +228,7 @@ class _DownloadTaskRow extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                task.quality.fileExtension.trim().toUpperCase(),
+                task.effectiveFileExtension.trim().toUpperCase(),
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontSize: 11,
                   color: colorScheme.onSurfaceVariant,
@@ -261,7 +263,7 @@ class _DownloadTaskRow extends StatelessWidget {
     }
     final title = task.title.trim();
     final artist = (task.artist ?? '').trim();
-    final extension = task.quality.fileExtension.trim().toLowerCase();
+    final extension = task.effectiveFileExtension.trim().toLowerCase();
     if (artist.isEmpty) {
       return '$title.$extension';
     }
