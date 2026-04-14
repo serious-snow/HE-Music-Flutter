@@ -9,7 +9,6 @@ import 'package:he_music_flutter/core/audio/audio_player_port.dart';
 import 'package:he_music_flutter/core/audio/audio_track.dart';
 import 'package:he_music_flutter/features/online/data/online_api_client.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
-import 'package:he_music_flutter/features/player/presentation/controllers/player_controller.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_audio_provider.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_playback_api_provider.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
