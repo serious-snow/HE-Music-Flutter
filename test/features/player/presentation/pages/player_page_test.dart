@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/app/config/app_config_controller.dart';
@@ -11,6 +12,7 @@ import 'package:he_music_flutter/features/player/domain/entities/player_track.da
 import 'package:he_music_flutter/features/player/presentation/controllers/player_controller.dart';
 import 'package:he_music_flutter/features/player/presentation/pages/player_page.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
+import 'package:he_music_flutter/features/player/presentation/widgets/player_queue_sheet.dart';
 import 'package:he_music_flutter/shared/models/he_music_models.dart';
 
 void main() {
@@ -98,6 +100,184 @@ void main() {
 
     expect(find.text('HQ'), findsWidgets);
     expect(find.textContaining('High Quality'), findsOneWidget);
+  });
+
+  testWidgets('player page uses split layout on desktop width', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('player-desktop-primary-pane')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('player-desktop-lyric-pane')),
+      findsOneWidget,
+    );
+    expect(find.byType(PageView), findsNothing);
+  });
+
+  testWidgets('player page opens desktop queue panel on wide screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('player-queue-desktop-panel')),
+      findsOneWidget,
+    );
+    expect(find.byType(PlayerQueueSheet), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+  });
+
+  testWidgets('player page closes desktop queue panel when backdrop tapped', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('player-queue-panel-backdrop')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isFalse);
+  });
+
+  testWidgets('player page closes desktop queue panel on escape', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded));
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isFalse);
+  });
+
+  testWidgets('player page uses compact desktop layout on short window', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 632));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('player-desktop-layout')),
+      findsOneWidget,
+    );
+    expect(find.byType(PageView), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('player page avoids overflow on narrow short window', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(585, 632));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(PageView), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('player-compact-lyric-preview')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+
+    final lyricY = tester
+        .getCenter(
+          find.byKey(const ValueKey<String>('player-compact-lyric-preview')),
+        )
+        .dy;
+    final progressY = tester.getCenter(find.byType(Slider).first).dy;
+    final moreY = tester.getCenter(find.byIcon(Icons.more_horiz_rounded)).dy;
+    final playY = tester.getCenter(find.byIcon(Icons.play_arrow_rounded)).dy;
+
+    expect(lyricY, lessThan(moreY));
+    expect(progressY, greaterThan(500));
+    expect(moreY, greaterThan(460));
+    expect(playY, greaterThan(560));
+  });
+
+  testWidgets('player page opens queue bottom sheet on narrow screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isFalse);
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('player-queue-desktop-panel')),
+      findsNothing,
+    );
   });
 }
 

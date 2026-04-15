@@ -9,6 +9,7 @@ class PlayerControlBar extends StatelessWidget {
     required this.config,
     required this.isPlaying,
     required this.playMode,
+    this.compact = false,
     required this.onOpenQueue,
     required this.onCyclePlayMode,
     required this.onPrevious,
@@ -20,6 +21,7 @@ class PlayerControlBar extends StatelessWidget {
   final AppConfigState config;
   final bool isPlaying;
   final PlayerPlayMode playMode;
+  final bool compact;
   final VoidCallback onOpenQueue;
   final VoidCallback onCyclePlayMode;
   final VoidCallback onPrevious;
@@ -35,31 +37,34 @@ class PlayerControlBar extends StatelessWidget {
           onPressed: onCyclePlayMode,
           tooltip: _modeTooltip(playMode),
           icon: _modeIcon(playMode),
+          compact: compact,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: compact ? 4 : 8),
         _RoundControlButton(
           onPressed: onPrevious,
           icon: Icons.skip_previous_rounded,
-          size: 58,
-          iconSize: 34,
+          size: compact ? 46 : 58,
+          iconSize: compact ? 28 : 34,
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: compact ? 8 : 14),
         _PrimaryControlButton(
           onPressed: onPlayPause,
           icon: isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          compact: compact,
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: compact ? 8 : 14),
         _RoundControlButton(
           onPressed: onNext,
           icon: Icons.skip_next_rounded,
-          size: 58,
-          iconSize: 34,
+          size: compact ? 46 : 58,
+          iconSize: compact ? 28 : 34,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: compact ? 4 : 8),
         _SideControlButton(
           onPressed: onOpenQueue,
           tooltip: AppI18n.t(config, 'player.queue.open'),
           icon: Icons.queue_music_rounded,
+          compact: compact,
         ),
       ],
     );
@@ -83,22 +88,27 @@ class PlayerControlBar extends StatelessWidget {
 }
 
 class _PrimaryControlButton extends StatelessWidget {
-  const _PrimaryControlButton({required this.onPressed, required this.icon});
+  const _PrimaryControlButton({
+    required this.onPressed,
+    required this.icon,
+    required this.compact,
+  });
 
   final VoidCallback onPressed;
   final IconData icon;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onPressed,
-      icon: Icon(icon, size: 42),
+      icon: Icon(icon, size: compact ? 34 : 42),
       color: Colors.white,
       style: IconButton.styleFrom(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         shadowColor: Colors.transparent,
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(compact ? 8 : 12),
       ),
     );
   }
@@ -138,11 +148,13 @@ class _SideControlButton extends StatelessWidget {
     required this.onPressed,
     required this.tooltip,
     required this.icon,
+    required this.compact,
   });
 
   final VoidCallback onPressed;
   final String tooltip;
   final IconData icon;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -150,13 +162,13 @@ class _SideControlButton extends StatelessWidget {
       onPressed: onPressed,
       tooltip: tooltip,
       icon: Icon(icon),
-      iconSize: 22,
+      iconSize: compact ? 18 : 22,
       color: Colors.white.withValues(alpha: 0.84),
       style: IconButton.styleFrom(
         backgroundColor: Colors.transparent,
         shadowColor: Colors.transparent,
-        minimumSize: const Size.square(48),
-        padding: const EdgeInsets.all(10),
+        minimumSize: Size.square(compact ? 36 : 48),
+        padding: EdgeInsets.all(compact ? 6 : 10),
       ),
     );
   }

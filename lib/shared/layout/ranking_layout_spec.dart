@@ -1,5 +1,17 @@
 import 'dart:math' as math;
 
+class RankingWrapLayoutSpec {
+  const RankingWrapLayoutSpec({
+    required this.crossAxisCount,
+    required this.itemWidth,
+    required this.spacing,
+  });
+
+  final int crossAxisCount;
+  final double itemWidth;
+  final double spacing;
+}
+
 class RankingRowLayoutSpec {
   const RankingRowLayoutSpec({required this.coverSide});
 
@@ -16,6 +28,44 @@ class RankingGridLayoutSpec {
   final int crossAxisCount;
   final double itemWidth;
   final double spacing;
+}
+
+RankingWrapLayoutSpec resolveRankingWrapLayoutSpec({
+  required double maxWidth,
+  double desktopBreakpoint = 720,
+  double minItemWidth = 320,
+  double preferredItemWidth = 360,
+  double maxItemWidth = 460,
+  double spacing = 12,
+}) {
+  final safeWidth = math.max(maxWidth, 0).toDouble();
+  if (safeWidth < desktopBreakpoint) {
+    return RankingWrapLayoutSpec(
+      crossAxisCount: 1,
+      itemWidth: safeWidth,
+      spacing: spacing,
+    );
+  }
+
+  final minCount = math.max(
+    1,
+    ((safeWidth + spacing) / (maxItemWidth + spacing)).ceil(),
+  );
+  final maxCount = math.max(
+    minCount,
+    ((safeWidth + spacing) / (minItemWidth + spacing)).floor(),
+  );
+  final preferredCount = ((safeWidth + spacing) / (preferredItemWidth + spacing))
+      .floor()
+      .clamp(minCount, maxCount);
+  final totalSpacing = spacing * (preferredCount - 1);
+  final itemWidth = (safeWidth - totalSpacing) / preferredCount;
+
+  return RankingWrapLayoutSpec(
+    crossAxisCount: preferredCount,
+    itemWidth: itemWidth,
+    spacing: spacing,
+  );
 }
 
 RankingRowLayoutSpec resolveRankingRowLayoutSpec({

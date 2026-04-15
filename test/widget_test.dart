@@ -24,6 +24,9 @@ import 'package:he_music_flutter/shared/widgets/media_grid_card.dart';
 
 void main() {
   testWidgets('home shell renders with two tabs', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       _buildHomeTestApp(apiClient: _TestHomeDiscoverApiClient()),
     );

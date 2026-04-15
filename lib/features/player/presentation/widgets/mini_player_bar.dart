@@ -9,6 +9,7 @@ import '../../domain/entities/player_play_mode.dart';
 import '../../domain/entities/player_track.dart';
 import '../controllers/player_controller.dart';
 import '../providers/player_providers.dart';
+import 'player_queue_panel.dart';
 import 'player_queue_sheet.dart';
 
 class MiniPlayerBar extends ConsumerStatefulWidget {
@@ -53,59 +54,68 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar> {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-      child: Material(
-        color: theme.colorScheme.surface,
-        elevation: 3,
-        shadowColor: Colors.black.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(20),
-        child: SizedBox(
-          height: 58,
-          child: Row(
-            children: <Widget>[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: widget.onOpenFullPlayer,
-                child: _CoverImage(
-                  url: track.artworkUrl,
-                  bytes: track.artworkBytes,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _TrackSwipeArea(
-                  track: track,
-                  previewTrack: _previewTrack(
-                    queue: queue,
-                    currentIndex: currentIndex,
-                    playMode: playMode,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useDesktopQueuePanel =
+            constraints.maxWidth >= playerQueuePanelBreakpoint;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: Material(
+            color: theme.colorScheme.surface,
+            elevation: 3,
+            shadowColor: Colors.black.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(20),
+            child: SizedBox(
+              height: 58,
+              child: Row(
+                children: <Widget>[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: widget.onOpenFullPlayer,
+                    child: _CoverImage(
+                      url: track.artworkUrl,
+                      bytes: track.artworkBytes,
+                    ),
                   ),
-                  dragOffset: _dragOffset,
-                  slideDirection: _slideDirection,
-                  onTap: widget.onOpenFullPlayer,
-                  onDragUpdate: _handleDragUpdate,
-                  onDragEnd: (velocity) =>
-                      _handleHorizontalDrag(velocity, controller),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _TrackSwipeArea(
+                      track: track,
+                      previewTrack: _previewTrack(
+                        queue: queue,
+                        currentIndex: currentIndex,
+                        playMode: playMode,
+                      ),
+                      dragOffset: _dragOffset,
+                      slideDirection: _slideDirection,
+                      onTap: widget.onOpenFullPlayer,
+                      onDragUpdate: _handleDragUpdate,
+                      onDragEnd: (velocity) =>
+                          _handleHorizontalDrag(velocity, controller),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: controller.togglePlayPause,
+                    icon: Icon(
+                      isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
+                    tooltip: AppI18n.t(config, 'player.full'),
+                  ),
+                  IconButton(
+                    onPressed: () =>
+                        _openQueueSheet(context, useDesktopQueuePanel),
+                    icon: const Icon(Icons.queue_music_rounded),
+                    tooltip: AppI18n.t(config, 'player.queue'),
+                  ),
+                  const SizedBox(width: 2),
+                ],
               ),
-              IconButton(
-                onPressed: controller.togglePlayPause,
-                icon: Icon(
-                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                ),
-                tooltip: AppI18n.t(config, 'player.full'),
-              ),
-              IconButton(
-                onPressed: () => _openQueueSheet(context),
-                icon: const Icon(Icons.queue_music_rounded),
-                tooltip: AppI18n.t(config, 'player.queue'),
-              ),
-              const SizedBox(width: 2),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -169,7 +179,11 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar> {
     return null;
   }
 
-  void _openQueueSheet(BuildContext context) {
+  void _openQueueSheet(BuildContext context, bool useDesktopQueuePanel) {
+    if (useDesktopQueuePanel) {
+      ref.read(playerQueuePanelOpenProvider.notifier).state = true;
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

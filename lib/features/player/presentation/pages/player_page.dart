@@ -32,6 +32,7 @@ import '../controllers/player_controller.dart';
 import '../providers/player_providers.dart';
 import '../widgets/player_control_bar.dart';
 import '../widgets/player_progress_bar.dart';
+import '../widgets/player_queue_panel.dart';
 import '../widgets/player_queue_sheet.dart';
 
 class PlayerPage extends ConsumerStatefulWidget {
@@ -41,8 +42,11 @@ class PlayerPage extends ConsumerStatefulWidget {
   ConsumerState<PlayerPage> createState() => _PlayerPageState();
 }
 
+enum _PlayerLayoutMode { mobile, desktop }
+
 class _PlayerPageState extends ConsumerState<PlayerPage> {
   static const _pageCount = 2;
+  static const double _desktopPlayerWidthBreakpoint = 720;
   late final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -88,94 +92,139 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
             ),
           ),
           Positioned.fill(
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-                child: Column(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final layoutMode = _resolveLayoutMode(constraints);
+                final useDesktopLayout = layoutMode != _PlayerLayoutMode.mobile;
+                final useDesktopQueuePanel =
+                    constraints.maxWidth >= playerQueuePanelBreakpoint;
+                final metaControlPage = _PlayerMetaControlPage(
+                  noTrackText: AppI18n.t(config, 'player.noTrack'),
+                  controller: controller,
+                  compactLayout: !useDesktopLayout,
+                  onOpenQueue: () => _openQueueSheet(useDesktopQueuePanel),
+                  onOpenMore: _openMoreSheet,
+                  onOpenLyrics: useDesktopLayout
+                      ? () {}
+                      : () => _animateToPage(1),
+                  onOpenQuality: () async {
+                    final track = ref.read(
+                      playerControllerProvider.select((s) => s.currentTrack),
+                    );
+                    final onlinePlatformId = (track?.platform ?? '').trim();
+                    final currentAvailableQualities =
+                        track != null &&
+                            onlinePlatformId.isNotEmpty &&
+                            onlinePlatformId != 'local'
+                        ? await _resolveSongQualityOptions(
+                            track: track,
+                            platformId: onlinePlatformId,
+                            ref: ref,
+                          )
+                        : ref.read(
+                            playerControllerProvider.select(
+                              (s) => s.currentAvailableQualities,
+                            ),
+                          );
+                    final currentSelectedQuality = ref.read(
+                      playerControllerProvider.select(
+                        (s) => s.currentSelectedQualityName,
+                      ),
+                    );
+                    if (currentAvailableQualities.isEmpty) {
+                      return;
+                    }
+                    if (!context.mounted) {
+                      return;
+                    }
+                    _openQualitySheet(
+                      context,
+                      controller,
+                      currentAvailableQualities,
+                      currentSelectedQuality,
+                    );
+                  },
+                  onOpenSpeed: () {
+                    final speed = ref.read(
+                      playerControllerProvider.select((s) => s.speed),
+                    );
+                    _openSpeedSheet(context, controller, speed);
+                  },
+                );
+                final lyricPage = _PlayerLyricPage(
+                  emptyText: AppI18n.t(config, 'player.lyrics.empty'),
+                  onSeek: (position) {
+                    controller.seek(position);
+                  },
+                );
+                return Stack(
                   children: <Widget>[
-                    _PlayerTopBar(
-                      currentPage: _currentPage,
-                      total: _pageCount,
-                      onTapDot: _animateToPage,
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: PageView(
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          if (_currentPage == index) {
-                            return;
-                          }
-                          setState(() => _currentPage = index);
-                        },
-                        children: <Widget>[
-                          _PlayerMetaControlPage(
-                            noTrackText: AppI18n.t(config, 'player.noTrack'),
-                            controller: controller,
-                            onOpenQueue: _openQueueSheet,
-                            onOpenMore: _openMoreSheet,
-                            onOpenLyrics: () => _animateToPage(1),
-                            onOpenQuality: () async {
-                              final track = ref.read(
-                                playerControllerProvider.select(
-                                  (s) => s.currentTrack,
-                                ),
-                              );
-                              final onlinePlatformId = (track?.platform ?? '')
-                                  .trim();
-                              final currentAvailableQualities =
-                                  track != null &&
-                                      onlinePlatformId.isNotEmpty &&
-                                      onlinePlatformId != 'local'
-                                  ? await _resolveSongQualityOptions(
-                                      track: track,
-                                      platformId: onlinePlatformId,
-                                      ref: ref,
-                                    )
-                                  : ref.read(
-                                      playerControllerProvider.select(
-                                        (s) => s.currentAvailableQualities,
+                    Positioned.fill(
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                          child: Column(
+                            children: <Widget>[
+                              _PlayerTopBar(
+                                currentPage: _currentPage,
+                                total: useDesktopLayout ? 0 : _pageCount,
+                                onTapDot: _animateToPage,
+                              ),
+                              const SizedBox(height: 4),
+                              Expanded(
+                                child: useDesktopLayout
+                                    ? Row(
+                                        key: ValueKey<String>(
+                                          'player-desktop-layout',
+                                        ),
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: <Widget>[
+                                          Expanded(
+                                            key: const ValueKey<String>(
+                                              'player-desktop-primary-pane',
+                                            ),
+                                            flex: 11,
+                                            child: metaControlPage,
+                                          ),
+                                          const SizedBox(width: 20),
+                                          Expanded(
+                                            key: const ValueKey<String>(
+                                              'player-desktop-lyric-pane',
+                                            ),
+                                            flex: 10,
+                                            child: _PlayerDesktopPane(
+                                              child: lyricPage,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : PageView(
+                                        controller: _pageController,
+                                        onPageChanged: (index) {
+                                          if (_currentPage == index) {
+                                            return;
+                                          }
+                                          setState(() => _currentPage = index);
+                                        },
+                                        children: <Widget>[
+                                          metaControlPage,
+                                          lyricPage,
+                                        ],
                                       ),
-                                    );
-                              final currentSelectedQuality = ref.read(
-                                playerControllerProvider.select(
-                                  (s) => s.currentSelectedQualityName,
-                                ),
-                              );
-                              if (currentAvailableQualities.isEmpty) {
-                                return;
-                              }
-                              if (!context.mounted) {
-                                return;
-                              }
-                              _openQualitySheet(
-                                context,
-                                controller,
-                                currentAvailableQualities,
-                                currentSelectedQuality,
-                              );
-                            },
-                            onOpenSpeed: () {
-                              final speed = ref.read(
-                                playerControllerProvider.select((s) => s.speed),
-                              );
-                              _openSpeedSheet(context, controller, speed);
-                            },
+                              ),
+                              const SizedBox(height: 12),
+                            ],
                           ),
-                          _PlayerLyricPage(
-                            emptyText: AppI18n.t(config, 'player.lyrics.empty'),
-                            onSeek: (position) {
-                              controller.seek(position);
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    if (useDesktopQueuePanel)
+                      const Positioned.fill(child: PlayerQueuePanelOverlay()),
                   ],
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],
@@ -191,7 +240,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     );
   }
 
-  void _openQueueSheet() {
+  void _openQueueSheet(bool useDesktopQueuePanel) {
+    if (useDesktopQueuePanel) {
+      ref.read(playerQueuePanelOpenProvider.notifier).state = true;
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -599,6 +652,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     );
   }
 
+  _PlayerLayoutMode _resolveLayoutMode(BoxConstraints constraints) {
+    final isDesktopWidth =
+        constraints.maxWidth >= _desktopPlayerWidthBreakpoint;
+    if (!isDesktopWidth) {
+      return _PlayerLayoutMode.mobile;
+    }
+    return _PlayerLayoutMode.desktop;
+  }
+
   Future<void> _downloadCurrentTrack({
     required PlayerTrack track,
     required String platformId,
@@ -863,6 +925,20 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   }
 }
 
+class _PlayerDesktopPane extends StatelessWidget {
+  const _PlayerDesktopPane({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: child,
+    );
+  }
+}
+
 class _PlayerTopBar extends StatelessWidget {
   const _PlayerTopBar({
     required this.currentPage,
@@ -919,12 +995,16 @@ class _PlayerTopBar extends StatelessWidget {
 class _PlayerInfoPage extends ConsumerWidget {
   const _PlayerInfoPage({
     required this.noTrackText,
+    required this.compactLayout,
+    this.fillHeight = true,
     required this.onOpenLyrics,
     required this.onOpenQuality,
     required this.onOpenSpeed,
   });
 
   final String noTrackText;
+  final bool compactLayout;
+  final bool fillHeight;
   final VoidCallback onOpenLyrics;
   final VoidCallback onOpenQuality;
   final VoidCallback onOpenSpeed;
@@ -956,21 +1036,34 @@ class _PlayerInfoPage extends ConsumerWidget {
     final album = _fallbackText(track?.album);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final coverSize = math
-            .min(constraints.maxWidth * 0.72, constraints.maxHeight * 0.40)
-            .clamp(190.0, 320.0);
-        final topSpacing = (constraints.maxHeight * 0.01).clamp(4.0, 10.0);
-        final coverBottomSpacing = (constraints.maxHeight * 0.035).clamp(
-          14.0,
-          24.0,
-        );
-        final lyricBottomSpacing = (constraints.maxHeight * 0.012).clamp(
-          4.0,
-          8.0,
-        );
+        final coverSize = compactLayout
+            ? math
+                  .min(
+                    constraints.maxWidth * 0.42,
+                    constraints.maxHeight * 0.24,
+                  )
+                  .clamp(132.0, 188.0)
+            : math
+                  .min(
+                    constraints.maxWidth * 0.72,
+                    constraints.maxHeight * 0.40,
+                  )
+                  .clamp(190.0, 320.0);
+        final topSpacing = compactLayout
+            ? (constraints.maxHeight * 0.004).clamp(0.0, 4.0)
+            : (constraints.maxHeight * 0.01).clamp(4.0, 10.0);
+        final coverBottomSpacing = compactLayout
+            ? (constraints.maxHeight * 0.016).clamp(8.0, 14.0)
+            : (constraints.maxHeight * 0.035).clamp(14.0, 24.0);
+        final lyricBottomSpacing = compactLayout
+            ? 0.0
+            : (constraints.maxHeight * 0.012).clamp(4.0, 8.0);
         return SizedBox(
-          height: constraints.maxHeight,
+          height: fillHeight && !compactLayout ? constraints.maxHeight : null,
           child: Column(
+            mainAxisSize: fillHeight && !compactLayout
+                ? MainAxisSize.max
+                : MainAxisSize.min,
             children: <Widget>[
               SizedBox(height: topSpacing),
               _PlayerCoverHero(
@@ -983,7 +1076,7 @@ class _PlayerInfoPage extends ConsumerWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   title,
-                  maxLines: 2,
+                  maxLines: compactLayout ? 1 : 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.left,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -994,7 +1087,7 @@ class _PlayerInfoPage extends ConsumerWidget {
                 ),
               ),
               if (currentQuality != null) ...<Widget>[
-                const SizedBox(height: 12),
+                SizedBox(height: compactLayout ? 8 : 12),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Wrap(
@@ -1014,7 +1107,7 @@ class _PlayerInfoPage extends ConsumerWidget {
                 ),
               ],
               if (currentQuality == null) ...<Widget>[
-                const SizedBox(height: 12),
+                SizedBox(height: compactLayout ? 8 : 12),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: _PlayerMiniBadge(
@@ -1023,16 +1116,21 @@ class _PlayerInfoPage extends ConsumerWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 14),
+              SizedBox(height: compactLayout ? 8 : 14),
               _PlayerMetaLine(value: artist),
-              const SizedBox(height: 8),
+              SizedBox(height: compactLayout ? 4 : 8),
               _PlayerMetaLine(value: album),
-              const Spacer(),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: _PlayerCompactLyricSection(onTap: onOpenLyrics),
-              ),
-              SizedBox(height: lyricBottomSpacing),
+              if (fillHeight && !compactLayout) const Spacer(),
+              if (compactLayout) ...<Widget>[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: KeyedSubtree(
+                    key: const ValueKey<String>('player-compact-lyric-preview'),
+                    child: _PlayerCompactLyricSection(onTap: onOpenLyrics),
+                  ),
+                ),
+                SizedBox(height: compactLayout ? 8 : lyricBottomSpacing),
+              ],
             ],
           ),
         );
@@ -1064,14 +1162,15 @@ class _PlayerInfoPage extends ConsumerWidget {
 }
 
 class _PlayerStageCard extends StatelessWidget {
-  const _PlayerStageCard({required this.child});
+  const _PlayerStageCard({required this.child, this.compact = false});
 
   final Widget child;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+      padding: EdgeInsets.fromLTRB(12, compact ? 8 : 14, 12, compact ? 6 : 10),
       child: child,
     );
   }
@@ -1119,6 +1218,7 @@ class _PlayerMetaControlPage extends StatelessWidget {
   const _PlayerMetaControlPage({
     required this.noTrackText,
     required this.controller,
+    required this.compactLayout,
     required this.onOpenQueue,
     required this.onOpenMore,
     required this.onOpenLyrics,
@@ -1128,6 +1228,7 @@ class _PlayerMetaControlPage extends StatelessWidget {
 
   final String noTrackText;
   final PlayerController controller;
+  final bool compactLayout;
   final VoidCallback onOpenQueue;
   final VoidCallback onOpenMore;
   final VoidCallback onOpenLyrics;
@@ -1136,36 +1237,45 @@ class _PlayerMetaControlPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final infoSection = _PlayerInfoPage(
+      noTrackText: noTrackText,
+      compactLayout: compactLayout,
+      fillHeight: false,
+      onOpenLyrics: onOpenLyrics,
+      onOpenQuality: onOpenQuality,
+      onOpenSpeed: onOpenSpeed,
+    );
+    final stageSection = _PlayerStageCard(
+      compact: compactLayout,
+      child: Column(
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Spacer(),
+              _PlayerUtilityRow(onOpenMore: onOpenMore),
+            ],
+          ),
+          SizedBox(height: compactLayout ? 6 : 10),
+          _PlayerProgressSection(onSeek: controller.seek),
+          SizedBox(height: compactLayout ? 12 : 18),
+          _PlayerControlSection(
+            controller: controller,
+            compactLayout: compactLayout,
+            onOpenQueue: onOpenQueue,
+          ),
+        ],
+      ),
+    );
     return Column(
       children: <Widget>[
         Expanded(
-          child: _PlayerInfoPage(
-            noTrackText: noTrackText,
-            onOpenLyrics: onOpenLyrics,
-            onOpenQuality: onOpenQuality,
-            onOpenSpeed: onOpenSpeed,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: infoSection,
           ),
         ),
-        const SizedBox(height: 8),
-        _PlayerStageCard(
-          child: Column(
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  const Spacer(),
-                  _PlayerUtilityRow(onOpenMore: onOpenMore),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _PlayerProgressSection(onSeek: controller.seek),
-              const SizedBox(height: 18),
-              _PlayerControlSection(
-                controller: controller,
-                onOpenQueue: onOpenQueue,
-              ),
-            ],
-          ),
-        ),
+        SizedBox(height: compactLayout ? 4 : 8),
+        stageSection,
       ],
     );
   }
@@ -1398,10 +1508,12 @@ class _PlayerCompactLyricSection extends ConsumerWidget {
 class _PlayerControlSection extends ConsumerWidget {
   const _PlayerControlSection({
     required this.controller,
+    required this.compactLayout,
     required this.onOpenQueue,
   });
 
   final PlayerController controller;
+  final bool compactLayout;
   final VoidCallback onOpenQueue;
 
   @override
@@ -1415,6 +1527,7 @@ class _PlayerControlSection extends ConsumerWidget {
     );
     return PlayerControlBar(
       config: config,
+      compact: compactLayout,
       isPlaying: isPlaying,
       playMode: playMode,
       onOpenQueue: onOpenQueue,

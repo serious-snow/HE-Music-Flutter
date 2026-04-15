@@ -7,6 +7,7 @@ import '../../../../core/network/network_error_message.dart';
 import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/utils/playlist_song_count_text.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../../../online/presentation/widgets/search_playlist_list_item.dart';
@@ -44,90 +45,85 @@ class _MyPageState extends ConsumerState<MyPage> {
     final showQrScanEntry =
         platform == TargetPlatform.android || platform == TargetPlatform.iOS;
     _syncOverviewLoading(tokenSet, state);
-
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+    final header = Row(
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                AppI18n.t(config, 'my.title'),
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+        Expanded(
+          child: Text(
+            AppI18n.t(config, 'my.title'),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w500,
             ),
-            if (showQrScanEntry)
-              IconButton(
-                tooltip: AppI18n.t(config, 'common.scan'),
-                onPressed: () => context.push(AppRoutes.loginQrScan),
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-              ),
-            IconButton(
-              tooltip: AppI18n.t(config, 'settings.title'),
-              onPressed: () => context.push(AppRoutes.settings),
-              icon: const Icon(Icons.settings_outlined),
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 12),
-        _AccountCard(
-          localeCode: config.localeCode,
-          nickname: overview?.profile.nickname,
-          username: overview?.profile.username,
-          avatarUrl: overview?.profile.avatarUrl,
-          tokenSet: tokenSet,
-          loading: state.loading,
-          onLogin: () => _openLogin(context),
-          onLogout: tokenSet ? configController.clearAuthToken : null,
+        if (showQrScanEntry)
+          IconButton(
+            tooltip: AppI18n.t(config, 'common.scan'),
+            onPressed: () => context.push(AppRoutes.loginQrScan),
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+          ),
+        IconButton(
+          tooltip: AppI18n.t(config, 'settings.title'),
+          onPressed: () => context.push(AppRoutes.settings),
+          icon: const Icon(Icons.settings_outlined),
         ),
-        if (state.errorMessage != null) ...<Widget>[
-          const SizedBox(height: 12),
-          _ErrorCard(
+      ],
+    );
+    final accountCard = _AccountCard(
+      localeCode: config.localeCode,
+      nickname: overview?.profile.nickname,
+      username: overview?.profile.username,
+      avatarUrl: overview?.profile.avatarUrl,
+      tokenSet: tokenSet,
+      loading: state.loading,
+      onLogin: () => _openLogin(context),
+      onLogout: tokenSet ? configController.clearAuthToken : null,
+    );
+    final errorCard = state.errorMessage == null
+        ? null
+        : _ErrorCard(
             message: state.errorMessage!,
             retryLabel: AppI18n.t(config, 'common.retry'),
             onRetry: tokenSet
                 ? ref.read(myOverviewControllerProvider.notifier).refresh
                 : () => _openLogin(context),
-          ),
-        ],
-        const SizedBox(height: 18),
-        _EntryCard(
-          icon: Icons.history_rounded,
-          title: AppI18n.t(config, 'my.entry.history'),
-          subtitle: historyCount > 0
-              ? AppI18n.format(config, 'playlist.track_count', <String, String>{
-                  'count': '$historyCount',
-                })
-              : null,
-          onTap: () => context.push(AppRoutes.myHistory),
-        ),
+          );
+    final quickEntryCards = <Widget>[
+      _EntryCard(
+        icon: Icons.history_rounded,
+        title: AppI18n.t(config, 'my.entry.history'),
+        subtitle: historyCount > 0
+            ? AppI18n.format(config, 'playlist.track_count', <String, String>{
+                'count': '$historyCount',
+              })
+            : null,
+        onTap: () => context.push(AppRoutes.myHistory),
+      ),
+      const SizedBox(height: 10),
+      _EntryCard(
+        icon: Icons.library_music_rounded,
+        title: AppI18n.t(config, 'local.title'),
+        onTap: () => context.push(AppRoutes.library),
+      ),
+      const SizedBox(height: 10),
+      _EntryCard(
+        icon: Icons.download_rounded,
+        title: AppI18n.t(config, 'my.download'),
+        onTap: () => context.push(AppRoutes.downloads),
+      ),
+      if (tokenSet) ...<Widget>[
         const SizedBox(height: 10),
         _EntryCard(
-          icon: Icons.library_music_rounded,
-          title: AppI18n.t(config, 'local.title'),
-          onTap: () => context.push(AppRoutes.library),
+          icon: Icons.favorite_border_rounded,
+          title: AppI18n.t(config, 'my.collection'),
+          trailing: overview == null
+              ? null
+              : _CountBadge(value: overview.summary.favoriteSongCount),
+          onTap: () => context.push(AppRoutes.myCollection),
         ),
-        const SizedBox(height: 10),
-        _EntryCard(
-          icon: Icons.download_rounded,
-          title: AppI18n.t(config, 'my.download'),
-          onTap: () => context.push(AppRoutes.downloads),
-        ),
-        if (tokenSet) ...<Widget>[
-          const SizedBox(height: 10),
-          _EntryCard(
-            icon: Icons.favorite_border_rounded,
-            title: AppI18n.t(config, 'my.collection'),
-            trailing: overview == null
-                ? null
-                : _CountBadge(value: overview.summary.favoriteSongCount),
-            onTap: () => context.push(AppRoutes.myCollection),
-          ),
-          const SizedBox(height: 18),
-          _PlaylistShelfSection(
+      ],
+    ];
+    final playlistSection = tokenSet
+        ? _PlaylistShelfSection(
             configLocaleCode: config.localeCode,
             selectedIndex: _playlistTabIndex,
             onTabSelected: (index) {
@@ -146,9 +142,69 @@ class _MyPageState extends ConsumerState<MyPage> {
                 }
               });
             },
-          ),
-        ],
-      ],
+          )
+        : null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useDesktopLayout =
+            constraints.maxWidth >= LayoutTokens.desktopBreakpoint;
+        return ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: <Widget>[
+            if (useDesktopLayout)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    key: const ValueKey<String>('my-page-primary-column'),
+                    flex: 11,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        header,
+                        const SizedBox(height: 12),
+                        accountCard,
+                        ...<Widget?>[
+                          if (errorCard != null) const SizedBox(height: 12),
+                          errorCard,
+                          if (playlistSection != null)
+                            const SizedBox(height: 18),
+                          playlistSection,
+                        ].nonNulls,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  SizedBox(
+                    key: const ValueKey<String>('my-page-secondary-column'),
+                    width: 320,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: quickEntryCards,
+                    ),
+                  ),
+                ],
+              )
+            else ...<Widget>[
+              header,
+              const SizedBox(height: 12),
+              accountCard,
+              if (errorCard != null) ...<Widget>[
+                const SizedBox(height: 12),
+                errorCard,
+              ],
+              const SizedBox(height: 18),
+              ...quickEntryCards,
+              if (playlistSection != null) ...<Widget>[
+                const SizedBox(height: 18),
+                playlistSection,
+              ],
+            ],
+          ],
+        );
+      },
     );
   }
 

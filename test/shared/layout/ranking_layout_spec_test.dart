@@ -2,6 +2,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/shared/layout/ranking_layout_spec.dart';
 
 void main() {
+  test('ranking wrap keeps mobile single column and scales columns on wider screens', () {
+    final mobile = resolveRankingWrapLayoutSpec(maxWidth: 390);
+    final mediumDesktop = resolveRankingWrapLayoutSpec(maxWidth: 900);
+    final desktop = resolveRankingWrapLayoutSpec(maxWidth: 1440);
+    final ultrawide = resolveRankingWrapLayoutSpec(maxWidth: 2200);
+
+    expect(mobile.crossAxisCount, 1);
+    expect(mobile.itemWidth, 390);
+    expect(mediumDesktop.crossAxisCount, 2);
+    expect(desktop.itemWidth, inInclusiveRange(320, 460));
+    expect(ultrawide.itemWidth, inInclusiveRange(320, 460));
+    expect(ultrawide.crossAxisCount, greaterThan(desktop.crossAxisCount));
+  });
+
   test('ranking row cover stops growing past desktop cap', () {
     final compact = resolveRankingRowLayoutSpec(maxWidth: 420);
     final desktop = resolveRankingRowLayoutSpec(maxWidth: 1440);

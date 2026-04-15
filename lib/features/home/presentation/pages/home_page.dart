@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../shared/widgets/desktop_page_shell.dart';
 import '../../../my/presentation/pages/my_page.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../../player/presentation/widgets/mini_player_bar.dart';
+import '../../../player/presentation/widgets/player_queue_panel.dart';
 import '../providers/home_discover_providers.dart';
 import '../widgets/discover_home_tab.dart';
 
@@ -40,23 +42,20 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final config = ref.watch(appConfigProvider);
     final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Expanded(
-              child: IndexedStack(
-                index: _tabIndex,
-                children: const <Widget>[DiscoverHomeTab(), MyPage()],
-              ),
-            ),
-            MiniPlayerBar(
-              onOpenFullPlayer: () => context.push(AppRoutes.player),
-            ),
-          ],
-        ),
+    return DesktopPageShell(
+      desktopLayoutBreakpoint: playerQueuePanelBreakpoint,
+      desktopSidebar: _HomeNavigationRail(
+        selectedIndex: _tabIndex,
+        homeLabel: AppI18n.t(config, 'tab.home'),
+        myLabel: AppI18n.t(config, 'tab.my'),
+        onDestinationSelected: _onDestinationSelected,
       ),
-      bottomNavigationBar: SafeArea(
+      desktopRightPanel: const PlayerQueuePanelOverlay(),
+      desktopRightPanelBreakpoint: playerQueuePanelBreakpoint,
+      persistentFooter: MiniPlayerBar(
+        onOpenFullPlayer: () => context.push(AppRoutes.player),
+      ),
+      mobileBottomBar: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
@@ -86,6 +85,10 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
       ),
+      child: IndexedStack(
+        index: _tabIndex,
+        children: const <Widget>[DiscoverHomeTab(), MyPage()],
+      ),
     );
   }
 
@@ -96,5 +99,41 @@ class _HomePageState extends ConsumerState<HomePage> {
     setState(() {
       _tabIndex = index;
     });
+  }
+}
+
+class _HomeNavigationRail extends StatelessWidget {
+  const _HomeNavigationRail({
+    required this.selectedIndex,
+    required this.homeLabel,
+    required this.myLabel,
+    required this.onDestinationSelected,
+  });
+
+  final int selectedIndex;
+  final String homeLabel;
+  final String myLabel;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return NavigationRail(
+      selectedIndex: selectedIndex,
+      labelType: NavigationRailLabelType.all,
+      groupAlignment: -0.85,
+      onDestinationSelected: onDestinationSelected,
+      destinations: <NavigationRailDestination>[
+        NavigationRailDestination(
+          icon: const Icon(Icons.home_outlined),
+          selectedIcon: const Icon(Icons.home_rounded),
+          label: Text(homeLabel),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.account_circle_outlined),
+          selectedIcon: const Icon(Icons.account_circle_rounded),
+          label: Text(myLabel),
+        ),
+      ],
+    );
   }
 }

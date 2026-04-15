@@ -295,20 +295,38 @@ class _RankingGroupContent extends StatelessWidget {
     final gridRankings = rankings
         .where((ranking) => ranking.previewSongs.isEmpty)
         .toList(growable: false);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wrapSpec = resolveRankingWrapLayoutSpec(
+          maxWidth: constraints.maxWidth,
+        );
+        final gridSpec = resolveRankingGridLayoutSpec(
+          maxWidth: constraints.maxWidth,
+        );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        if (listRankings.isNotEmpty)
-          ...listRankings.map(
-            (ranking) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _RankingRowCard(ranking: ranking, onTap: onTap),
+        return Wrap(
+          spacing: wrapSpec.spacing,
+          runSpacing: wrapSpec.spacing,
+          children: <Widget>[
+            ...listRankings.map(
+              (ranking) => SizedBox(
+                width: wrapSpec.itemWidth,
+                child: _RankingRowCard(ranking: ranking, onTap: onTap),
+              ),
             ),
-          ),
-        if (gridRankings.isNotEmpty)
-          _RankingGrid(rankings: gridRankings, onTap: onTap),
-      ],
+            ...gridRankings.map(
+              (ranking) => SizedBox(
+                width: gridSpec.itemWidth,
+                child: _RankingGridItem(
+                  ranking: ranking,
+                  onTap: onTap,
+                  side: gridSpec.itemWidth,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -388,40 +406,6 @@ class _RankingRowCard extends StatelessWidget {
               ),
             ),
           ),
-        );
-      },
-    );
-  }
-}
-
-class _RankingGrid extends StatelessWidget {
-  const _RankingGrid({required this.rankings, required this.onTap});
-
-  final List<RankingInfo> rankings;
-  final ValueChanged<RankingInfo> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final gridSpec = resolveRankingGridLayoutSpec(
-          maxWidth: constraints.maxWidth,
-        );
-        return Wrap(
-          spacing: gridSpec.spacing,
-          runSpacing: gridSpec.spacing,
-          children: rankings
-              .map(
-                (ranking) => SizedBox(
-                  width: gridSpec.itemWidth,
-                  child: _RankingGridItem(
-                    ranking: ranking,
-                    onTap: onTap,
-                    side: gridSpec.itemWidth,
-                  ),
-                ),
-              )
-              .toList(growable: false),
         );
       },
     );

@@ -7,3 +7,5 @@ final playerControllerProvider =
     NotifierProvider<PlayerController, PlayerPlaybackState>(
       PlayerController.new,
     );
+
+final playerQueuePanelOpenProvider = StateProvider<bool>((ref) => false);

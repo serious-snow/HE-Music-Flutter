@@ -65,6 +65,25 @@ void main() {
     expect(find.text('No playlists yet'), findsOneWidget);
     expect(find.byTooltip('Create Playlist'), findsOneWidget);
   });
+
+  testWidgets('my page uses two-column layout on desktop width', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_buildTestApp(localeCode: 'en'));
+    await tester.pump();
+
+    final primaryLeft = tester.getTopLeft(
+      find.byKey(const ValueKey<String>('my-page-primary-column')),
+    );
+    final secondaryLeft = tester.getTopLeft(
+      find.byKey(const ValueKey<String>('my-page-secondary-column')),
+    );
+
+    expect(secondaryLeft.dx, greaterThan(primaryLeft.dx));
+  });
 }
 
 Widget _buildTestApp({required String localeCode}) {

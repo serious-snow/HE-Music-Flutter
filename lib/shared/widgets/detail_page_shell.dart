@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router/app_routes.dart';
 import '../../features/player/presentation/widgets/mini_player_bar.dart';
+import '../../features/player/presentation/widgets/player_queue_panel.dart';
 import 'detail_loading_skeleton.dart';
 
 class DetailPageShell extends StatelessWidget {
@@ -13,14 +14,28 @@ class DetailPageShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: <Widget>[
-          Expanded(child: child),
-          ...<Widget?>[bottomBar].nonNulls,
-          MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useDesktopLayout =
+            constraints.maxWidth >= playerQueuePanelBreakpoint;
+        return Scaffold(
+          body: Stack(
+            children: <Widget>[
+              Column(
+                children: <Widget>[
+                  Expanded(child: child),
+                  ...<Widget?>[bottomBar].nonNulls,
+                  MiniPlayerBar(
+                    onOpenFullPlayer: () => context.push(AppRoutes.player),
+                  ),
+                ],
+              ),
+              if (useDesktopLayout)
+                const Positioned.fill(child: PlayerQueuePanelOverlay()),
+            ],
+          ),
+        );
+      },
     );
   }
 }
