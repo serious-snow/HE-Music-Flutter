@@ -15,6 +15,8 @@ import '../../features/music_library/presentation/pages/local_library_page.dart'
 import '../../features/my/presentation/pages/my_collection_page.dart';
 import '../../features/my/presentation/pages/my_history_page.dart';
 import '../../features/my/presentation/pages/user_playlist_detail_page.dart';
+import '../../features/new_release/new_album/presentation/pages/new_album_page.dart';
+import '../../features/new_release/new_song/presentation/pages/new_song_page.dart';
 import '../../features/online/presentation/pages/online_comments_page.dart';
 import '../../features/online/presentation/pages/online_page.dart';
 import '../../features/online/presentation/pages/online_search_page.dart';
@@ -146,6 +148,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.artistPlaza,
         builder: (context, state) => ArtistPlazaPage(
           initialPlatform: _readOptionalQuery(state, 'platform'),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.newSong,
+        builder: (context, state) => NewSongPage(
+          initialPlatform: _readOptionalQuery(state, 'platform'),
+          initialTabId: _readOptionalQuery(state, 'tab_id'),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.newAlbum,
+        builder: (context, state) => NewAlbumPage(
+          initialPlatform: _readOptionalQuery(state, 'platform'),
+          initialTabId: _readOptionalQuery(state, 'tab_id'),
         ),
       ),
       GoRoute(

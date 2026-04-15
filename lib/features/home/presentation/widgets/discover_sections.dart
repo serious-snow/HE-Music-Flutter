@@ -14,6 +14,18 @@ import '../../domain/entities/home_discover_item.dart';
 import '../../domain/entities/home_discover_section.dart';
 import '../../domain/entities/home_discover_state.dart';
 
+class DiscoverSectionAction {
+  const DiscoverSectionAction({
+    required this.label,
+    required this.onTap,
+    this.icon = Icons.chevron_right_rounded,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+}
+
 class DiscoverSections extends StatelessWidget {
   const DiscoverSections({
     required this.loadingText,
@@ -31,6 +43,7 @@ class DiscoverSections extends StatelessWidget {
     required this.onLikeSong,
     required this.isCurrentSong,
     required this.config,
+    required this.sectionActionOf,
     this.resolveSongCover,
     super.key,
   });
@@ -50,6 +63,8 @@ class DiscoverSections extends StatelessWidget {
   final Future<void> Function(SongInfo song) onLikeSong;
   final bool Function(SongInfo song) isCurrentSong;
   final AppConfigState config;
+  final DiscoverSectionAction? Function(HomeDiscoverSection section)
+  sectionActionOf;
   final String Function(SongInfo item)? resolveSongCover;
 
   @override
@@ -73,6 +88,7 @@ class DiscoverSections extends StatelessWidget {
           .map((section) {
             return _SectionBlock(
               title: titleOf(section),
+              action: sectionActionOf(section),
               section: section,
               onTapSong: onTapSong,
               onTapAlbum: onTapAlbum,
@@ -108,6 +124,8 @@ List<Widget> buildDiscoverSectionSlivers({
   required Future<void> Function(SongInfo song) onLikeSong,
   required bool Function(SongInfo song) isCurrentSong,
   required AppConfigState config,
+  required DiscoverSectionAction? Function(HomeDiscoverSection section)
+  sectionActionOf,
   String Function(SongInfo item)? resolveSongCover,
   String Function(AlbumInfo item)? resolveAlbumCover,
   String Function(PlaylistInfo item)? resolvePlaylistCover,
@@ -163,7 +181,10 @@ List<Widget> buildDiscoverSectionSlivers({
           10,
         ),
         sliver: SliverToBoxAdapter(
-          child: _SectionTitle(title: titleOf(section)),
+          child: _SectionTitle(
+            title: titleOf(section),
+            action: sectionActionOf(section),
+          ),
         ),
       ),
     );
@@ -305,6 +326,7 @@ List<Widget> _buildSectionSlivers({
 class _SectionBlock extends StatelessWidget {
   const _SectionBlock({
     required this.title,
+    required this.action,
     required this.section,
     required this.onTapSong,
     required this.onTapAlbum,
@@ -319,6 +341,7 @@ class _SectionBlock extends StatelessWidget {
   });
 
   final String title;
+  final DiscoverSectionAction? action;
   final HomeDiscoverSection section;
   final void Function(List<SongInfo> songs, int index) onTapSong;
   final ValueChanged<AlbumInfo> onTapAlbum;
@@ -343,7 +366,7 @@ class _SectionBlock extends StatelessWidget {
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
-            child: _SectionTitle(title: title),
+            child: _SectionTitle(title: title, action: action),
           ),
           _buildSectionContent(context: context),
         ],
@@ -443,16 +466,49 @@ class _SectionBlock extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
+  const _SectionTitle({required this.title, this.action});
 
   final String title;
+  final DiscoverSectionAction? action;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Text(
-      title,
-      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        if (action != null)
+          TextButton(
+            onPressed: action!.onTap,
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurfaceVariant,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  action!.label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(action!.icon, size: 18),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

@@ -10,6 +10,117 @@ import 'package:he_music_flutter/shared/models/he_music_models.dart';
 import 'package:he_music_flutter/shared/layout/adaptive_media_grid_spec.dart';
 
 void main() {
+  testWidgets('new song and new album sections render more actions', (
+    tester,
+  ) async {
+    final tappedKeys = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DiscoverSections(
+            loadingText: 'loading',
+            emptyText: 'empty',
+            retryText: 'retry',
+            titleOf: (section) => section.titleKey,
+            sectionActionOf: (section) => DiscoverSectionAction(
+              label: '更多',
+              onTap: () => tappedKeys.add(section.key),
+            ),
+            state: HomeDiscoverState(
+              loading: false,
+              platforms: const <HomePlatform>[],
+              selectedPlatformId: 'qq',
+              sections: <HomeDiscoverSection>[
+                HomeDiscoverSection(
+                  key: 'new-song',
+                  titleKey: '新歌速递',
+                  type: HomeDiscoverItemType.song,
+                  songs: <SongInfo>[_buildSong()],
+                ),
+                HomeDiscoverSection(
+                  key: 'new-album',
+                  titleKey: '新碟上架',
+                  type: HomeDiscoverItemType.album,
+                  albums: <AlbumInfo>[_buildAlbum()],
+                ),
+              ],
+            ),
+            onRetry: () {},
+            onTapSong: (songs, index) {},
+            onTapAlbum: (_) {},
+            onTapPlaylist: (_) {},
+            onTapVideo: (_) {},
+            onMoreSong: (_) {},
+            isSongLiked: (_) => false,
+            onLikeSong: (_) async {},
+            isCurrentSong: (_) => false,
+            config: AppConfigState.initial,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('更多'), findsNWidgets(2));
+
+    await tester.tap(find.text('更多').first);
+    await tester.pump();
+
+    expect(tappedKeys, <String>['new-song']);
+  });
+
+  testWidgets('section action keeps label left and chevron right', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DiscoverSections(
+            loadingText: 'loading',
+            emptyText: 'empty',
+            retryText: 'retry',
+            titleOf: (section) => section.titleKey,
+            sectionActionOf: (_) =>
+                DiscoverSectionAction(label: '更多', onTap: () {}),
+            state: HomeDiscoverState(
+              loading: false,
+              platforms: const <HomePlatform>[],
+              selectedPlatformId: 'qq',
+              sections: <HomeDiscoverSection>[
+                HomeDiscoverSection(
+                  key: 'new-song',
+                  titleKey: '新歌速递',
+                  type: HomeDiscoverItemType.song,
+                  songs: <SongInfo>[_buildSong()],
+                ),
+              ],
+            ),
+            onRetry: () {},
+            onTapSong: (songs, index) {},
+            onTapAlbum: (_) {},
+            onTapPlaylist: (_) {},
+            onTapVideo: (_) {},
+            onMoreSong: (_) {},
+            isSongLiked: (_) => false,
+            onLikeSong: (_) async {},
+            isCurrentSong: (_) => false,
+            config: AppConfigState.initial,
+          ),
+        ),
+      ),
+    );
+
+    final button = tester.widget<TextButton>(
+      find.ancestor(
+        of: find.text('更多').first,
+        matching: find.byType(TextButton),
+      ),
+    );
+    final row = button.child as Row;
+
+    expect(row.children.first, isA<Text>());
+    expect(row.children.last, isA<Icon>());
+  });
+
   testWidgets('album section title does not use bold font weight', (
     tester,
   ) async {
@@ -21,6 +132,7 @@ void main() {
             emptyText: 'empty',
             retryText: 'retry',
             titleOf: (section) => section.titleKey,
+            sectionActionOf: (_) => null,
             state: HomeDiscoverState(
               loading: false,
               platforms: const <HomePlatform>[],
@@ -73,6 +185,7 @@ void main() {
               emptyText: 'empty',
               retryText: 'retry',
               titleOf: (section) => section.titleKey,
+              sectionActionOf: (_) => null,
               state: HomeDiscoverState(
                 loading: false,
                 platforms: const <HomePlatform>[],
@@ -115,6 +228,7 @@ void main() {
       emptyText: 'empty',
       retryText: 'retry',
       titleOf: (section) => section.titleKey,
+      sectionActionOf: (_) => null,
       state: HomeDiscoverState(
         loading: false,
         platforms: const <HomePlatform>[],
@@ -143,6 +257,25 @@ void main() {
 
     expect(slivers.whereType<SliverLayoutBuilder>(), isEmpty);
   });
+}
+
+SongInfo _buildSong() {
+  return const SongInfo(
+    name: 'Mystic Highway',
+    subtitle: 'Live',
+    id: 'song-1',
+    duration: 180000,
+    mvId: '',
+    album: SongInfoAlbumInfo(id: 'album-1', name: 'American Heart'),
+    artists: <SongInfoArtistInfo>[
+      SongInfoArtistInfo(id: 'artist-1', name: 'Benson Boone'),
+    ],
+    links: <LinkInfo>[],
+    platform: 'qq',
+    cover: '',
+    sublist: <SongInfo>[],
+    originalType: 0,
+  );
 }
 
 AlbumInfo _buildAlbum() {

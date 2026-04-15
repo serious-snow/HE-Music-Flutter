@@ -152,6 +152,11 @@ class DiscoverHomeTab extends ConsumerWidget {
                   emptyText: AppI18n.t(config, 'home.empty'),
                   retryText: AppI18n.t(config, 'home.retry'),
                   titleOf: (section) => AppI18n.t(config, section.titleKey),
+                  sectionActionOf: (section) => _buildSectionAction(
+                    context: context,
+                    sectionKey: section.key,
+                    selectedPlatformId: selectedPlatformId,
+                  ),
                   state: discoverState,
                   onRetry: discoverController.retry,
                   onTapSong: (songs, index) => _playDiscoverSong(
@@ -283,6 +288,41 @@ class DiscoverHomeTab extends ConsumerWidget {
         ),
       );
     }
+  }
+
+  DiscoverSectionAction? _buildSectionAction({
+    required BuildContext context,
+    required String sectionKey,
+    required String selectedPlatformId,
+  }) {
+    final normalizedSectionKey = sectionKey.trim();
+    if (normalizedSectionKey == 'new-song') {
+      return DiscoverSectionAction(
+        label: '更多',
+        onTap: () => context.push(
+          Uri(
+            path: AppRoutes.newSong,
+            queryParameters: <String, String>{
+              if (selectedPlatformId.isNotEmpty) 'platform': selectedPlatformId,
+            },
+          ).toString(),
+        ),
+      );
+    }
+    if (normalizedSectionKey == 'new-album') {
+      return DiscoverSectionAction(
+        label: '更多',
+        onTap: () => context.push(
+          Uri(
+            path: AppRoutes.newAlbum,
+            queryParameters: <String, String>{
+              if (selectedPlatformId.isNotEmpty) 'platform': selectedPlatformId,
+            },
+          ).toString(),
+        ),
+      );
+    }
+    return null;
   }
 
   void _showDiscoverSongActions({
@@ -578,11 +618,9 @@ class DiscoverHomeTab extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppI18n.format(
-              config,
-              'player.download.added',
-              <String, String>{'title': song.title},
-            ),
+            AppI18n.format(config, 'player.download.added', <String, String>{
+              'title': song.title,
+            }),
           ),
         ),
       );

@@ -1,8 +1,9 @@
 abstract final class AppRoutes {
   static const home = '/';
-  static String get homeMy =>
-      Uri(path: home, queryParameters: const <String, String>{'tab': 'my'})
-          .toString();
+  static String get homeMy => Uri(
+    path: home,
+    queryParameters: const <String, String>{'tab': 'my'},
+  ).toString();
   static const login = '/login';
   static const loginQrScan = '/login/qr-scan';
   static const loginQrConfirm = '/login/qr-confirm';
@@ -18,6 +19,8 @@ abstract final class AppRoutes {
   static const discoverDetail = '/discover/detail';
   static const artistDetail = '/artist/detail';
   static const artistPlaza = '/artist/plaza';
+  static const newSong = '/new-song';
+  static const newAlbum = '/new-album';
   static const playlistPlaza = '/playlist/plaza';
   static const videoPlaza = '/video/plaza';
   static const playlistDetail = '/playlist/detail';
