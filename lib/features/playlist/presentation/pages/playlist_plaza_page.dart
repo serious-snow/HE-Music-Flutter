@@ -7,12 +7,12 @@ import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/layout/adaptive_media_grid_spec.dart';
+import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/media_grid_card.dart';
 import '../../../../shared/widgets/online_platform_tabs.dart';
 import '../../../../shared/widgets/plaza_loading_skeleton.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
-import '../../../player/presentation/widgets/mini_player_bar.dart';
 import '../../domain/entities/playlist_category_group.dart';
 import '../../domain/entities/playlist_plaza_state.dart';
 import '../providers/playlist_plaza_providers.dart';
@@ -50,78 +50,79 @@ class _PlaylistPlazaPageState extends ConsumerState<PlaylistPlazaPage> {
     final state = ref.watch(playlistPlazaControllerProvider);
     final config = ref.watch(appConfigProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          tooltip: AppI18n.t(config, 'common.back'),
-          icon: const Icon(Icons.arrow_back_rounded),
+    return DetailPageShell(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            tooltip: AppI18n.t(config, 'common.back'),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          title: Text(AppI18n.t(config, 'playlist.plaza.title')),
         ),
-        title: Text(AppI18n.t(config, 'playlist.plaza.title')),
-      ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            child: platformsAsync.when(
-              data: (platforms) {
-                final supportedPlatforms = _supportedPlatforms(platforms);
-                _initializeIfNeeded(supportedPlatforms);
-                return OnlinePlatformTabs(
-                  platforms: supportedPlatforms,
-                  selectedId: state.selectedPlatformId,
-                  requiredFeatureFlag: PlatformFeatureSupportFlag.getTagList,
-                  onSelected: (id) => ref
-                      .read(playlistPlazaControllerProvider.notifier)
-                      .selectPlatform(id),
-                );
-              },
-              loading: () => const PlazaPlatformTabsSkeleton(),
-              error: (error, _) => _PlatformsErrorView(
-                onRetry: () =>
-                    ref.read(onlinePlatformsProvider.notifier).refresh(),
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: platformsAsync.when(
-              data: (platforms) {
-                final supportedPlatforms = _supportedPlatforms(platforms);
-                if (supportedPlatforms.isEmpty) {
-                  return _EmptyState(
-                    label: AppI18n.t(config, 'playlist.plaza.empty'),
+        body: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              child: platformsAsync.when(
+                data: (platforms) {
+                  final supportedPlatforms = _supportedPlatforms(platforms);
+                  _initializeIfNeeded(supportedPlatforms);
+                  return OnlinePlatformTabs(
+                    platforms: supportedPlatforms,
+                    selectedId: state.selectedPlatformId,
+                    requiredFeatureFlag: PlatformFeatureSupportFlag.getTagList,
+                    onSelected: (id) => ref
+                        .read(playlistPlazaControllerProvider.notifier)
+                        .selectPlatform(id),
                   );
-                }
-                return _PlaylistPlazaBody(
-                  scrollController: _scrollController,
-                  state: state,
-                  onRetry: () => ref
-                      .read(playlistPlazaControllerProvider.notifier)
-                      .retry(),
-                  onLoadMoreRetry: () => ref
-                      .read(playlistPlazaControllerProvider.notifier)
-                      .loadMore(),
-                  onCategorySelected: (id) => ref
-                      .read(playlistPlazaControllerProvider.notifier)
-                      .selectCategory(id),
-                  onShowAllCategories: () => _showAllCategoriesSheet(
-                    context,
-                    state,
-                    supportedPlatforms,
-                  ),
-                );
-              },
-              loading: () => const _PlaylistPlazaLoadingView(),
-              error: (error, _) => _ErrorView(
-                message: '$error',
-                onRetry: () =>
-                    ref.read(onlinePlatformsProvider.notifier).refresh(),
+                },
+                loading: () => const PlazaPlatformTabsSkeleton(),
+                error: (error, _) => _PlatformsErrorView(
+                  onRetry: () =>
+                      ref.read(onlinePlatformsProvider.notifier).refresh(),
+                ),
               ),
             ),
-          ),
-          MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              child: platformsAsync.when(
+                data: (platforms) {
+                  final supportedPlatforms = _supportedPlatforms(platforms);
+                  if (supportedPlatforms.isEmpty) {
+                    return _EmptyState(
+                      label: AppI18n.t(config, 'playlist.plaza.empty'),
+                    );
+                  }
+                  return _PlaylistPlazaBody(
+                    scrollController: _scrollController,
+                    state: state,
+                    onRetry: () => ref
+                        .read(playlistPlazaControllerProvider.notifier)
+                        .retry(),
+                    onLoadMoreRetry: () => ref
+                        .read(playlistPlazaControllerProvider.notifier)
+                        .loadMore(),
+                    onCategorySelected: (id) => ref
+                        .read(playlistPlazaControllerProvider.notifier)
+                        .selectCategory(id),
+                    onShowAllCategories: () => _showAllCategoriesSheet(
+                      context,
+                      state,
+                      supportedPlatforms,
+                    ),
+                  );
+                },
+                loading: () => const _PlaylistPlazaLoadingView(),
+                error: (error, _) => _ErrorView(
+                  message: '$error',
+                  onRetry: () =>
+                      ref.read(onlinePlatformsProvider.notifier).refresh(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

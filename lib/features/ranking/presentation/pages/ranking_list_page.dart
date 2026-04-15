@@ -6,11 +6,11 @@ import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/layout/ranking_layout_spec.dart';
+import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/online_platform_tabs.dart';
 import '../../../../shared/widgets/plaza_loading_skeleton.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
-import '../../../player/presentation/widgets/mini_player_bar.dart';
 import '../../domain/entities/ranking_group.dart';
 import '../../domain/entities/ranking_info.dart';
 import '../providers/ranking_providers.dart';
@@ -38,105 +38,107 @@ class _RankingListPageState extends ConsumerState<RankingListPage> {
     final platformsAsync = ref.watch(rankingPlatformsProvider);
     final config = ref.watch(appConfigProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          tooltip: AppI18n.t(config, 'common.back'),
-          icon: const Icon(Icons.arrow_back_rounded),
+    return DetailPageShell(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            tooltip: AppI18n.t(config, 'common.back'),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          title: Text(AppI18n.t(config, 'ranking.title')),
         ),
-        title: Text(AppI18n.t(config, 'ranking.title')),
-      ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            child: platformsAsync.when(
-              data: (platforms) {
-                _syncPlatform(platforms);
-                return OnlinePlatformTabs(
-                  platforms: platforms,
-                  selectedId: _platformId,
-                  requiredFeatureFlag: PlatformFeatureSupportFlag.getTopList,
-                  onSelected: (id) => setState(() => _platformId = id),
-                );
-              },
-              loading: () => const PlazaPlatformTabsSkeleton(),
-              error: (error, _) => _PlatformsErrorView(
-                onRetry: () =>
-                    ref.read(onlinePlatformsProvider.notifier).refresh(),
+        body: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: platformsAsync.when(
+                data: (platforms) {
+                  _syncPlatform(platforms);
+                  return OnlinePlatformTabs(
+                    platforms: platforms,
+                    selectedId: _platformId,
+                    requiredFeatureFlag: PlatformFeatureSupportFlag.getTopList,
+                    onSelected: (id) => setState(() => _platformId = id),
+                  );
+                },
+                loading: () => const PlazaPlatformTabsSkeleton(),
+                error: (error, _) => _PlatformsErrorView(
+                  onRetry: () =>
+                      ref.read(onlinePlatformsProvider.notifier).refresh(),
+                ),
               ),
             ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: platformsAsync.when(
-              loading: () => const RankingGroupsSkeleton(),
-              error: (error, _) => _ErrorView(
-                message: '$error',
-                onRetry: () =>
-                    ref.read(onlinePlatformsProvider.notifier).refresh(),
-              ),
-              data: (platforms) {
-                if (platforms.isEmpty) {
-                  return Center(
-                    child: Text(
-                      AppI18n.t(config, 'ranking.no_platform'),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                  );
-                }
-
-                final selected = _platformId;
-                final supportsRanking = _supportsRanking(selected, platforms);
-                final groupsAsync = selected == null || selected.isEmpty
-                    ? const AsyncValue<List<RankingGroup>>.data(
-                        <RankingGroup>[],
-                      )
-                    : (supportsRanking
-                          ? ref.watch(rankingGroupsProvider(selected))
-                          : const AsyncValue<List<RankingGroup>>.data(
-                              <RankingGroup>[],
-                            ));
-
-                return groupsAsync.when(
-                  data: (groups) {
-                    if (selected != null &&
-                        selected.isNotEmpty &&
-                        !supportsRanking) {
-                      return Center(
-                        child: Text(
-                          AppI18n.t(config, 'ranking.unsupported'),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: Theme.of(context).hintColor),
+            const Divider(height: 1),
+            Expanded(
+              child: platformsAsync.when(
+                loading: () => const RankingGroupsSkeleton(),
+                error: (error, _) => _ErrorView(
+                  message: '$error',
+                  onRetry: () =>
+                      ref.read(onlinePlatformsProvider.notifier).refresh(),
+                ),
+                data: (platforms) {
+                  if (platforms.isEmpty) {
+                    return Center(
+                      child: Text(
+                        AppI18n.t(config, 'ranking.no_platform'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).hintColor,
                         ),
-                      );
-                    }
-                    return _RankingGroupsView(
-                      groups: groups,
-                      onTapRanking: (ranking) => _openRanking(
-                        context,
-                        id: ranking.id,
-                        platform: ranking.platform,
-                        title: ranking.name,
                       ),
                     );
-                  },
-                  loading: () => const RankingGroupsSkeleton(),
-                  error: (error, _) => _ErrorView(
-                    message: '$error',
-                    onRetry: selected == null
-                        ? null
-                        : () => ref.invalidate(rankingGroupsProvider(selected)),
-                  ),
-                );
-              },
+                  }
+
+                  final selected = _platformId;
+                  final supportsRanking = _supportsRanking(selected, platforms);
+                  final groupsAsync = selected == null || selected.isEmpty
+                      ? const AsyncValue<List<RankingGroup>>.data(
+                          <RankingGroup>[],
+                        )
+                      : (supportsRanking
+                            ? ref.watch(rankingGroupsProvider(selected))
+                            : const AsyncValue<List<RankingGroup>>.data(
+                                <RankingGroup>[],
+                              ));
+
+                  return groupsAsync.when(
+                    data: (groups) {
+                      if (selected != null &&
+                          selected.isNotEmpty &&
+                          !supportsRanking) {
+                        return Center(
+                          child: Text(
+                            AppI18n.t(config, 'ranking.unsupported'),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Theme.of(context).hintColor),
+                          ),
+                        );
+                      }
+                      return _RankingGroupsView(
+                        groups: groups,
+                        onTapRanking: (ranking) => _openRanking(
+                          context,
+                          id: ranking.id,
+                          platform: ranking.platform,
+                          title: ranking.name,
+                        ),
+                      );
+                    },
+                    loading: () => const RankingGroupsSkeleton(),
+                    error: (error, _) => _ErrorView(
+                      message: '$error',
+                      onRetry: selected == null
+                          ? null
+                          : () =>
+                                ref.invalidate(rankingGroupsProvider(selected)),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
-        ],
+          ],
+        ),
       ),
     );
   }

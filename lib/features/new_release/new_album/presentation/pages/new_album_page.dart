@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../../app/config/app_config_controller.dart';
 import '../../../../../app/router/app_routes.dart';
 import '../../../../../shared/layout/adaptive_media_grid_spec.dart';
+import '../../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../../shared/widgets/media_grid_card.dart';
 import '../../../../../shared/widgets/online_platform_tabs.dart';
 import '../../../../online/domain/entities/online_platform.dart';
-import '../../../../player/presentation/widgets/mini_player_bar.dart';
 import '../../../../../shared/widgets/underline_tab.dart';
 import '../../domain/entities/new_album_page_state.dart';
 import '../providers/new_album_page_providers.dart';
@@ -54,40 +54,39 @@ class _NewAlbumPageState extends ConsumerState<NewAlbumPage> {
     final controller = ref.read(newAlbumPageControllerProvider.notifier);
     final localeCode = ref.watch(appConfigProvider).localeCode;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('新碟')),
-      bottomNavigationBar: MiniPlayerBar(
-        onOpenFullPlayer: () => context.push(AppRoutes.player),
-      ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: OnlinePlatformTabs(
-              platforms: state.platforms,
-              selectedId: state.selectedPlatformId,
-              requiredFeatureFlag: PlatformFeatureSupportFlag.getNewAlbumList,
-              onSelected: controller.selectPlatform,
+    return DetailPageShell(
+      child: Scaffold(
+        appBar: AppBar(title: const Text('新碟')),
+        body: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: OnlinePlatformTabs(
+                platforms: state.platforms,
+                selectedId: state.selectedPlatformId,
+                requiredFeatureFlag: PlatformFeatureSupportFlag.getNewAlbumList,
+                onSelected: controller.selectPlatform,
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          _ReleaseTabBar(
-            labels: state.tabs
-                .map((item) => _ReleaseTabData(id: item.id, name: item.name))
-                .toList(growable: false),
-            selectedId: state.selectedTabId,
-            onSelected: controller.selectTab,
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: _NewAlbumBody(
-              localeCode: localeCode,
-              scrollController: _scrollController,
-              state: state,
-              onRetry: controller.retry,
+            const Divider(height: 1),
+            _ReleaseTabBar(
+              labels: state.tabs
+                  .map((item) => _ReleaseTabData(id: item.id, name: item.name))
+                  .toList(growable: false),
+              selectedId: state.selectedTabId,
+              onSelected: controller.selectTab,
             ),
-          ),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              child: _NewAlbumBody(
+                localeCode: localeCode,
+                scrollController: _scrollController,
+                state: state,
+                onRetry: controller.retry,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

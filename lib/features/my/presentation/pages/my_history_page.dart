@@ -15,11 +15,11 @@ import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/utils/favorite_song_key.dart';
+import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/online_song_list_item.dart';
 import '../../../player/domain/entities/player_history_item.dart';
 import '../../../player/domain/entities/player_track.dart';
 import '../../../player/presentation/providers/player_providers.dart';
-import '../../../player/presentation/widgets/mini_player_bar.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../../../../shared/widgets/song_list_component.dart';
@@ -34,38 +34,39 @@ class MyHistoryPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
     final state = ref.watch(myHistoryControllerProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppI18n.t(config, 'my.history')),
-        actions: <Widget>[
-          IconButton(
-            onPressed: () =>
-                ref.read(myHistoryControllerProvider.notifier).clear(),
-            tooltip: AppI18n.t(config, 'my.history.clear'),
-            icon: const Icon(Icons.delete_sweep_rounded),
-          ),
-        ],
-      ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: state.when(
-              data: (items) => _HistoryList(
-                items: items,
-                emptyText: AppI18n.t(config, 'my.history.empty'),
-                onTap: (index) => _playHistory(context, ref, items, index),
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) => _HistoryErrorView(
-                message: '$error',
-                retryLabel: AppI18n.t(config, 'my.retry'),
-                onRetry: () =>
-                    ref.read(myHistoryControllerProvider.notifier).refresh(),
+    return DetailPageShell(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(AppI18n.t(config, 'my.history')),
+          actions: <Widget>[
+            IconButton(
+              onPressed: () =>
+                  ref.read(myHistoryControllerProvider.notifier).clear(),
+              tooltip: AppI18n.t(config, 'my.history.clear'),
+              icon: const Icon(Icons.delete_sweep_rounded),
+            ),
+          ],
+        ),
+        body: Column(
+          children: <Widget>[
+            Expanded(
+              child: state.when(
+                data: (items) => _HistoryList(
+                  items: items,
+                  emptyText: AppI18n.t(config, 'my.history.empty'),
+                  onTap: (index) => _playHistory(context, ref, items, index),
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => _HistoryErrorView(
+                  message: '$error',
+                  retryLabel: AppI18n.t(config, 'my.retry'),
+                  onRetry: () =>
+                      ref.read(myHistoryControllerProvider.notifier).refresh(),
+                ),
               ),
             ),
-          ),
-          MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
-        ],
+          ],
+        ),
       ),
     );
   }

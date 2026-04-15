@@ -6,12 +6,12 @@ import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/models/he_music_models.dart';
+import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/online_platform_tabs.dart';
 import '../../../../shared/widgets/plaza_loading_skeleton.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../../../online/presentation/widgets/search_artist_list_item.dart';
-import '../../../player/presentation/widgets/mini_player_bar.dart';
 import '../../domain/entities/artist_plaza_state.dart';
 import '../providers/artist_plaza_providers.dart';
 
@@ -48,73 +48,76 @@ class _ArtistPlazaPageState extends ConsumerState<ArtistPlazaPage> {
     final state = ref.watch(artistPlazaControllerProvider);
     final config = ref.watch(appConfigProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          tooltip: AppI18n.t(config, 'common.back'),
-          icon: const Icon(Icons.arrow_back_rounded),
+    return DetailPageShell(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            tooltip: AppI18n.t(config, 'common.back'),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          title: Text(AppI18n.t(config, 'artist.plaza.title')),
         ),
-        title: Text(AppI18n.t(config, 'artist.plaza.title')),
-      ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            child: platformsAsync.when(
-              data: (platforms) {
-                final supportedPlatforms = _supportedPlatforms(platforms);
-                _initializeIfNeeded(supportedPlatforms);
-                return OnlinePlatformTabs(
-                  platforms: supportedPlatforms,
-                  selectedId: state.selectedPlatformId,
-                  requiredFeatureFlag: PlatformFeatureSupportFlag.searchSinger,
-                  onSelected: (id) => ref
-                      .read(artistPlazaControllerProvider.notifier)
-                      .selectPlatform(id),
-                );
-              },
-              loading: () => const PlazaPlatformTabsSkeleton(),
-              error: (error, _) => _PlatformsErrorView(
-                onRetry: () =>
-                    ref.read(onlinePlatformsProvider.notifier).refresh(),
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: platformsAsync.when(
-              data: (platforms) {
-                final supportedPlatforms = _supportedPlatforms(platforms);
-                if (supportedPlatforms.isEmpty) {
-                  return _EmptyState(
-                    label: AppI18n.t(config, 'artist.plaza.empty'),
+        body: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              child: platformsAsync.when(
+                data: (platforms) {
+                  final supportedPlatforms = _supportedPlatforms(platforms);
+                  _initializeIfNeeded(supportedPlatforms);
+                  return OnlinePlatformTabs(
+                    platforms: supportedPlatforms,
+                    selectedId: state.selectedPlatformId,
+                    requiredFeatureFlag:
+                        PlatformFeatureSupportFlag.searchSinger,
+                    onSelected: (id) => ref
+                        .read(artistPlazaControllerProvider.notifier)
+                        .selectPlatform(id),
                   );
-                }
-                return _ArtistPlazaBody(
-                  localeCode: config.localeCode,
-                  scrollController: _scrollController,
-                  state: state,
+                },
+                loading: () => const PlazaPlatformTabsSkeleton(),
+                error: (error, _) => _PlatformsErrorView(
                   onRetry: () =>
-                      ref.read(artistPlazaControllerProvider.notifier).retry(),
-                  onSelectFilter: (groupId, value) => ref
-                      .read(artistPlazaControllerProvider.notifier)
-                      .selectFilter(groupId: groupId, value: value),
-                  onLoadMoreRetry: () => ref
-                      .read(artistPlazaControllerProvider.notifier)
-                      .loadMore(),
-                );
-              },
-              loading: () => const _ArtistPlazaLoadingView(),
-              error: (error, _) => _ErrorView(
-                message: '$error',
-                onRetry: () =>
-                    ref.read(onlinePlatformsProvider.notifier).refresh(),
+                      ref.read(onlinePlatformsProvider.notifier).refresh(),
+                ),
               ),
             ),
-          ),
-          MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              child: platformsAsync.when(
+                data: (platforms) {
+                  final supportedPlatforms = _supportedPlatforms(platforms);
+                  if (supportedPlatforms.isEmpty) {
+                    return _EmptyState(
+                      label: AppI18n.t(config, 'artist.plaza.empty'),
+                    );
+                  }
+                  return _ArtistPlazaBody(
+                    localeCode: config.localeCode,
+                    scrollController: _scrollController,
+                    state: state,
+                    onRetry: () => ref
+                        .read(artistPlazaControllerProvider.notifier)
+                        .retry(),
+                    onSelectFilter: (groupId, value) => ref
+                        .read(artistPlazaControllerProvider.notifier)
+                        .selectFilter(groupId: groupId, value: value),
+                    onLoadMoreRetry: () => ref
+                        .read(artistPlazaControllerProvider.notifier)
+                        .loadMore(),
+                  );
+                },
+                loading: () => const _ArtistPlazaLoadingView(),
+                error: (error, _) => _ErrorView(
+                  message: '$error',
+                  onRetry: () =>
+                      ref.read(onlinePlatformsProvider.notifier).refresh(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

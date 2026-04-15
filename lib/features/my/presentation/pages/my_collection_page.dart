@@ -7,12 +7,12 @@ import '../../../../app/config/app_config_state.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/utils/playlist_song_count_text.dart';
+import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/song_list_component.dart';
 import '../../../../shared/widgets/underline_tab.dart';
 import '../../../online/presentation/widgets/search_playlist_list_item.dart';
 import '../../domain/entities/my_favorite_item.dart';
 import '../../domain/entities/my_favorite_type.dart';
-import '../../../player/presentation/widgets/mini_player_bar.dart';
 import '../providers/my_collection_providers.dart';
 
 class MyCollectionPage extends ConsumerStatefulWidget {
@@ -38,49 +38,50 @@ class _MyCollectionPageState extends ConsumerState<MyCollectionPage> {
   Widget build(BuildContext context) {
     final config = ref.watch(appConfigProvider);
     final state = ref.watch(myCollectionControllerProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppI18n.t(config, 'my.collection')),
-        actions: <Widget>[
-          IconButton(
-            onPressed: ref
-                .read(myCollectionControllerProvider.notifier)
-                .refreshAll,
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: AppI18n.t(config, 'my.refresh'),
-          ),
-        ],
-      ),
-      body: Column(
-        children: <Widget>[
-          const SizedBox(height: 8),
-          _TypeTabs(
-            config: config,
-            selectedType: state.selectedType,
-            onTypeSelected: ref
-                .read(myCollectionControllerProvider.notifier)
-                .selectType,
-          ),
-          if (state.loading) const LinearProgressIndicator(),
-          if (state.errorMessage != null)
-            _ErrorPanel(
-              message: state.errorMessage!,
-              retryLabel: AppI18n.t(config, 'my.retry'),
-              onRetry: ref
+    return DetailPageShell(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(AppI18n.t(config, 'my.collection')),
+          actions: <Widget>[
+            IconButton(
+              onPressed: ref
                   .read(myCollectionControllerProvider.notifier)
                   .refreshAll,
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: AppI18n.t(config, 'my.refresh'),
             ),
-          Expanded(
-            child: _CollectionList(
+          ],
+        ),
+        body: Column(
+          children: <Widget>[
+            const SizedBox(height: 8),
+            _TypeTabs(
               config: config,
               selectedType: state.selectedType,
-              items: state.selectedItems,
-              emptyText: AppI18n.t(config, 'my.collection.empty'),
-              onRemove: (item) => _confirmRemove(context, config, item),
+              onTypeSelected: ref
+                  .read(myCollectionControllerProvider.notifier)
+                  .selectType,
             ),
-          ),
-          MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
-        ],
+            if (state.loading) const LinearProgressIndicator(),
+            if (state.errorMessage != null)
+              _ErrorPanel(
+                message: state.errorMessage!,
+                retryLabel: AppI18n.t(config, 'my.retry'),
+                onRetry: ref
+                    .read(myCollectionControllerProvider.notifier)
+                    .refreshAll,
+              ),
+            Expanded(
+              child: _CollectionList(
+                config: config,
+                selectedType: state.selectedType,
+                items: state.selectedItems,
+                emptyText: AppI18n.t(config, 'my.collection.empty'),
+                onRemove: (item) => _confirmRemove(context, config, item),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

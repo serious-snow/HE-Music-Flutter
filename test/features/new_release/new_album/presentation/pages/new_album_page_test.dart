@@ -56,6 +56,42 @@ void main() {
 
     expect(find.byType(MiniPlayerBar), findsOneWidget);
   });
+
+  testWidgets('new album page opens desktop queue panel on wide screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          playerControllerProvider.overrideWith(_TestPlayerController.new),
+          newAlbumApiClientProvider.overrideWithValue(
+            _QueueTestNewAlbumApiClient(),
+          ),
+          onlinePlatformsProvider.overrideWith(
+            _TestOnlinePlatformsController.new,
+          ),
+        ],
+        child: const MaterialApp(home: NewAlbumPage(initialPlatform: 'qq')),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded).last);
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NewAlbumPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('player-queue-desktop-panel')),
+      findsOneWidget,
+    );
+  });
 }
 
 class _FakeNewAlbumApiClient extends NewAlbumApiClient {
@@ -77,6 +113,30 @@ class _FakeNewAlbumApiClient extends NewAlbumApiClient {
   }) async {
     return NewReleasePageResult<AlbumInfo>(
       list: <AlbumInfo>[_buildAlbum(platform)],
+      hasMore: false,
+    );
+  }
+}
+
+class _QueueTestNewAlbumApiClient extends NewAlbumApiClient {
+  _QueueTestNewAlbumApiClient() : super(Dio());
+
+  @override
+  Future<List<NewReleaseTab>> fetchTabs({required String platform}) async {
+    return <NewReleaseTab>[
+      NewReleaseTab(id: 'recommend', name: '推荐', platform: platform),
+    ];
+  }
+
+  @override
+  Future<NewReleasePageResult<AlbumInfo>> fetchAlbums({
+    required String platform,
+    required String tabId,
+    int pageIndex = 1,
+    int pageSize = 30,
+  }) async {
+    return const NewReleasePageResult<AlbumInfo>(
+      list: <AlbumInfo>[],
       hasMore: false,
     );
   }

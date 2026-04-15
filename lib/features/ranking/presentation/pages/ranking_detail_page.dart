@@ -3,30 +3,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/app_message_service.dart';
-import '../../../../app/config/app_config_controller.dart';
-import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
-import '../../../../core/network/network_error_message.dart';
 import '../../../../shared/constants/layout_tokens.dart';
-import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/helpers/detail_cover_preview_helper.dart';
 import '../../../../shared/helpers/detail_song_action_handler.dart';
 import '../../../../shared/helpers/song_batch_helpers.dart';
-import '../../../../shared/models/he_music_models.dart';
+import '../../../../shared/utils/favorite_song_key.dart';
 import '../../../../shared/widgets/detail_description_sheet.dart';
 import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/music_detail_slivers.dart';
-import '../../../../shared/widgets/online_song_list_item.dart';
-import '../../../../shared/utils/cover_resolver.dart';
-import '../../../../shared/widgets/select_user_playlist_sheet.dart';
+import '../../../../shared/widgets/song_info_list_section.dart';
 import '../../../../shared/widgets/song_batch_action_bar.dart';
-import '../../../../shared/widgets/song_list_component.dart';
-import '../../../my/presentation/providers/user_playlist_song_providers.dart';
+import '../../../my/presentation/providers/favorite_song_status_providers.dart';
 import '../../../player/domain/entities/player_queue_source.dart';
 import '../../../player/presentation/providers/player_providers.dart';
-import '../../../online/domain/entities/online_platform.dart';
-import '../../../online/presentation/providers/online_providers.dart';
 import '../../domain/entities/ranking_detail_request.dart';
 import '../../domain/entities/ranking_song.dart';
 import '../controllers/ranking_detail_controller.dart';
@@ -54,7 +44,7 @@ class RankingDetailPage extends ConsumerStatefulWidget {
 
 class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
   late final RankingDetailRequest _request;
-  late final DetailSongActionHandler<RankingSong> _songActions;
+  late final DetailSongActionHandler _songActions;
   bool _isBatchMode = false;
   bool _submittingBatch = false;
   Set<String> _selectedSongKeys = <String>{};
@@ -67,16 +57,8 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
       platform: widget.platform,
       title: widget.title,
     );
-    _songActions = DetailSongActionHandler<RankingSong>(
+    _songActions = DetailSongActionHandler(
       ref: ref,
-      songIdOf: (song) => song.id,
-      songTitleOf: (song) => song.title,
-      songArtistOf: (song) => song.artist,
-      songPlatformOf: (song) => song.platform,
-      songCoverOf: (song) => song.cover,
-      songArtistsOf: (song) => song.artists,
-      songAlbumIdOf: (song) => song.album?.id,
-      songAlbumTitleOf: (song) => song.album?.name,
       queueSource: PlayerQueueSource(
         routePath: AppRoutes.rankingDetail,
         queryParameters: <String, String>{
@@ -101,7 +83,9 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
     return DetailPageShell(
       bottomBar: _isBatchMode
           ? SongBatchActionBar(
-              enabled: _selectedSongs(state.songs).isNotEmpty,
+              enabled: _songActions
+                  .collectSelectedSongs(state.songs, _selectedSongKeys)
+                  .isNotEmpty,
               loading: _submittingBatch,
               onPlayPressed: () => unawaited(_playSelectedSongs(state.songs)),
               onAddToQueuePressed: () =>
@@ -125,6 +109,19 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
                   _previewCover(title, coverUrl),
               onPlaySong: (song, coverUrl, index) =>
                   _songActions.playAll(context, state.songs, startIndex: index),
+              resolveSongCover: _songActions.resolveCoverUrl,
+              resolvePlatformId: _songActions.resolvePlatformId,
+              isSongLiked: (song) => ref.read(
+                favoriteSongStatusProvider.select(
+                  (favorite) => favorite.songKeys.contains(
+                    buildFavoriteSongKey(
+                      songId: song.id,
+                      platform: _songActions.resolvePlatformId(song),
+                    ),
+                  ),
+                ),
+              ),
+              onLikeSong: _songActions.toggleSongFavorite,
               onMoreSong: (song, coverUrl) => _songActions.showSongActions(
                 context: context,
                 song: song,
@@ -133,7 +130,9 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
               onPlayAll: () => _songActions.playAll(context, state.songs),
               batchMode: _isBatchMode,
               selectedSongKeys: _selectedSongKeys,
-              selectedCount: _selectedSongs(state.songs).length,
+              selectedCount: _songActions
+                  .collectSelectedSongs(state.songs, _selectedSongKeys)
+                  .length,
               allSelected: areAllLoadedSongsSelected(
                 state.songs,
                 _selectedSongKeys,
@@ -195,107 +194,57 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
     });
   }
 
-  List<IdPlatformInfo> _selectedSongs(List<RankingSong> songs) {
-    return collectSelectedSongIdPlatforms(
-      songs,
-      _selectedSongKeys,
-      songIdOf: (song) => song.id,
-      platformOf: (song) => song.platform,
-    );
-  }
-
-  List<RankingSong> _selectedSongItems(List<RankingSong> songs) {
-    return collectSelectedSongItems(
-      songs,
-      _selectedSongKeys,
-      songIdOf: (song) => song.id,
-      platformOf: (song) => song.platform,
-    );
-  }
-
   Future<void> _playSelectedSongs(List<RankingSong> songs) async {
-    final selectedSongs = _selectedSongItems(songs);
-    if (selectedSongs.isEmpty || _submittingBatch) {
-      return;
+    final success = await _songActions.playSelectedSongs(
+      context,
+      songs: songs,
+      selectedSongKeys: _selectedSongKeys,
+      submittingBatch: _submittingBatch,
+    );
+    if (mounted && success) {
+      _setBatchMode(false);
     }
-    await _songActions.playAll(context, selectedSongs);
-    if (!mounted) {
-      return;
-    }
-    _setBatchMode(false);
   }
 
   Future<void> _appendSelectedSongsToQueue(List<RankingSong> songs) async {
-    final selectedSongs = _selectedSongItems(songs);
-    if (selectedSongs.isEmpty || _submittingBatch) {
-      return;
-    }
     setState(() {
       _submittingBatch = true;
     });
-    try {
-      await _songActions.appendAllToQueue(selectedSongs);
-      if (!mounted) {
-        return;
-      }
+    final success = await _songActions.appendSelectedSongsToQueue(
+      context,
+      songs: songs,
+      selectedSongKeys: _selectedSongKeys,
+      submittingBatch: false,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _submittingBatch = false;
+    });
+    if (success) {
       _setBatchMode(false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppI18n.t(ref.read(appConfigProvider), 'search.queue.appended'),
-          ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _submittingBatch = false;
-      });
-      AppMessageService.showError(
-        NetworkErrorMessage.resolve(error) ?? '$error',
-      );
     }
   }
 
   Future<void> _addSelectedSongsToPlaylist(List<RankingSong> songs) async {
-    final selectedSongs = _selectedSongs(songs);
-    if (selectedSongs.isEmpty || _submittingBatch) {
-      return;
-    }
-    final playlistId = await showSelectUserPlaylistSheet(context);
-    if (playlistId == null || !mounted) {
-      return;
-    }
     setState(() {
       _submittingBatch = true;
     });
-    try {
-      await ref
-          .read(userPlaylistSongApiClientProvider)
-          .addSongs(playlistId: playlistId, songs: selectedSongs);
-      if (!mounted) {
-        return;
-      }
+    final success = await _songActions.addSelectedSongsToPlaylist(
+      context,
+      songs: songs,
+      selectedSongKeys: _selectedSongKeys,
+      submittingBatch: false,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _submittingBatch = false;
+    });
+    if (success) {
       _setBatchMode(false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppI18n.t(ref.read(appConfigProvider), 'detail.batch.add_success'),
-          ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _submittingBatch = false;
-      });
-      AppMessageService.showError(
-        NetworkErrorMessage.resolve(error) ?? '$error',
-      );
     }
   }
 }
@@ -307,6 +256,10 @@ class _Body extends ConsumerWidget {
     required this.onLoadMore,
     required this.onPreviewCover,
     required this.onPlaySong,
+    required this.resolveSongCover,
+    required this.resolvePlatformId,
+    required this.isSongLiked,
+    required this.onLikeSong,
     required this.onMoreSong,
     required this.onPlayAll,
     required this.batchMode,
@@ -325,6 +278,10 @@ class _Body extends ConsumerWidget {
   final Future<void> Function() onLoadMore;
   final void Function(String title, String coverUrl) onPreviewCover;
   final void Function(RankingSong, String coverUrl, int index) onPlaySong;
+  final String Function(RankingSong song) resolveSongCover;
+  final String Function(RankingSong song) resolvePlatformId;
+  final bool Function(RankingSong song) isSongLiked;
+  final Future<void> Function(RankingSong song) onLikeSong;
   final void Function(RankingSong, String coverUrl) onMoreSong;
   final VoidCallback onPlayAll;
   final bool batchMode;
@@ -383,40 +340,15 @@ class _Body extends ConsumerWidget {
           LayoutTokens.listItemInnerGutter,
           0,
         ),
-        child: SongListComponent(
-          itemCount: state.songs.length,
-          itemBuilder: (context, index) {
-            final song = state.songs[index];
-            final config = ref.read(appConfigProvider);
-            final platforms =
-                ref.read(onlinePlatformsProvider).valueOrNull ??
-                const <OnlinePlatform>[];
-            final songCover = resolveSongCoverUrl(
-              baseUrl: config.apiBaseUrl,
-              token: config.authToken ?? '',
-              platforms: platforms,
-              platformId: song.platform,
-              songId: song.id,
-              cover: song.cover,
-              size: 300,
-            );
-            return OnlineSongListItem(
-              song: song,
-              coverUrl: songCover.trim().isEmpty ? null : songCover,
-              isCurrent: isCurrentSongTrack(currentTrack, song),
-              selectable: batchMode,
-              selected: selectedSongKeys.contains(
-                buildSongBatchKey(songId: song.id, platform: song.platform),
-              ),
-              showActions: !batchMode,
-              onTap: batchMode
-                  ? null
-                  : () => onPlaySong(song, songCover, index),
-              onSelectTap: () => onToggleSongSelection(song),
-              onLikeTap: batchMode ? null : () {},
-              onMoreTap: batchMode ? null : () => onMoreSong(song, songCover),
-            );
-          },
+        child: SongInfoListSection(
+          songs: state.songs,
+          currentTrack: currentTrack,
+          resolveSongCover: resolveSongCover,
+          resolvePlatformId: resolvePlatformId,
+          isSongLiked: isSongLiked,
+          onTapSong: onPlaySong,
+          onLikeSong: onLikeSong,
+          onMoreSong: onMoreSong,
           initialLoading: state.loading && state.songs.isEmpty,
           enablePaging: true,
           loadingMore: state.loadingMore,
@@ -430,6 +362,9 @@ class _Body extends ConsumerWidget {
               ),
             ),
           ),
+          batchMode: batchMode,
+          selectedSongKeys: selectedSongKeys,
+          onToggleSongSelection: onToggleSongSelection,
         ),
       ),
     );

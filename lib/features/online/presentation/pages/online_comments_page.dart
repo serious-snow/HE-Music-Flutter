@@ -6,9 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
-import '../../../../app/router/app_routes.dart';
 import '../../../../shared/constants/layout_tokens.dart';
-import '../../../player/presentation/widgets/mini_player_bar.dart';
+import '../../../../shared/widgets/detail_page_shell.dart';
 import '../providers/online_providers.dart';
 
 enum _CommentTabType { hot, newest }
@@ -67,48 +66,51 @@ class _OnlineCommentsPageState extends ConsumerState<OnlineCommentsPage>
     final pageTitle = widget.title == null || widget.title!.trim().isEmpty
         ? AppI18n.t(config, 'comments.title')
         : '${widget.title} · ${AppI18n.t(config, 'comments.title')}';
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          tooltip: AppI18n.t(config, 'common.back'),
-          icon: const Icon(Icons.arrow_back_rounded),
+    return DetailPageShell(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            tooltip: AppI18n.t(config, 'common.back'),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          title: Text(pageTitle),
+          scrolledUnderElevation: 0,
         ),
-        title: Text(pageTitle),
-        scrolledUnderElevation: 0,
-      ),
-      body: Column(
-        children: <Widget>[
-          Container(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: TabBar(
-              controller: _tabController,
-              tabAlignment: TabAlignment.start,
-              isScrollable: true,
-              tabs: _CommentTabType.values
-                  .map((type) => Tab(text: type.label(config.localeCode)))
-                  .toList(growable: false),
+        body: Column(
+          children: <Widget>[
+            Container(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: TabBar(
+                controller: _tabController,
+                tabAlignment: TabAlignment.start,
+                isScrollable: true,
+                tabs: _CommentTabType.values
+                    .map((type) => Tab(text: type.label(config.localeCode)))
+                    .toList(growable: false),
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: _CommentTabType.values
-                  .map(
-                    (type) => _CommentTabPane(
-                      key: PageStorageKey<String>('comment-pane-${type.name}'),
-                      tabType: type,
-                      resourceId: widget.resourceId,
-                      resourceType: widget.resourceType,
-                      platform: widget.platform,
-                    ),
-                  )
-                  .toList(growable: false),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: _CommentTabType.values
+                    .map(
+                      (type) => _CommentTabPane(
+                        key: PageStorageKey<String>(
+                          'comment-pane-${type.name}',
+                        ),
+                        tabType: type,
+                        resourceId: widget.resourceId,
+                        resourceType: widget.resourceType,
+                        platform: widget.platform,
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
             ),
-          ),
-          MiniPlayerBar(onOpenFullPlayer: () => context.push(AppRoutes.player)),
-        ],
+          ],
+        ),
       ),
     );
   }

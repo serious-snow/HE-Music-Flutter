@@ -46,6 +46,45 @@ void main() {
     expect(find.text('全部'), findsOneWidget);
     expect(find.text('今日 MV'), findsOneWidget);
   });
+
+  testWidgets('video plaza opens desktop queue panel on wide screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(_TestAppConfigController.new),
+          playerControllerProvider.overrideWith(_QueuePlayerController.new),
+          onlinePlatformsProvider.overrideWith(
+            _DelayedOnlinePlatformsController.new,
+          ),
+          videoPlazaApiClientProvider.overrideWithValue(
+            _FakeVideoPlazaApiClient(),
+          ),
+        ],
+        child: const MaterialApp(home: VideoPlazaPage()),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 140));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded).last);
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(VideoPlazaPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('player-queue-desktop-panel')),
+      findsOneWidget,
+    );
+  });
 }
 
 class _TestAppConfigController extends AppConfigController {
@@ -60,6 +99,36 @@ class _TestPlayerController extends PlayerController {
   PlayerPlaybackState build() {
     return PlayerPlaybackState.initial(const <PlayerTrack>[]);
   }
+
+  @override
+  Future<void> initialize() async {}
+}
+
+class _QueuePlayerController extends PlayerController {
+  @override
+  PlayerPlaybackState build() {
+    return PlayerPlaybackState.initial(const <PlayerTrack>[
+      PlayerTrack(
+        id: 'song-1',
+        title: '测试歌曲',
+        artist: '测试歌手',
+        album: '测试专辑',
+        platform: 'qq',
+        links: <LinkInfo>[
+          LinkInfo(
+            name: 'SQ',
+            quality: 500,
+            format: 'mp3',
+            size: '3145728',
+            url: 'https://example.com/song-1.mp3',
+          ),
+        ],
+      ),
+    ]);
+  }
+
+  @override
+  Future<void> initialize() async {}
 }
 
 class _DelayedOnlinePlatformsController extends OnlinePlatformsController {

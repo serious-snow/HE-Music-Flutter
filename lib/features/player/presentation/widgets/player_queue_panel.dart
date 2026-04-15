@@ -65,6 +65,10 @@ class PlayerQueuePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isOpen = ref.watch(playerQueuePanelOpenProvider);
     final theme = Theme.of(context);
+    void dismissPanel() {
+      ref.read(playerQueuePanelOpenProvider.notifier).state = false;
+    }
+
     return IgnorePointer(
       ignoring: !isOpen,
       child: AnimatedSlide(
@@ -108,13 +112,7 @@ class PlayerQueuePanel extends ConsumerWidget {
                         children: <Widget>[
                           const Spacer(),
                           IconButton(
-                            onPressed: () =>
-                                ref
-                                        .read(
-                                          playerQueuePanelOpenProvider.notifier,
-                                        )
-                                        .state =
-                                    false,
+                            onPressed: dismissPanel,
                             tooltip: MaterialLocalizations.of(
                               context,
                             ).closeButtonLabel,
@@ -123,7 +121,11 @@ class PlayerQueuePanel extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const Expanded(child: PlayerQueuePanelContent()),
+                    Expanded(
+                      child: PlayerQueuePanelContent(
+                        onRequestDismiss: dismissPanel,
+                      ),
+                    ),
                   ],
                 ),
               ),

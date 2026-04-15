@@ -9,54 +9,56 @@ import '../../app/app_message_service.dart';
 import '../../app/config/app_config_controller.dart';
 import '../../app/i18n/app_i18n.dart';
 import '../../app/router/app_routes.dart';
-import '../../features/online/domain/entities/online_platform.dart';
+import '../../core/network/network_error_message.dart';
 import '../../features/download/domain/entities/download_task.dart';
-import '../../features/online/presentation/providers/online_providers.dart';
 import '../../features/download/presentation/providers/download_providers.dart';
 import '../../features/download/presentation/widgets/download_quality_sheet.dart';
-import '../../features/player/domain/entities/player_queue_source.dart';
+import '../../features/my/presentation/providers/favorite_song_status_providers.dart';
+import '../../features/my/presentation/providers/user_playlist_song_providers.dart';
+import '../../features/online/domain/entities/online_platform.dart';
+import '../../features/online/presentation/providers/online_providers.dart';
 import '../../features/player/domain/entities/player_quality_option.dart';
+import '../../features/player/domain/entities/player_queue_source.dart';
 import '../../features/player/domain/entities/player_track.dart';
 import '../../features/player/presentation/providers/player_providers.dart';
 import '../models/he_music_models.dart';
+import '../utils/cover_resolver.dart';
+import '../utils/favorite_song_key.dart';
+import '../widgets/select_user_playlist_sheet.dart';
+import '../widgets/song_actions_sheet.dart';
 import 'album_id_helper.dart';
 import 'platform_label_helper.dart';
 import 'song_artist_navigation_helper.dart';
-import '../utils/cover_resolver.dart';
-import '../widgets/song_actions_sheet.dart';
+import 'song_batch_helpers.dart' as batch_helpers;
 
-typedef DetailSongStringField<T> = String Function(T song);
-typedef DetailSongNullableStringField<T> = String? Function(T song);
-typedef DetailSongArtistsField<T> = List<SongInfoArtistInfo> Function(T song);
-typedef DetailSongAlbumIdField<T> = String? Function(T song);
-typedef DetailSongAlbumTitleField<T> = String? Function(T song);
+typedef SongPlatformIdResolver = String Function(SongInfo song);
+typedef SongMvNavigationHandler =
+    void Function(BuildContext context, SongInfo song, String platformId);
+typedef SongFavoriteErrorMessageBuilder = String? Function(Object error);
 
-class DetailSongActionHandler<T> {
+class DetailSongActionHandler {
   DetailSongActionHandler({
     required this.ref,
-    required this.songIdOf,
-    required this.songTitleOf,
-    required this.songArtistOf,
-    required this.songPlatformOf,
-    required this.songCoverOf,
-    this.songArtistsOf,
-    this.songAlbumIdOf,
-    this.songAlbumTitleOf,
     this.queueSource,
+    this.platformIdResolver,
+    this.onWatchMv,
   });
 
   final WidgetRef ref;
-  final DetailSongStringField<T> songIdOf;
-  final DetailSongStringField<T> songTitleOf;
-  final DetailSongStringField<T> songArtistOf;
-  final DetailSongStringField<T> songPlatformOf;
-  final DetailSongNullableStringField<T> songCoverOf;
-  final DetailSongArtistsField<T>? songArtistsOf;
-  final DetailSongAlbumIdField<T>? songAlbumIdOf;
-  final DetailSongAlbumTitleField<T>? songAlbumTitleOf;
   final PlayerQueueSource? queueSource;
+  final SongPlatformIdResolver? platformIdResolver;
+  final SongMvNavigationHandler? onWatchMv;
 
-  String resolveCoverUrl(T song) {
+  String resolvePlatformId(SongInfo song) {
+    final resolved = platformIdResolver?.call(song) ?? song.platform;
+    return resolved.trim();
+  }
+
+  String resolveCoverUrl(SongInfo song) {
+    final platformId = resolvePlatformId(song);
+    if (platformId.isEmpty) {
+      return song.cover;
+    }
     final config = ref.read(appConfigProvider);
     final platforms =
         ref.read(onlinePlatformsProvider).valueOrNull ??
@@ -65,25 +67,32 @@ class DetailSongActionHandler<T> {
       baseUrl: config.apiBaseUrl,
       token: config.authToken ?? '',
       platforms: platforms,
-      platformId: songPlatformOf(song),
-      songId: songIdOf(song),
-      cover: songCoverOf(song),
+      platformId: platformId,
+      songId: song.id,
+      cover: song.cover,
       size: 300,
     );
   }
 
   Future<void> playAll(
     BuildContext context,
-    List<T> songs, {
+    List<SongInfo> songs, {
     int startIndex = 0,
   }) async {
-    if (songs.isEmpty) return;
-    if (startIndex < 0 || startIndex >= songs.length) {
+    if (songs.isEmpty || startIndex < 0 || startIndex >= songs.length) {
       return;
     }
     final playerController = ref.read(playerControllerProvider.notifier);
     try {
-      final tracks = await _buildTracks(songs);
+      final tracks = songs
+          .map(
+            (song) => _buildTrack(
+              song: song,
+              platformId: resolvePlatformId(song),
+              coverUrl: resolveCoverUrl(song),
+            ),
+          )
+          .toList(growable: false);
       await playerController.replaceQueue(
         tracks,
         startIndex: startIndex,
@@ -100,34 +109,169 @@ class DetailSongActionHandler<T> {
     }
   }
 
-  Future<void> appendAllToQueue(List<T> songs) async {
+  Future<void> appendAllToQueue(List<SongInfo> songs) async {
     if (songs.isEmpty) {
       return;
     }
-    final tracks = await _buildTracks(songs);
     final playerController = ref.read(playerControllerProvider.notifier);
-    for (final track in tracks) {
-      await playerController.appendTrack(track);
+    for (final song in songs) {
+      await playerController.appendTrack(
+        _buildTrack(
+          song: song,
+          platformId: resolvePlatformId(song),
+          coverUrl: resolveCoverUrl(song),
+        ),
+      );
+    }
+  }
+
+  Future<void> toggleSongFavorite(
+    SongInfo song, {
+    SongFavoriteErrorMessageBuilder? errorMessageBuilder,
+  }) async {
+    final platformId = resolvePlatformId(song);
+    if (platformId.isEmpty) {
+      return;
+    }
+    final liked = ref.read(
+      favoriteSongStatusProvider.select(
+        (state) => state.songKeys.contains(
+          buildFavoriteSongKey(songId: song.id, platform: platformId),
+        ),
+      ),
+    );
+    try {
+      await ref
+          .read(onlineControllerProvider.notifier)
+          .toggleSongFavorite(
+            songId: song.id,
+            platform: platformId,
+            like: !liked,
+          );
+    } catch (error) {
+      final message = errorMessageBuilder?.call(error);
+      _showErrorMessage(
+        message ?? NetworkErrorMessage.resolve(error) ?? '$error',
+      );
+    }
+  }
+
+  List<SongInfo> collectSelectedSongItems(
+    List<SongInfo> songs,
+    Set<String> selectedSongKeys,
+  ) {
+    return batch_helpers.collectSelectedSongItems(
+      songs,
+      selectedSongKeys,
+      songIdOf: (song) => song.id,
+      platformOf: resolvePlatformId,
+    );
+  }
+
+  List<IdPlatformInfo> collectSelectedSongs(
+    List<SongInfo> songs,
+    Set<String> selectedSongKeys,
+  ) {
+    return batch_helpers.collectSelectedSongIdPlatforms(
+      songs,
+      selectedSongKeys,
+      songIdOf: (song) => song.id,
+      platformOf: resolvePlatformId,
+    );
+  }
+
+  Future<bool> playSelectedSongs(
+    BuildContext context, {
+    required List<SongInfo> songs,
+    required Set<String> selectedSongKeys,
+    required bool submittingBatch,
+  }) async {
+    final selectedSongs = collectSelectedSongItems(songs, selectedSongKeys);
+    if (selectedSongs.isEmpty || submittingBatch) {
+      return false;
+    }
+    await playAll(context, selectedSongs);
+    return true;
+  }
+
+  Future<bool> appendSelectedSongsToQueue(
+    BuildContext context, {
+    required List<SongInfo> songs,
+    required Set<String> selectedSongKeys,
+    required bool submittingBatch,
+  }) async {
+    final selectedSongs = collectSelectedSongItems(songs, selectedSongKeys);
+    if (selectedSongs.isEmpty || submittingBatch) {
+      return false;
+    }
+    try {
+      await appendAllToQueue(selectedSongs);
+      if (!context.mounted) {
+        return false;
+      }
+      _showMessage(
+        context,
+        AppI18n.t(ref.read(appConfigProvider), 'search.queue.appended'),
+      );
+      return true;
+    } catch (error) {
+      _showErrorMessage(NetworkErrorMessage.resolve(error) ?? '$error');
+      return false;
+    }
+  }
+
+  Future<bool> addSelectedSongsToPlaylist(
+    BuildContext context, {
+    required List<SongInfo> songs,
+    required Set<String> selectedSongKeys,
+    required bool submittingBatch,
+    String? excludedPlaylistId,
+  }) async {
+    final selectedSongs = collectSelectedSongs(songs, selectedSongKeys);
+    if (selectedSongs.isEmpty || submittingBatch) {
+      return false;
+    }
+    final playlistId = await showSelectUserPlaylistSheet(
+      context,
+      excludedPlaylistId: excludedPlaylistId,
+    );
+    if (playlistId == null || !context.mounted) {
+      return false;
+    }
+    try {
+      await ref
+          .read(userPlaylistSongApiClientProvider)
+          .addSongs(playlistId: playlistId, songs: selectedSongs);
+      if (!context.mounted) {
+        return false;
+      }
+      _showMessage(
+        context,
+        AppI18n.t(ref.read(appConfigProvider), 'detail.batch.add_success'),
+      );
+      return true;
+    } catch (error) {
+      _showErrorMessage(NetworkErrorMessage.resolve(error) ?? '$error');
+      return false;
     }
   }
 
   void showSongActions({
     required BuildContext context,
-    required T song,
+    required SongInfo song,
     required String coverUrl,
   }) {
-    final platformId = songPlatformOf(song);
+    final platformId = resolvePlatformId(song);
+    if (platformId.isEmpty) {
+      _showMessage(context, '平台未就绪');
+      return;
+    }
     final config = ref.read(appConfigProvider);
     final platforms =
         ref.read(onlinePlatformsProvider).valueOrNull ??
         const <OnlinePlatform>[];
-    final platformLabel = resolvePlatformLabel(
-      platformId,
-      platforms: platforms,
-    );
-    final artists = songArtistsOf?.call(song) ?? const <SongInfoArtistInfo>[];
-    final albumId = songAlbumIdOf?.call(song)?.trim() ?? '';
-    final albumTitle = songAlbumTitleOf?.call(song)?.trim() ?? '';
+    final albumId = song.album?.id.trim() ?? '';
+    final albumTitle = song.album?.name.trim() ?? '';
     final canViewAlbum = hasValidAlbumId(albumId);
     final availableQualities = _resolveDownloadQualities(
       song: song,
@@ -137,36 +281,38 @@ class DetailSongActionHandler<T> {
     showSongActionsSheet(
       context: context,
       coverUrl: coverUrl.isEmpty ? null : coverUrl,
-      title: songTitleOf(song),
-      subtitle: songArtistOf(song),
-      hasMv: false,
+      title: song.title,
+      subtitle: song.artist,
+      hasMv: onWatchMv != null && song.hasMv,
       sourceLabel: AppI18n.format(config, 'song.source', <String, String>{
-        'platform': platformLabel,
+        'platform': resolvePlatformLabel(platformId, platforms: platforms),
       }),
-      onPlay: () => unawaited(_playNow(song, coverUrl)),
-      onPlayNext: () => unawaited(_insertNext(song, coverUrl)),
-      onAddToPlaylist: () => unawaited(_appendToQueue(song, coverUrl)),
+      onPlay: () => unawaited(_playNow(song, coverUrl, platformId)),
+      onPlayNext: () => unawaited(_insertNext(song, coverUrl, platformId)),
+      onAddToPlaylist: () =>
+          unawaited(_appendToQueue(song, coverUrl, platformId)),
       onDownload:
           _canDownload(platformId: platformId, qualities: availableQualities)
           ? () => unawaited(
               _downloadSong(
                 context: context,
-                songId: songIdOf(song),
-                title: songTitleOf(song),
+                song: song,
                 platformId: platformId,
-                artist: songArtistOf(song),
-                album: albumTitle.isEmpty ? null : albumTitle,
                 artworkUrl: coverUrl.isEmpty ? null : coverUrl,
                 qualities: availableQualities,
               ),
             )
           : null,
-      onWatchMv: () {},
+      onWatchMv: () {
+        if (onWatchMv != null) {
+          onWatchMv!.call(context, song, platformId);
+        }
+      },
       onViewComment: () => _openSongComments(
         context: context,
-        songId: songIdOf(song),
+        songId: song.id,
         platformId: platformId,
-        title: songTitleOf(song),
+        title: song.title,
       ),
       albumActionLabel: canViewAlbum
           ? AppI18n.t(config, 'player.action.view_album')
@@ -180,70 +326,107 @@ class DetailSongActionHandler<T> {
             )
           : null,
       artistActionLabel: songArtistActionLabel(
-        artists,
+        song.artists,
         localeCode: config.localeCode,
       ),
-      onViewArtists: artists.isEmpty
+      onViewArtists: song.artists.isEmpty
           ? null
           : () => unawaited(
               openSongArtistSelection(
                 context: context,
                 platformId: platformId,
-                artists: artists,
+                artists: song.artists,
                 onError: (message) => _showMessage(context, message),
               ),
             ),
       onCopySongName: () => unawaited(
         _copyText(
           context: context,
-          value: songTitleOf(song),
+          value: song.title,
           success: AppI18n.t(config, 'player.copy.name_done'),
         ),
       ),
       onCopySongShareLink: () => unawaited(
         _copyText(
           context: context,
-          value: 'https://y.wjhe.top/song/$platformId/${songIdOf(song)}',
+          value: 'https://y.wjhe.top/song/$platformId/${song.id}',
           success: AppI18n.t(config, 'player.copy.share_done'),
         ),
       ),
       onSearchSameName: () => _openSongSearch(
         context: context,
         platformId: platformId,
-        keyword: songTitleOf(song),
+        keyword: song.title,
       ),
       onCopySongId: () => unawaited(
         _copyText(
           context: context,
-          value: songIdOf(song),
+          value: song.id,
           success: AppI18n.t(config, 'player.copy.id_done'),
         ),
       ),
     );
   }
 
-  Future<void> _playNow(T song, String coverUrl) async {
-    final track = await _buildTrack(song, coverUrl);
-    await ref.read(playerControllerProvider.notifier).insertNextAndPlay(track);
+  PlayerTrack _buildTrack({
+    required SongInfo song,
+    required String platformId,
+    required String coverUrl,
+  }) {
+    return PlayerTrack(
+      id: song.id,
+      title: song.title,
+      links: song.links,
+      artist: song.artist,
+      albumId: song.album?.id,
+      album: song.album?.name,
+      artists: song.artists,
+      mvId: song.mvId,
+      artworkUrl: coverUrl.isEmpty ? null : coverUrl,
+      platform: platformId,
+    );
   }
 
-  Future<void> _insertNext(T song, String coverUrl) async {
-    final track = await _buildTrack(song, coverUrl);
-    await ref.read(playerControllerProvider.notifier).insertNextTrack(track);
+  Future<void> _playNow(
+    SongInfo song,
+    String coverUrl,
+    String platformId,
+  ) async {
+    await ref
+        .read(playerControllerProvider.notifier)
+        .insertNextAndPlay(
+          _buildTrack(song: song, platformId: platformId, coverUrl: coverUrl),
+        );
   }
 
-  Future<void> _appendToQueue(T song, String coverUrl) async {
-    final track = await _buildTrack(song, coverUrl);
-    await ref.read(playerControllerProvider.notifier).appendTrack(track);
+  Future<void> _insertNext(
+    SongInfo song,
+    String coverUrl,
+    String platformId,
+  ) async {
+    await ref
+        .read(playerControllerProvider.notifier)
+        .insertNextTrack(
+          _buildTrack(song: song, platformId: platformId, coverUrl: coverUrl),
+        );
+  }
+
+  Future<void> _appendToQueue(
+    SongInfo song,
+    String coverUrl,
+    String platformId,
+  ) async {
+    await ref
+        .read(playerControllerProvider.notifier)
+        .appendTrack(
+          _buildTrack(song: song, platformId: platformId, coverUrl: coverUrl),
+        );
   }
 
   Future<void> _downloadSong({
     required BuildContext context,
-    required String songId,
-    required String title,
+    required SongInfo song,
     required String platformId,
-    required String artist,
-    required String? album,
     required String? artworkUrl,
     required List<PlayerQualityOption> qualities,
   }) async {
@@ -260,16 +443,16 @@ class DetailSongActionHandler<T> {
       await ref
           .read(downloadControllerProvider.notifier)
           .enqueue(
-            title: title,
+            title: song.title,
             quality: DownloadTaskQuality(
               label: selected.name,
               bitrate: selected.quality.toDouble(),
               fileExtension: selected.format.trim().toLowerCase(),
             ),
-            songId: songId,
+            songId: song.id,
             platform: platformId,
-            artist: artist,
-            album: album,
+            artist: song.artist,
+            album: song.album?.name,
             artworkUrl: artworkUrl,
           );
       if (!context.mounted) {
@@ -277,11 +460,9 @@ class DetailSongActionHandler<T> {
       }
       _showMessage(
         context,
-        AppI18n.format(
-          config,
-          'player.download.added',
-          <String, String>{'title': title},
-        ),
+        AppI18n.format(config, 'player.download.added', <String, String>{
+          'title': song.title,
+        }),
       );
     } catch (_) {
       if (!context.mounted) {
@@ -289,32 +470,6 @@ class DetailSongActionHandler<T> {
       }
       _showMessage(context, AppI18n.t(config, 'player.download.failed'));
     }
-  }
-
-  Future<PlayerTrack> _buildTrack(T song, String coverUrl) async {
-    return PlayerTrack(
-      id: songIdOf(song),
-      title: songTitleOf(song),
-      links: song is SongInfo ? song.links : const <LinkInfo>[],
-      artist: songArtistOf(song),
-      albumId: song is SongInfo ? song.album?.id : songAlbumIdOf?.call(song),
-      album: song is SongInfo ? song.album?.name : songAlbumTitleOf?.call(song),
-      artists: song is SongInfo
-          ? song.artists
-          : (songArtistsOf?.call(song) ?? const <SongInfoArtistInfo>[]),
-      mvId: song is SongInfo ? song.mvId : null,
-      artworkUrl: coverUrl.isEmpty ? null : coverUrl,
-      platform: songPlatformOf(song),
-    );
-  }
-
-  Future<List<PlayerTrack>> _buildTracks(List<T> songs) async {
-    final tracks = <PlayerTrack>[];
-    for (final song in songs) {
-      final artworkUrl = resolveCoverUrl(song);
-      tracks.add(await _buildTrack(song, artworkUrl));
-    }
-    return tracks;
   }
 
   void _openSongSearch({
@@ -337,17 +492,16 @@ class DetailSongActionHandler<T> {
     required List<PlayerQualityOption> qualities,
   }) {
     final normalized = platformId.trim().toLowerCase();
-    return normalized.isNotEmpty && normalized != 'local' && qualities.isNotEmpty;
+    return normalized.isNotEmpty &&
+        normalized != 'local' &&
+        qualities.isNotEmpty;
   }
 
   List<PlayerQualityOption> _resolveDownloadQualities({
-    required T song,
+    required SongInfo song,
     required List<OnlinePlatform> platforms,
     required String platformId,
   }) {
-    if (song is! SongInfo) {
-      return const <PlayerQualityOption>[];
-    }
     return buildDownloadQualityOptions(
       links: song.links,
       qualityDescriptions: _platformQualityDescriptions(
@@ -421,9 +575,13 @@ class DetailSongActionHandler<T> {
     required BigInt featureFlag,
   }) {
     final all = ref.read(onlinePlatformsProvider).valueOrNull;
-    if (all == null) return true;
+    if (all == null) {
+      return true;
+    }
     for (final platform in all) {
-      if (platform.id != platformId) continue;
+      if (platform.id != platformId) {
+        continue;
+      }
       return platform.available && platform.supports(featureFlag);
     }
     return true;
@@ -443,7 +601,9 @@ class DetailSongActionHandler<T> {
       return;
     }
     await Clipboard.setData(ClipboardData(text: text));
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
     _showMessage(context, success);
   }
 

@@ -86,6 +86,28 @@ void main() {
 
     expect(find.byType(MiniPlayerBar), findsOneWidget);
   });
+
+  testWidgets('new song page opens desktop queue panel on wide screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_buildTestApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded).last);
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NewSongPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('player-queue-desktop-panel')),
+      findsOneWidget,
+    );
+  });
 }
 
 Widget _buildTestApp({

@@ -24,7 +24,6 @@ import '../../../player/presentation/providers/player_providers.dart';
 import '../../../download/domain/entities/download_task.dart';
 import '../../../download/presentation/providers/download_providers.dart';
 import '../../../download/presentation/widgets/download_quality_sheet.dart';
-import '../../../player/presentation/widgets/mini_player_bar.dart';
 import '../providers/online_providers.dart';
 import 'online_search_actions_handler.dart';
 import 'online_search_bars.dart';
@@ -33,6 +32,7 @@ import 'online_search_models.dart';
 import 'online_search_result_page.dart';
 import 'online_search_suggest_panel.dart';
 import 'online_search_song_actions.dart';
+import '../../../../shared/widgets/detail_page_shell.dart';
 
 class OnlineSearchPage extends ConsumerStatefulWidget {
   const OnlineSearchPage({
@@ -163,90 +163,91 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
         ? defaultEntry!.description.trim()
         : null;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                LayoutTokens.compactPageGutter,
-                8,
-                LayoutTokens.compactPageGutter,
-                10,
-              ),
-              child: _SearchHeader(
-                onBack: () => context.pop(),
-                controller: _searchController,
-                placeholderPrimary: searchPlaceholderPrimary,
-                placeholderSecondary: searchPlaceholderSecondary,
-                focusNode: _searchFocusNode,
-                onChanged: _onSearchChanged,
-                onSubmit: _search,
-                onSearch: _search,
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: LayoutTokens.compactPageGutter,
+    return DetailPageShell(
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: SafeArea(
+          child: Column(
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  LayoutTokens.compactPageGutter,
+                  8,
+                  LayoutTokens.compactPageGutter,
+                  10,
                 ),
-                child: showHotPanel
-                    ? OnlineSearchHotPanel(
-                        localeCode: config.localeCode,
-                        historyKeywords: _searchHistoryKeywords,
-                        hotKeywords: _hotKeywords,
-                        loadingHistory: _loadingSearchHistory,
-                        loadingHot: _loadingHotKeywords,
-                        onTapKeyword: _onTapSuggestedKeyword,
-                        onClearHistory: () => unawaited(_clearSearchHistory()),
-                      )
-                    : showSuggestPanel
-                    ? OnlineSearchSuggestPanel(
-                        loading: _loadingSuggestions,
-                        suggestions: _suggestKeywords,
-                        onTapKeyword: _onTapSuggestedKeyword,
-                      )
-                    : OnlineSearchResultPage(
-                        localeCode: config.localeCode,
-                        selectedType: _selectedType,
-                        onTypeChanged: _onTypeChanged,
-                        loadingPlatforms: loadingPlatforms,
-                        platforms: platforms,
-                        selectedPlatformId: _selectedPlatformId,
-                        onPlatformChanged: _onPlatformChanged,
-                        loading: loading,
-                        results: results,
-                        error: error,
-                        initialLoading: initialLoading,
-                        likedSongKeys: likedSongKeys,
-                        onTapItem: (item) async {
-                          if (_selectedType == SearchType.song) {
-                            await _playSong(item);
-                            return;
-                          }
-                          openSearchDetail(
-                            context: context,
-                            type: _selectedType,
-                            item: item,
-                            fallbackPlatformId: _selectedPlatformId,
-                            localeCode: ref.read(appConfigProvider).localeCode,
-                            onError: _showMessage,
-                          );
-                        },
-                        onLikeSongItem: _toggleSongLike,
-                        onMoreSongItem: _showSongActions,
-                        onLoadMore: _loadMore,
-                        loadingMore: loadingMore,
-                        hasMore: hasMore,
-                      ),
+                child: _SearchHeader(
+                  onBack: () => context.pop(),
+                  controller: _searchController,
+                  placeholderPrimary: searchPlaceholderPrimary,
+                  placeholderSecondary: searchPlaceholderSecondary,
+                  focusNode: _searchFocusNode,
+                  onChanged: _onSearchChanged,
+                  onSubmit: _search,
+                  onSearch: _search,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            MiniPlayerBar(
-              onOpenFullPlayer: () => context.push(AppRoutes.player),
-            ),
-          ],
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: LayoutTokens.compactPageGutter,
+                  ),
+                  child: showHotPanel
+                      ? OnlineSearchHotPanel(
+                          localeCode: config.localeCode,
+                          historyKeywords: _searchHistoryKeywords,
+                          hotKeywords: _hotKeywords,
+                          loadingHistory: _loadingSearchHistory,
+                          loadingHot: _loadingHotKeywords,
+                          onTapKeyword: _onTapSuggestedKeyword,
+                          onClearHistory: () =>
+                              unawaited(_clearSearchHistory()),
+                        )
+                      : showSuggestPanel
+                      ? OnlineSearchSuggestPanel(
+                          loading: _loadingSuggestions,
+                          suggestions: _suggestKeywords,
+                          onTapKeyword: _onTapSuggestedKeyword,
+                        )
+                      : OnlineSearchResultPage(
+                          localeCode: config.localeCode,
+                          selectedType: _selectedType,
+                          onTypeChanged: _onTypeChanged,
+                          loadingPlatforms: loadingPlatforms,
+                          platforms: platforms,
+                          selectedPlatformId: _selectedPlatformId,
+                          onPlatformChanged: _onPlatformChanged,
+                          loading: loading,
+                          results: results,
+                          error: error,
+                          initialLoading: initialLoading,
+                          likedSongKeys: likedSongKeys,
+                          onTapItem: (item) async {
+                            if (_selectedType == SearchType.song) {
+                              await _playSong(item);
+                              return;
+                            }
+                            openSearchDetail(
+                              context: context,
+                              type: _selectedType,
+                              item: item,
+                              fallbackPlatformId: _selectedPlatformId,
+                              localeCode: ref
+                                  .read(appConfigProvider)
+                                  .localeCode,
+                              onError: _showMessage,
+                            );
+                          },
+                          onLikeSongItem: _toggleSongLike,
+                          onMoreSongItem: _showSongActions,
+                          onLoadMore: _loadMore,
+                          loadingMore: loadingMore,
+                          hasMore: hasMore,
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -667,8 +668,7 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
       onPlay: () => unawaited(_playSong(item)),
       onPlayNext: () => unawaited(_queuePlayNext(item)),
       onAddToPlaylist: () => unawaited(_appendToQueue(item)),
-      onDownload:
-          platform.trim().toLowerCase() == 'local' || qualities.isEmpty
+      onDownload: platform.trim().toLowerCase() == 'local' || qualities.isEmpty
           ? null
           : () => unawaited(
               _downloadSongFromSearch(
@@ -781,11 +781,9 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
             artworkUrl: artworkUrl,
           );
       _showMessage(
-        AppI18n.format(
-          config,
-          'player.download.added',
-          <String, String>{'title': song.title},
-        ),
+        AppI18n.format(config, 'player.download.added', <String, String>{
+          'title': song.title,
+        }),
       );
     } catch (_) {
       _showMessage(AppI18n.t(config, 'player.download.failed'));

@@ -76,6 +76,43 @@ void main() {
 
     expect(find.text('下载'), findsNothing);
   });
+
+  testWidgets('history page opens desktop queue panel on wide screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        items: const <PlayerHistoryItem>[
+          PlayerHistoryItem(
+            id: 'song-1',
+            title: '夜航星',
+            artist: '不才',
+            album: '测试专辑',
+            artworkUrl: 'https://example.com/cover.jpg',
+            url: '',
+            playedAt: 1711711711,
+            platform: 'qq',
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.queue_music_rounded).last);
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MyHistoryPage)),
+    );
+    expect(container.read(playerQueuePanelOpenProvider), isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('player-queue-desktop-panel')),
+      findsOneWidget,
+    );
+  });
 }
 
 Widget _buildTestApp({required List<PlayerHistoryItem> items}) {
@@ -146,6 +183,16 @@ class _TestOnlinePlatformsController extends OnlinePlatformsController {
 class _TestPlayerController extends PlayerController {
   @override
   PlayerPlaybackState build() {
-    return PlayerPlaybackState.initial(const <PlayerTrack>[]);
+    return PlayerPlaybackState.initial(const <PlayerTrack>[
+      PlayerTrack(
+        id: 'current-song',
+        title: '正在播放',
+        artist: '测试歌手',
+        platform: 'qq',
+      ),
+    ]);
   }
+
+  @override
+  Future<void> initialize() async {}
 }

@@ -4,23 +4,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/app/config/app_config_controller.dart';
 import 'package:he_music_flutter/app/config/app_config_state.dart';
+import 'package:he_music_flutter/features/artist/data/datasources/artist_plaza_api_client.dart';
+import 'package:he_music_flutter/features/artist/domain/entities/artist_plaza_page_result.dart';
+import 'package:he_music_flutter/features/artist/presentation/pages/artist_plaza_page.dart';
+import 'package:he_music_flutter/features/artist/presentation/providers/artist_plaza_providers.dart';
 import 'package:he_music_flutter/features/online/domain/entities/online_platform.dart';
 import 'package:he_music_flutter/features/online/presentation/providers/online_providers.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_playback_state.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
 import 'package:he_music_flutter/features/player/presentation/controllers/player_controller.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
-import 'package:he_music_flutter/features/playlist/data/datasources/playlist_plaza_api_client.dart';
-import 'package:he_music_flutter/features/playlist/domain/entities/playlist_category_group.dart';
-import 'package:he_music_flutter/features/playlist/domain/entities/playlist_plaza_page_result.dart';
-import 'package:he_music_flutter/features/playlist/presentation/pages/playlist_plaza_page.dart';
-import 'package:he_music_flutter/features/playlist/presentation/providers/playlist_plaza_providers.dart';
 import 'package:he_music_flutter/shared/models/he_music_models.dart';
 import 'package:he_music_flutter/shared/widgets/plaza_loading_skeleton.dart';
 
 void main() {
   testWidgets(
-    'playlist plaza shows loading skeleton before first platform load',
+    'artist plaza shows loading skeleton before first platform load',
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -30,11 +29,11 @@ void main() {
             onlinePlatformsProvider.overrideWith(
               _DelayedOnlinePlatformsController.new,
             ),
-            playlistPlazaApiClientProvider.overrideWithValue(
-              _FakePlaylistPlazaApiClient(),
+            artistPlazaApiClientProvider.overrideWithValue(
+              _FakeArtistPlazaApiClient(),
             ),
           ],
-          child: const MaterialApp(home: PlaylistPlazaPage()),
+          child: const MaterialApp(home: ArtistPlazaPage()),
         ),
       );
 
@@ -44,12 +43,12 @@ void main() {
       await tester.pump();
 
       expect(find.text('QQ'), findsWidgets);
-      expect(find.text('流行'), findsOneWidget);
-      expect(find.text('今日推荐'), findsOneWidget);
+      expect(find.text('全部'), findsOneWidget);
+      expect(find.text('测试歌手'), findsOneWidget);
     },
   );
 
-  testWidgets('playlist plaza opens desktop queue panel on wide screen', (
+  testWidgets('artist plaza opens desktop queue panel on wide screen', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1440, 960));
@@ -63,13 +62,14 @@ void main() {
           onlinePlatformsProvider.overrideWith(
             _DelayedOnlinePlatformsController.new,
           ),
-          playlistPlazaApiClientProvider.overrideWithValue(
-            _FakePlaylistPlazaApiClient(),
+          artistPlazaApiClientProvider.overrideWithValue(
+            _FakeArtistPlazaApiClient(),
           ),
         ],
-        child: const MaterialApp(home: PlaylistPlazaPage()),
+        child: const MaterialApp(home: ArtistPlazaPage()),
       ),
     );
+
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 140));
     await tester.pumpAndSettle();
@@ -78,7 +78,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(PlaylistPlazaPage)),
+      tester.element(find.byType(ArtistPlazaPage)),
     );
     expect(container.read(playerQueuePanelOpenProvider), isTrue);
     expect(
@@ -142,58 +142,50 @@ class _DelayedOnlinePlatformsController extends OnlinePlatformsController {
         name: 'QQ音乐',
         shortName: 'QQ',
         status: 1,
-        featureSupportFlag:
-            PlatformFeatureSupportFlag.getTagList |
-            PlatformFeatureSupportFlag.getTagPlaylist,
+        featureSupportFlag: PlatformFeatureSupportFlag.searchSinger,
       ),
     ];
   }
 }
 
-class _FakePlaylistPlazaApiClient extends PlaylistPlazaApiClient {
-  _FakePlaylistPlazaApiClient() : super(Dio());
+class _FakeArtistPlazaApiClient extends ArtistPlazaApiClient {
+  _FakeArtistPlazaApiClient() : super(Dio());
 
   @override
-  Future<List<PlaylistCategoryGroup>> fetchCategories({
-    required String platform,
-  }) async {
-    return <PlaylistCategoryGroup>[
-      PlaylistCategoryGroup(
-        name: '推荐',
-        categories: <CategoryInfo>[
-          CategoryInfo(name: '流行', id: 'pop', platform: platform),
+  Future<List<FilterInfo>> fetchFilters({required String platform}) async {
+    return const <FilterInfo>[
+      FilterInfo(
+        id: 'region',
+        platform: 'qq',
+        options: <FilterOptionInfo>[
+          FilterOptionInfo(value: 'all', label: '全部'),
         ],
       ),
     ];
   }
 
   @override
-  Future<PlaylistPlazaPageResult> fetchCategoryPlaylists({
+  Future<ArtistPlazaPageResult> fetchArtists({
     required String platform,
-    required String categoryId,
+    required Map<String, String> filters,
     int pageIndex = 1,
-    int pageSize = 30,
-    String? lastId,
+    int pageSize = 50,
   }) async {
-    return PlaylistPlazaPageResult(
-      list: <PlaylistInfo>[
-        PlaylistInfo(
-          name: '今日推荐',
-          id: 'playlist-1',
+    return ArtistPlazaPageResult(
+      list: <ArtistInfo>[
+        ArtistInfo(
+          id: 'artist-1',
+          name: '测试歌手',
           cover: '',
-          creator: '测试账号',
-          songCount: '20',
-          playCount: '1234',
           platform: platform,
           description: '',
-          songs: const <SongInfo>[],
-          categories: <CategoryInfo>[
-            CategoryInfo(name: '流行', id: categoryId, platform: platform),
-          ],
+          mvCount: '2',
+          songCount: '10',
+          albumCount: '3',
+          alias: '',
         ),
       ],
       hasMore: false,
-      lastId: '',
     );
   }
 }
