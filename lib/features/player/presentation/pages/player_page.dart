@@ -1466,6 +1466,7 @@ class _PlayerCompactLyricSection extends ConsumerWidget {
                     ),
                     fontWeight: FontWeight.w500,
                     height: 1.0,
+                    fontSize: 16,
                   ),
                 ),
               ),

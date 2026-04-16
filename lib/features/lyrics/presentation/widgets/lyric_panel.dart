@@ -97,19 +97,22 @@ class _LyricPanelState extends ConsumerState<LyricPanel> {
 
   fl.LyricStyle get _fullStyle {
     return fl.LyricStyles.default1.copyWith(
-      textStyle: TextStyle(fontSize: 20, color: Colors.white70),
+      textAlign: TextAlign.left,
+      contentAlignment: CrossAxisAlignment.start,
+      textStyle: TextStyle(fontSize: 20, color: Colors.white60),
       activeStyle: TextStyle(
-        fontSize: 22,
+        fontSize: 24,
         color: Colors.white,
         fontWeight: FontWeight.w500,
       ),
-      translationStyle: TextStyle(fontSize: 14, color: Colors.white70),
+      translationStyle: TextStyle(fontSize: 14, color: Colors.white60),
       lineGap: 16,
       translationLineGap: 4,
       translationActiveColor: Colors.white,
-      activeHighlightGradient: const LinearGradient(
-        colors: <Color>[Color(0xFF3BB2B8), Color(0xFF42E695)],
-      ),
+      activeHighlightColor: Theme.of(context).colorScheme.inversePrimary,
+      // activeHighlightGradient: const LinearGradient(
+      //   colors: <Color>[Color(0xFF3BB2B8), Color(0xFF42E695)],
+      // ),
     );
   }
 
