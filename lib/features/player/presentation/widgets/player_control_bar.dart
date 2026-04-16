@@ -9,6 +9,9 @@ class PlayerControlBar extends StatelessWidget {
     required this.config,
     required this.isPlaying,
     required this.playMode,
+    this.showPlayModeButton = true,
+    this.playModeLocked = false,
+    this.showQueueButton = true,
     this.compact = false,
     required this.onOpenQueue,
     required this.onCyclePlayMode,
@@ -21,6 +24,9 @@ class PlayerControlBar extends StatelessWidget {
   final AppConfigState config;
   final bool isPlaying;
   final PlayerPlayMode playMode;
+  final bool showPlayModeButton;
+  final bool playModeLocked;
+  final bool showQueueButton;
   final bool compact;
   final VoidCallback onOpenQueue;
   final VoidCallback onCyclePlayMode;
@@ -33,13 +39,14 @@ class PlayerControlBar extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        _SideControlButton(
-          onPressed: onCyclePlayMode,
-          tooltip: _modeTooltip(playMode),
-          icon: _modeIcon(playMode),
-          compact: compact,
-        ),
-        SizedBox(width: compact ? 4 : 8),
+        if (showPlayModeButton)
+          _SideControlButton(
+            onPressed: playModeLocked ? null : onCyclePlayMode,
+            tooltip: _modeTooltip(playMode),
+            icon: _modeIcon(playMode),
+            compact: compact,
+          ),
+        if (showPlayModeButton) SizedBox(width: compact ? 4 : 8),
         _RoundControlButton(
           onPressed: onPrevious,
           icon: Icons.skip_previous_rounded,
@@ -60,12 +67,13 @@ class PlayerControlBar extends StatelessWidget {
           iconSize: compact ? 28 : 34,
         ),
         SizedBox(width: compact ? 4 : 8),
-        _SideControlButton(
-          onPressed: onOpenQueue,
-          tooltip: AppI18n.t(config, 'player.queue.open'),
-          icon: Icons.queue_music_rounded,
-          compact: compact,
-        ),
+        if (showQueueButton)
+          _SideControlButton(
+            onPressed: onOpenQueue,
+            tooltip: AppI18n.t(config, 'player.queue.open'),
+            icon: Icons.queue_music_rounded,
+            compact: compact,
+          ),
       ],
     );
   }
@@ -151,7 +159,7 @@ class _SideControlButton extends StatelessWidget {
     required this.compact,
   });
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final String tooltip;
   final IconData icon;
   final bool compact;

@@ -8,10 +8,15 @@ import 'package:he_music_flutter/app/config/app_config_state.dart';
 import 'package:he_music_flutter/core/audio/audio_player_port.dart';
 import 'package:he_music_flutter/core/audio/audio_track.dart';
 import 'package:he_music_flutter/features/online/data/online_api_client.dart';
+import 'package:he_music_flutter/features/player/domain/entities/player_history_item.dart';
+import 'package:he_music_flutter/features/player/domain/entities/player_play_mode.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_audio_provider.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_playback_api_provider.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
+import 'package:he_music_flutter/features/radio/data/datasources/radio_api_client.dart';
+import 'package:he_music_flutter/features/radio/presentation/providers/radio_providers.dart';
+import 'package:he_music_flutter/shared/models/he_music_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -117,6 +122,220 @@ void main() {
       );
     },
   );
+
+  test(
+    'replaceQueue should force sequence in radio mode and restore on exit',
+    () async {
+      final apiClient = _FakeOnlineApiClient(
+        handlers: <String, Future<Map<String, dynamic>> Function()>{
+          'song-1': () async => const <String, dynamic>{
+            'url': 'https://example.com/song-1.mp3',
+          },
+          'song-2': () async => const <String, dynamic>{
+            'url': 'https://example.com/song-2.mp3',
+          },
+          'song-3': () async => const <String, dynamic>{
+            'url': 'https://example.com/song-3.mp3',
+          },
+        },
+      );
+      final audioPlayer = _FakeAudioPlayerPort();
+      final container = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(_TestAppConfigController.new),
+          audioPlayerPortProvider.overrideWithValue(audioPlayer),
+          playerPlaybackApiClientProvider.overrideWithValue(apiClient),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(playerControllerProvider.notifier);
+      await controller.setPlayMode(PlayerPlayMode.shuffle);
+      await controller.replaceQueue(
+        _buildQueue(),
+        startIndex: 0,
+        autoplay: false,
+        isRadioMode: true,
+        currentRadioId: 'radio-1',
+        currentRadioPlatform: 'qq',
+        currentRadioPageIndex: 1,
+      );
+
+      var state = container.read(playerControllerProvider);
+      expect(state.isRadioMode, isTrue);
+      expect(state.playMode, PlayerPlayMode.sequence);
+      expect(state.previousPlayModeBeforeRadio, PlayerPlayMode.shuffle);
+
+      await controller.insertNextTrack(
+        const PlayerTrack(id: 'song-3', title: '第三首', platform: 'qq'),
+      );
+
+      state = container.read(playerControllerProvider);
+      expect(state.isRadioMode, isFalse);
+      expect(state.playMode, PlayerPlayMode.shuffle);
+      expect(state.previousPlayModeBeforeRadio, isNull);
+    },
+  );
+
+  test('radio completion on last track should append next page once', () async {
+    final apiClient = _FakeOnlineApiClient(
+      handlers: <String, Future<Map<String, dynamic>> Function()>{
+        'song-1': () async => const <String, dynamic>{
+          'url': 'https://example.com/song-1.mp3',
+        },
+        'song-2': () async => const <String, dynamic>{
+          'url': 'https://example.com/song-2.mp3',
+        },
+        'song-3': () async => const <String, dynamic>{
+          'url': 'https://example.com/song-3.mp3',
+        },
+      },
+    );
+    final radioApiClient = _FakeRadioApiClient(
+      pages: <int, List<SongInfo>>{
+        2: const <SongInfo>[
+          SongInfo(
+            name: '第三首',
+            subtitle: '',
+            id: 'song-3',
+            duration: 1000,
+            mvId: '',
+            album: null,
+            artists: <SongInfoArtistInfo>[
+              SongInfoArtistInfo(id: 'a-1', name: '歌手'),
+            ],
+            links: <LinkInfo>[],
+            platform: 'qq',
+            cover: '',
+            sublist: <SongInfo>[],
+            originalType: 0,
+          ),
+        ],
+      },
+    );
+    final audioPlayer = _FakeAudioPlayerPort();
+    final container = ProviderContainer(
+      overrides: <Override>[
+        appConfigProvider.overrideWith(_TestAppConfigController.new),
+        audioPlayerPortProvider.overrideWithValue(audioPlayer),
+        playerPlaybackApiClientProvider.overrideWithValue(apiClient),
+        radioApiClientProvider.overrideWithValue(radioApiClient),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(playerControllerProvider.notifier);
+    await controller.replaceQueue(
+      _buildQueue(),
+      startIndex: 1,
+      autoplay: false,
+      isRadioMode: true,
+      currentRadioId: 'radio-1',
+      currentRadioPlatform: 'qq',
+      currentRadioPageIndex: 1,
+    );
+
+    audioPlayer.emitCompleted(true);
+    audioPlayer.emitCompleted(true);
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(playerControllerProvider);
+    expect(radioApiClient.requestedPages, <int>[2]);
+    expect(state.currentRadioPageIndex, 2);
+    expect(state.queue.map((track) => track.id), <String>[
+      'song-1',
+      'song-2',
+      'song-3',
+    ]);
+  });
+
+  test('playHistoryItem should restore radio queue and radio mode', () async {
+    final apiClient = _FakeOnlineApiClient(
+      handlers: <String, Future<Map<String, dynamic>> Function()>{
+        'song-10': () async => const <String, dynamic>{
+          'url': 'https://example.com/song-10.mp3',
+        },
+        'song-11': () async => const <String, dynamic>{
+          'url': 'https://example.com/song-11.mp3',
+        },
+      },
+    );
+    final radioApiClient = _FakeRadioApiClient(
+      pages: <int, List<SongInfo>>{
+        3: const <SongInfo>[
+          SongInfo(
+            name: '历史歌一',
+            subtitle: '',
+            id: 'song-10',
+            duration: 1000,
+            mvId: '',
+            album: null,
+            artists: <SongInfoArtistInfo>[
+              SongInfoArtistInfo(id: 'a-1', name: '歌手'),
+            ],
+            links: <LinkInfo>[],
+            platform: 'qq',
+            cover: '',
+            sublist: <SongInfo>[],
+            originalType: 0,
+          ),
+          SongInfo(
+            name: '历史歌二',
+            subtitle: '',
+            id: 'song-11',
+            duration: 1000,
+            mvId: '',
+            album: null,
+            artists: <SongInfoArtistInfo>[
+              SongInfoArtistInfo(id: 'a-1', name: '歌手'),
+            ],
+            links: <LinkInfo>[],
+            platform: 'qq',
+            cover: '',
+            sublist: <SongInfo>[],
+            originalType: 0,
+          ),
+        ],
+      },
+    );
+    final audioPlayer = _FakeAudioPlayerPort();
+    final container = ProviderContainer(
+      overrides: <Override>[
+        appConfigProvider.overrideWith(_TestAppConfigController.new),
+        audioPlayerPortProvider.overrideWithValue(audioPlayer),
+        playerPlaybackApiClientProvider.overrideWithValue(apiClient),
+        radioApiClientProvider.overrideWithValue(radioApiClient),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(playerControllerProvider.notifier);
+    await controller.setPlayMode(PlayerPlayMode.shuffle);
+    await controller.playHistoryItem(
+      const PlayerHistoryItem(
+        id: 'song-11',
+        title: '历史歌二',
+        artist: '歌手',
+        album: '',
+        artworkUrl: '',
+        url: '',
+        playedAt: 1,
+        platform: 'qq',
+        isRadioMode: true,
+        currentRadioId: 'radio-2',
+        currentRadioPlatform: 'qq',
+        currentRadioPageIndex: 3,
+      ),
+    );
+
+    final state = container.read(playerControllerProvider);
+    expect(state.isRadioMode, isTrue);
+    expect(state.currentRadioId, 'radio-2');
+    expect(state.currentRadioPageIndex, 3);
+    expect(state.currentIndex, 1);
+    expect(state.playMode, PlayerPlayMode.sequence);
+    expect(state.previousPlayModeBeforeRadio, PlayerPlayMode.shuffle);
+  });
 }
 
 List<PlayerTrack> _buildQueue() {
@@ -233,6 +452,14 @@ class _FakeAudioPlayerPort implements AudioPlayerPort {
     await _durationController.close();
     await _currentIndexController.close();
   }
+
+  void emitCompleted(bool value) {
+    _completedController.add(value);
+  }
+
+  void emitCurrentIndex(int? index) {
+    _currentIndexController.add(index);
+  }
 }
 
 class _FakeOnlineApiClient extends OnlineApiClient {
@@ -252,5 +479,23 @@ class _FakeOnlineApiClient extends OnlineApiClient {
       throw StateError('缺少 $songId 的测试响应');
     }
     return handler();
+  }
+}
+
+class _FakeRadioApiClient extends RadioApiClient {
+  _FakeRadioApiClient({required this.pages}) : super(Dio());
+
+  final Map<int, List<SongInfo>> pages;
+  final List<int> requestedPages = <int>[];
+
+  @override
+  Future<List<SongInfo>> fetchSongs({
+    required String id,
+    required String platform,
+    int pageIndex = 1,
+    int pageSize = 50,
+  }) async {
+    requestedPages.add(pageIndex);
+    return pages[pageIndex] ?? const <SongInfo>[];
   }
 }

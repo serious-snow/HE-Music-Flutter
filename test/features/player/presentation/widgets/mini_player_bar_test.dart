@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/app/config/app_config_controller.dart';
 import 'package:he_music_flutter/app/config/app_config_state.dart';
+import 'package:he_music_flutter/features/player/domain/entities/player_play_mode.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_playback_state.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
 import 'package:he_music_flutter/features/player/presentation/controllers/player_controller.dart';
@@ -85,13 +86,32 @@ void main() {
 
     expect(container.read(playerQueuePanelOpenProvider), isFalse);
   });
+
+  testWidgets('mini player hides queue entry in radio mode', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildMiniPlayerTestApp(
+        controllerFactory: _TestRadioMiniPlayerController.new,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byIcon(Icons.queue_music_rounded), findsNothing);
+  });
 }
 
-Widget _buildMiniPlayerTestApp() {
+Widget _buildMiniPlayerTestApp({
+  PlayerController Function()? controllerFactory,
+}) {
   return ProviderScope(
     overrides: <Override>[
       appConfigProvider.overrideWith(_TestAppConfigController.new),
-      playerControllerProvider.overrideWith(_TestMiniPlayerController.new),
+      playerControllerProvider.overrideWith(
+        controllerFactory ?? _TestMiniPlayerController.new,
+      ),
     ],
     child: const MaterialApp(home: DetailPageShell(child: SizedBox.expand())),
   );
@@ -125,6 +145,30 @@ class _TestMiniPlayerController extends PlayerController {
         ],
       ),
     ]);
+  }
+
+  @override
+  Future<void> initialize() async {}
+}
+
+class _TestRadioMiniPlayerController extends PlayerController {
+  @override
+  PlayerPlaybackState build() {
+    return PlayerPlaybackState.initial(const <PlayerTrack>[
+      PlayerTrack(
+        id: 'song-1',
+        title: '电台歌曲',
+        artist: '测试歌手',
+        album: '测试专辑',
+        platform: 'qq',
+      ),
+    ]).copyWith(
+      playMode: PlayerPlayMode.sequence,
+      isRadioMode: true,
+      currentRadioId: 'radio-1',
+      currentRadioPlatform: 'qq',
+      currentRadioPageIndex: 1,
+    );
   }
 
   @override

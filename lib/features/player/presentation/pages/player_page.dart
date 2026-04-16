@@ -1526,11 +1526,17 @@ class _PlayerControlSection extends ConsumerWidget {
     final playMode = ref.watch(
       playerControllerProvider.select((state) => state.playMode),
     );
+    final isRadioMode = ref.watch(
+      playerControllerProvider.select((state) => state.isRadioMode),
+    );
     return PlayerControlBar(
       config: config,
       compact: compactLayout,
       isPlaying: isPlaying,
       playMode: playMode,
+      showPlayModeButton: !isRadioMode,
+      playModeLocked: isRadioMode,
+      showQueueButton: !isRadioMode,
       onOpenQueue: onOpenQueue,
       onCyclePlayMode: controller.cyclePlayMode,
       onPrevious: controller.playPrevious,

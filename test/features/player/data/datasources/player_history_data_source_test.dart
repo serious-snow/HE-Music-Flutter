@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/features/player/data/datasources/player_history_data_source.dart';
+import 'package:he_music_flutter/features/player/domain/entities/player_play_mode.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -78,5 +79,30 @@ void main() {
 
     expect(await dataSource.getCount(), 0);
     expect(await dataSource.listHistory(), isEmpty);
+  });
+
+  test('appendTrack should persist radio context', () async {
+    const dataSource = PlayerHistoryDataSource();
+    await dataSource.appendTrack(
+      const PlayerTrack(
+        id: 'song-radio-1',
+        title: 'Radio Song',
+        artist: 'Artist 1',
+        url: 'https://example.com/radio.mp3',
+        platform: 'qq',
+      ),
+      isRadioMode: true,
+      currentRadioId: 'radio-1',
+      currentRadioPlatform: 'qq',
+      currentRadioPageIndex: 3,
+      previousPlayModeBeforeRadio: PlayerPlayMode.shuffle,
+    );
+
+    final list = await dataSource.listHistory();
+    expect(list.single.isRadioMode, isTrue);
+    expect(list.single.currentRadioId, 'radio-1');
+    expect(list.single.currentRadioPlatform, 'qq');
+    expect(list.single.currentRadioPageIndex, 3);
+    expect(list.single.previousPlayModeBeforeRadio, PlayerPlayMode.shuffle);
   });
 }

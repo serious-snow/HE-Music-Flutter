@@ -21,6 +21,7 @@ class PlayerQueueDataSource {
     String? currentRadioId,
     String? currentRadioPlatform,
     int? currentRadioPageIndex,
+    PlayerPlayMode? previousPlayModeBeforeRadio,
     PlayerQueueSource? source,
     PlayerQueueSnapshot? previousSnapshot,
   }) async {
@@ -38,6 +39,7 @@ class PlayerQueueDataSource {
       'current_radio_id': currentRadioId,
       'current_radio_platform': currentRadioPlatform,
       'current_radio_page_index': currentRadioPageIndex,
+      'previous_play_mode_before_radio': previousPlayModeBeforeRadio?.name,
       'queue': queue.map(_trackToMap).toList(growable: false),
       'source': source?.toMap(),
       'previous_snapshot':
@@ -81,6 +83,9 @@ class PlayerQueueDataSource {
         currentRadioId: _nullableString(raw['current_radio_id']),
         currentRadioPlatform: _nullableString(raw['current_radio_platform']),
         currentRadioPageIndex: _toInt(raw['current_radio_page_index']),
+        previousPlayModeBeforeRadio: _nullablePlayMode(
+          raw['previous_play_mode_before_radio'],
+        ),
       );
     } catch (_) {
       return null;
@@ -122,6 +127,8 @@ class PlayerQueueDataSource {
       'current_radio_id': snapshot.currentRadioId,
       'current_radio_platform': snapshot.currentRadioPlatform,
       'current_radio_page_index': snapshot.currentRadioPageIndex,
+      'previous_play_mode_before_radio':
+          snapshot.previousPlayModeBeforeRadio?.name,
       'queue': snapshot.queue.map(_trackToMap).toList(growable: false),
       'source': snapshot.source?.toMap(),
       'previous_snapshot': snapshot.previousSnapshot == null
@@ -206,6 +213,9 @@ class PlayerQueueDataSource {
       currentRadioId: _nullableString(raw['current_radio_id']),
       currentRadioPlatform: _nullableString(raw['current_radio_platform']),
       currentRadioPageIndex: _toInt(raw['current_radio_page_index']),
+      previousPlayModeBeforeRadio: _nullablePlayMode(
+        raw['previous_play_mode_before_radio'],
+      ),
     );
   }
 
@@ -274,5 +284,18 @@ class PlayerQueueDataSource {
       }
     }
     return PlayerPlayMode.sequence;
+  }
+
+  PlayerPlayMode? _nullablePlayMode(dynamic value) {
+    final normalized = '$value'.trim();
+    if (normalized.isEmpty || normalized == 'null') {
+      return null;
+    }
+    for (final mode in PlayerPlayMode.values) {
+      if (mode.name == normalized) {
+        return mode;
+      }
+    }
+    return null;
   }
 }

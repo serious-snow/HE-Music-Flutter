@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../domain/entities/player_play_mode.dart';
 import '../../domain/entities/player_history_item.dart';
 import '../../domain/entities/player_track.dart';
 
@@ -21,9 +22,23 @@ class PlayerHistoryDataSource {
     return list.length;
   }
 
-  Future<int> appendTrack(PlayerTrack track) async {
+  Future<int> appendTrack(
+    PlayerTrack track, {
+    bool isRadioMode = false,
+    String? currentRadioId,
+    String? currentRadioPlatform,
+    int? currentRadioPageIndex,
+    PlayerPlayMode? previousPlayModeBeforeRadio,
+  }) async {
     final list = await _readRawList();
-    final item = _toMap(track);
+    final item = _toMap(
+      track,
+      isRadioMode: isRadioMode,
+      currentRadioId: currentRadioId,
+      currentRadioPlatform: currentRadioPlatform,
+      currentRadioPageIndex: currentRadioPageIndex,
+      previousPlayModeBeforeRadio: previousPlayModeBeforeRadio,
+    );
     final next = _appendAndTrim(list, item);
     await _saveRawList(next);
     return next.length;
@@ -72,7 +87,14 @@ class PlayerHistoryDataSource {
     await prefs.setString(_historyStorageKey, payload);
   }
 
-  Map<String, dynamic> _toMap(PlayerTrack track) {
+  Map<String, dynamic> _toMap(
+    PlayerTrack track, {
+    required bool isRadioMode,
+    String? currentRadioId,
+    String? currentRadioPlatform,
+    int? currentRadioPageIndex,
+    PlayerPlayMode? previousPlayModeBeforeRadio,
+  }) {
     return <String, dynamic>{
       'id': track.id,
       'title': track.title,
@@ -82,6 +104,11 @@ class PlayerHistoryDataSource {
       'url': track.url,
       'platform': track.platform ?? '',
       'playedAt': DateTime.now().millisecondsSinceEpoch,
+      'is_radio_mode': isRadioMode,
+      'current_radio_id': currentRadioId,
+      'current_radio_platform': currentRadioPlatform,
+      'current_radio_page_index': currentRadioPageIndex,
+      'previous_play_mode_before_radio': previousPlayModeBeforeRadio?.name,
     };
   }
 
@@ -114,6 +141,13 @@ class PlayerHistoryDataSource {
       url: '${item['url'] ?? ''}',
       playedAt: _toInt(item['playedAt']),
       platform: _toOptionalText(item['platform']),
+      isRadioMode: item['is_radio_mode'] == true,
+      currentRadioId: _toOptionalText(item['current_radio_id']),
+      currentRadioPlatform: _toOptionalText(item['current_radio_platform']),
+      currentRadioPageIndex: _toOptionalInt(item['current_radio_page_index']),
+      previousPlayModeBeforeRadio: _toPlayMode(
+        item['previous_play_mode_before_radio'],
+      ),
     );
   }
 
@@ -133,5 +167,29 @@ class PlayerHistoryDataSource {
       return null;
     }
     return text;
+  }
+
+  int? _toOptionalInt(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    final parsed = int.tryParse('$value');
+    if (parsed == null || parsed <= 0) {
+      return null;
+    }
+    return parsed;
+  }
+
+  PlayerPlayMode? _toPlayMode(dynamic value) {
+    final normalized = '$value'.trim();
+    if (normalized.isEmpty || normalized == 'null') {
+      return null;
+    }
+    for (final mode in PlayerPlayMode.values) {
+      if (mode.name == normalized) {
+        return mode;
+      }
+    }
+    return null;
   }
 }

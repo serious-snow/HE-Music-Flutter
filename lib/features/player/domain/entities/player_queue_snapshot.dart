@@ -13,6 +13,7 @@ class PlayerQueueSnapshot {
     this.currentRadioId,
     this.currentRadioPlatform,
     this.currentRadioPageIndex,
+    this.previousPlayModeBeforeRadio,
   });
 
   final List<PlayerTrack> queue;
@@ -24,6 +25,7 @@ class PlayerQueueSnapshot {
   final String? currentRadioId;
   final String? currentRadioPlatform;
   final int? currentRadioPageIndex;
+  final PlayerPlayMode? previousPlayModeBeforeRadio;
 
   bool get isEmpty => queue.isEmpty;
 }

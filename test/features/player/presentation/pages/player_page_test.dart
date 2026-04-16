@@ -6,6 +6,7 @@ import 'package:he_music_flutter/app/config/app_config_controller.dart';
 import 'package:he_music_flutter/app/config/app_config_state.dart';
 import 'package:he_music_flutter/features/online/domain/entities/online_platform.dart';
 import 'package:he_music_flutter/features/online/presentation/providers/online_providers.dart';
+import 'package:he_music_flutter/features/player/domain/entities/player_play_mode.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_playback_state.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_quality_option.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
@@ -279,6 +280,34 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets('player page hides queue entry in radio mode', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _RadioTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byIcon(Icons.queue_music_rounded), findsNothing);
+  });
+
+  testWidgets('player page hides play mode toggle in radio mode', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _RadioTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byIcon(Icons.repeat_rounded), findsNothing);
+  });
 }
 
 Widget _buildPlayerTestApp({
@@ -364,6 +393,30 @@ class _LocalTrackPlayerController extends PlayerController {
         platform: 'local',
       ),
     ]);
+  }
+
+  @override
+  Future<void> initialize() async {}
+}
+
+class _RadioTrackPlayerController extends PlayerController {
+  @override
+  PlayerPlaybackState build() {
+    return PlayerPlaybackState.initial(const <PlayerTrack>[
+      PlayerTrack(
+        id: 'radio-song-1',
+        title: '电台歌曲',
+        artist: '电台歌手',
+        album: '电台专辑',
+        platform: 'qq',
+      ),
+    ]).copyWith(
+      playMode: PlayerPlayMode.sequence,
+      isRadioMode: true,
+      currentRadioId: 'radio-1',
+      currentRadioPlatform: 'qq',
+      currentRadioPageIndex: 1,
+    );
   }
 
   @override

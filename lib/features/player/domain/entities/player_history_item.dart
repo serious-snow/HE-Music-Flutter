@@ -1,3 +1,5 @@
+import 'player_play_mode.dart';
+
 class PlayerHistoryItem {
   const PlayerHistoryItem({
     required this.id,
@@ -8,6 +10,11 @@ class PlayerHistoryItem {
     required this.url,
     required this.playedAt,
     this.platform,
+    this.isRadioMode = false,
+    this.currentRadioId,
+    this.currentRadioPlatform,
+    this.currentRadioPageIndex,
+    this.previousPlayModeBeforeRadio,
   });
 
   final String id;
@@ -18,4 +25,9 @@ class PlayerHistoryItem {
   final String url;
   final int playedAt;
   final String? platform;
+  final bool isRadioMode;
+  final String? currentRadioId;
+  final String? currentRadioPlatform;
+  final int? currentRadioPageIndex;
+  final PlayerPlayMode? previousPlayModeBeforeRadio;
 }

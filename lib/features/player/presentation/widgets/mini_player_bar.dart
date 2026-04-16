@@ -48,6 +48,9 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar> {
     final playMode = ref.watch(
       playerControllerProvider.select((state) => state.playMode),
     );
+    final isRadioMode = ref.watch(
+      playerControllerProvider.select((state) => state.isRadioMode),
+    );
     final config = ref.watch(appConfigProvider);
     final controller = ref.read(playerControllerProvider.notifier);
     if (!hasQueue || track == null) {
@@ -103,12 +106,13 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar> {
                     ),
                     tooltip: AppI18n.t(config, 'player.full'),
                   ),
-                  IconButton(
-                    onPressed: () =>
-                        _openQueueSheet(context, useDesktopQueuePanel),
-                    icon: const Icon(Icons.queue_music_rounded),
-                    tooltip: AppI18n.t(config, 'player.queue'),
-                  ),
+                  if (!isRadioMode)
+                    IconButton(
+                      onPressed: () =>
+                          _openQueueSheet(context, useDesktopQueuePanel),
+                      icon: const Icon(Icons.queue_music_rounded),
+                      tooltip: AppI18n.t(config, 'player.queue'),
+                    ),
                   const SizedBox(width: 2),
                 ],
               ),

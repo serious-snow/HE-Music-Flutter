@@ -1057,8 +1057,9 @@ class _EntryTile extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               title,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w500,
               ),

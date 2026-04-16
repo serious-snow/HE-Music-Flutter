@@ -12,10 +12,15 @@ import '../../../../core/audio/audio_track.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/network_error_message.dart';
+import '../../../online/domain/entities/online_platform.dart';
+import '../../../../shared/models/he_music_models.dart';
+import '../../../../shared/utils/cover_resolver.dart';
 import '../../../online/presentation/providers/online_providers.dart';
+import '../../../radio/presentation/providers/radio_providers.dart';
 import '../../data/datasources/player_history_data_source.dart';
 import '../../data/datasources/player_progress_data_source.dart';
 import '../../data/datasources/player_queue_data_source.dart';
+import '../../domain/entities/player_history_item.dart';
 import '../../domain/entities/player_play_mode.dart';
 import '../../domain/entities/player_playback_state.dart';
 import '../../domain/entities/player_quality_option.dart';
@@ -49,8 +54,10 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
   StreamSubscription<int?>? _currentIndexSubscription;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
+  StreamSubscription<bool>? _completedSubscription;
 
   bool _initialized = false;
+  bool _isLoadingRadioNextPage = false;
   String? _lastHistoryTrackKey;
   DateTime? _lastProgressPersistAt;
   int _lastPersistedPositionMs = 0;
@@ -87,6 +94,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       playMode: PlayerPlayMode.sequence,
       currentAvailableQualities: <PlayerQualityOption>[],
       isRadioMode: false,
+      previousPlayModeBeforeRadio: null,
     );
   }
 
@@ -135,6 +143,10 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       availableQualities: availableQualities,
     );
     final previousSnapshot = _buildCurrentQueueSnapshot();
+    final nextPlayMode = _resolveNextPlayMode(isRadioMode: isRadioMode);
+    final nextPreviousPlayModeBeforeRadio = _resolvePreviousPlayModeBeforeRadio(
+      isRadioMode: isRadioMode,
+    );
     state = state.copyWith(
       queue: queue,
       currentIndex: startIndex,
@@ -142,6 +154,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       duration: Duration.zero,
       currentAvailableQualities: availableQualities,
       currentSelectedQualityName: selectedQualityName,
+      playMode: nextPlayMode,
       queueSource: queueSource,
       previousQueueSnapshot: previousSnapshot,
       isRadioMode: isRadioMode,
@@ -155,6 +168,8 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
           ? _normalizeRadioPageIndex(currentRadioPageIndex)
           : null,
       clearCurrentRadioPageIndex: !isRadioMode,
+      previousPlayModeBeforeRadio: nextPreviousPlayModeBeforeRadio,
+      clearPreviousPlayModeBeforeRadio: !isRadioMode,
       clearError: true,
     );
     _markFreshPositionPending();
@@ -212,6 +227,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     state = state.copyWith(
       queue: snapshot.queue,
       currentIndex: targetIndex,
+      playMode: snapshot.playMode,
       position: Duration.zero,
       duration: Duration.zero,
       currentAvailableQualities: availableQualities,
@@ -225,6 +241,9 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
       currentRadioPageIndex: snapshot.currentRadioPageIndex,
       clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
+      previousPlayModeBeforeRadio: snapshot.previousPlayModeBeforeRadio,
+      clearPreviousPlayModeBeforeRadio:
+          snapshot.previousPlayModeBeforeRadio == null,
       clearError: true,
     );
     _markFreshPositionPending();
@@ -345,6 +364,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       return;
     }
     final currentIndex = _safeCurrentIndex(queue.length);
+    if (state.isRadioMode && currentIndex == queue.length - 1) {
+      final appended = await _ensureRadioNextPageAppended();
+      if (appended && state.queue.length > currentIndex + 1) {
+        await playAt(currentIndex + 1);
+      }
+      return;
+    }
     final targetIndex = switch (state.playMode) {
       PlayerPlayMode.shuffle => _randomNextIndex(
         queue.length,
@@ -394,6 +420,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     final selectedQualityName = _resolveSelectedQualityName(
       availableQualities: availableQualities,
     );
+    final nextPlayMode = _resolveNextPlayMode(isRadioMode: false);
     state = state.copyWith(
       queue: nextQueue,
       currentIndex: targetIndex,
@@ -401,7 +428,9 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       duration: Duration.zero,
       currentAvailableQualities: availableQualities,
       currentSelectedQualityName: selectedQualityName,
+      playMode: nextPlayMode,
       clearQueueSource: true,
+      clearPreviousPlayModeBeforeRadio: true,
       clearError: true,
     );
     _markFreshPositionPending();
@@ -470,11 +499,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       state = state.copyWith(
         queue: nextQueue,
         currentIndex: nextCurrentIndex,
+        playMode: _resolveNextPlayMode(isRadioMode: false),
         isRadioMode: false,
         clearQueueSource: true,
         clearCurrentRadioId: true,
         clearCurrentRadioPlatform: true,
         clearCurrentRadioPageIndex: true,
+        clearPreviousPlayModeBeforeRadio: true,
         clearError: true,
       );
       await _execute(() async {
@@ -503,6 +534,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     final selectedQualityName = _resolveSelectedQualityName(
       availableQualities: availableQualities,
     );
+    final nextPlayMode = _resolveNextPlayMode(isRadioMode: false);
     state = state.copyWith(
       queue: nextQueue,
       currentIndex: targetIndex,
@@ -510,7 +542,9 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       duration: Duration.zero,
       currentAvailableQualities: availableQualities,
       currentSelectedQualityName: selectedQualityName,
+      playMode: nextPlayMode,
       clearQueueSource: true,
+      clearPreviousPlayModeBeforeRadio: true,
       clearError: true,
     );
     _markFreshPositionPending();
@@ -561,11 +595,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         duration: Duration.zero,
         currentAvailableQualities: const <PlayerQualityOption>[],
         isRadioMode: false,
+        playMode: _resolveNextPlayMode(isRadioMode: false),
         clearQueueSource: true,
         clearCurrentSelectedQuality: true,
         clearCurrentRadioId: true,
         clearCurrentRadioPlatform: true,
         clearCurrentRadioPageIndex: true,
+        clearPreviousPlayModeBeforeRadio: true,
         clearError: true,
       );
     });
@@ -601,11 +637,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       currentIndex: nextCurrentIndex < 0
           ? _defaultQueueIndex
           : nextCurrentIndex,
+      playMode: _resolveNextPlayMode(isRadioMode: false),
       isRadioMode: false,
       clearQueueSource: true,
       clearCurrentRadioId: true,
       clearCurrentRadioPlatform: true,
       clearCurrentRadioPageIndex: true,
+      clearPreviousPlayModeBeforeRadio: true,
       clearError: true,
     );
     await _execute(() async {
@@ -643,6 +681,9 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
 
   Future<void> cyclePlayMode() async {
     await _ensureInitialized();
+    if (state.isRadioMode) {
+      return;
+    }
     final nextMode = switch (state.playMode) {
       PlayerPlayMode.sequence => PlayerPlayMode.shuffle,
       PlayerPlayMode.shuffle => PlayerPlayMode.single,
@@ -653,6 +694,9 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
 
   Future<void> setPlayMode(PlayerPlayMode mode) async {
     await _ensureInitialized();
+    if (state.isRadioMode) {
+      return;
+    }
     state = state.copyWith(playMode: mode, clearError: true);
     await _execute(() => _applyPlayMode(mode));
     await _persistQueueState();
@@ -805,6 +849,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         _syncCurrentTrackDuration(normalized);
       }
     }, onError: _onStreamError);
+
+    _completedSubscription = _audioPlayer.completedStream.listen((completed) {
+      if (!completed) {
+        return;
+      }
+      unawaited(_handlePlaybackCompleted());
+    }, onError: _onStreamError);
   }
 
   void _onStreamError(Object error, StackTrace stackTrace) {
@@ -817,6 +868,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     _currentIndexSubscription?.cancel();
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
+    _completedSubscription?.cancel();
   }
 
   void _markFreshPositionPending() {
@@ -1337,19 +1389,22 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         return;
       }
       if (snapshot.queue.isEmpty) {
-      state = state.copyWith(
-        playMode: snapshot.playMode,
-        isRadioMode: snapshot.isRadioMode,
-        currentRadioId: snapshot.currentRadioId,
-        clearCurrentRadioId: snapshot.currentRadioId == null,
-        currentRadioPlatform: snapshot.currentRadioPlatform,
-        clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
-        currentRadioPageIndex: snapshot.currentRadioPageIndex,
-        clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
-        clearQueueSource: true,
-        previousQueueSnapshot: snapshot.previousSnapshot,
-        clearError: true,
-      );
+        state = state.copyWith(
+          playMode: snapshot.playMode,
+          isRadioMode: snapshot.isRadioMode,
+          currentRadioId: snapshot.currentRadioId,
+          clearCurrentRadioId: snapshot.currentRadioId == null,
+          currentRadioPlatform: snapshot.currentRadioPlatform,
+          clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
+          currentRadioPageIndex: snapshot.currentRadioPageIndex,
+          clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
+          previousPlayModeBeforeRadio: snapshot.previousPlayModeBeforeRadio,
+          clearPreviousPlayModeBeforeRadio:
+              snapshot.previousPlayModeBeforeRadio == null,
+          clearQueueSource: true,
+          previousQueueSnapshot: snapshot.previousSnapshot,
+          clearError: true,
+        );
         await _applyPlayMode(snapshot.playMode);
         return;
       }
@@ -1375,6 +1430,9 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
         currentRadioPageIndex: snapshot.currentRadioPageIndex,
         clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
+        previousPlayModeBeforeRadio: snapshot.previousPlayModeBeforeRadio,
+        clearPreviousPlayModeBeforeRadio:
+            snapshot.previousPlayModeBeforeRadio == null,
         clearError: true,
       );
       await _applyPlayMode(snapshot.playMode);
@@ -1416,6 +1474,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       currentRadioId: state.currentRadioId,
       currentRadioPlatform: state.currentRadioPlatform,
       currentRadioPageIndex: state.currentRadioPageIndex,
+      previousPlayModeBeforeRadio: state.previousPlayModeBeforeRadio,
       source: state.queueSource,
       previousSnapshot: previousSnapshot,
     );
@@ -1431,7 +1490,14 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       return;
     }
     try {
-      final count = await _historyDataSource.appendTrack(track);
+      final count = await _historyDataSource.appendTrack(
+        track,
+        isRadioMode: state.isRadioMode,
+        currentRadioId: state.currentRadioId,
+        currentRadioPlatform: state.currentRadioPlatform,
+        currentRadioPageIndex: state.currentRadioPageIndex,
+        previousPlayModeBeforeRadio: state.previousPlayModeBeforeRadio,
+      );
       _lastHistoryTrackKey = historyKey;
       state = state.copyWith(historyCount: count, clearError: true);
     } catch (error) {
@@ -1508,6 +1574,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       currentRadioId: state.currentRadioId,
       currentRadioPlatform: state.currentRadioPlatform,
       currentRadioPageIndex: state.currentRadioPageIndex,
+      previousPlayModeBeforeRadio: state.previousPlayModeBeforeRadio,
     );
   }
 
@@ -1611,11 +1678,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     state = state.copyWith(
       queue: nextQueue,
       currentIndex: currentIndex,
+      playMode: _resolveNextPlayMode(isRadioMode: false),
       isRadioMode: false,
       clearQueueSource: true,
       clearCurrentRadioId: true,
       clearCurrentRadioPlatform: true,
       clearCurrentRadioPageIndex: true,
+      clearPreviousPlayModeBeforeRadio: true,
       clearError: true,
     );
     await _execute(() async {
@@ -1627,6 +1696,197 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       await _applyPlayMode(state.playMode);
     });
     await _persistQueueState();
+  }
+
+  Future<void> playHistoryItem(PlayerHistoryItem item) async {
+    await _ensureInitialized();
+    if (!item.isRadioMode) {
+      await insertNextAndPlay(_historyItemToTrack(item));
+      return;
+    }
+    final radioId = _normalizeRadioValue(item.currentRadioId);
+    final radioPlatform = _normalizeRadioValue(item.currentRadioPlatform);
+    final radioPageIndex = _normalizeRadioPageIndex(item.currentRadioPageIndex);
+    if (radioId == null || radioPlatform == null || radioPageIndex == null) {
+      await insertNextAndPlay(_historyItemToTrack(item));
+      return;
+    }
+    final songs = await ref
+        .read(radioApiClientProvider)
+        .fetchSongs(
+          id: radioId,
+          platform: radioPlatform,
+          pageIndex: radioPageIndex,
+        );
+    if (songs.isEmpty) {
+      await insertNextAndPlay(_historyItemToTrack(item));
+      return;
+    }
+    final tracks = songs.map(_buildRadioTrack).toList(growable: false);
+    final targetTrack = _historyItemToTrack(item);
+    var startIndex = tracks.indexWhere(
+      (track) => _trackKey(track) == _trackKey(targetTrack),
+    );
+    if (startIndex < 0) {
+      startIndex = 0;
+    }
+    await replaceQueue(
+      tracks,
+      startIndex: startIndex,
+      isRadioMode: true,
+      currentRadioId: radioId,
+      currentRadioPlatform: radioPlatform,
+      currentRadioPageIndex: radioPageIndex,
+    );
+  }
+
+  Future<void> _handlePlaybackCompleted() async {
+    if (!state.isRadioMode) {
+      return;
+    }
+    final queue = state.queue;
+    if (queue.isEmpty) {
+      return;
+    }
+    final currentIndex = _safeCurrentIndex(queue.length);
+    if (currentIndex != queue.length - 1) {
+      return;
+    }
+    final appended = await _ensureRadioNextPageAppended();
+    if (appended && state.queue.length > currentIndex + 1) {
+      await playAt(currentIndex + 1);
+    }
+  }
+
+  Future<bool> _ensureRadioNextPageAppended() async {
+    if (_isLoadingRadioNextPage) {
+      return false;
+    }
+    final radioId = _normalizeRadioValue(state.currentRadioId);
+    final radioPlatform = _normalizeRadioValue(state.currentRadioPlatform);
+    final currentPageIndex = _normalizeRadioPageIndex(
+      state.currentRadioPageIndex,
+    );
+    if (!state.isRadioMode ||
+        radioId == null ||
+        radioPlatform == null ||
+        currentPageIndex == null) {
+      return false;
+    }
+    _isLoadingRadioNextPage = true;
+    try {
+      final nextPageIndex = currentPageIndex + 1;
+      final songs = await ref
+          .read(radioApiClientProvider)
+          .fetchSongs(
+            id: radioId,
+            platform: radioPlatform,
+            pageIndex: nextPageIndex,
+          );
+      if (songs.isEmpty) {
+        return false;
+      }
+      final currentQueue = state.queue;
+      final existingKeys = currentQueue.map(_trackKey).toSet();
+      final appendedTracks = songs
+          .map(_buildRadioTrack)
+          .where((track) => !existingKeys.contains(_trackKey(track)))
+          .toList(growable: false);
+      if (appendedTracks.isEmpty) {
+        state = state.copyWith(
+          currentRadioPageIndex: nextPageIndex,
+          clearError: true,
+        );
+        await _persistQueueState();
+        return false;
+      }
+      state = state.copyWith(
+        queue: <PlayerTrack>[...currentQueue, ...appendedTracks],
+        currentRadioPageIndex: nextPageIndex,
+        clearError: true,
+      );
+      await _execute(() async {
+        await _audioPlayer.setQueue(
+          state.queue.map(_toAudioTrack).toList(growable: false),
+          initialIndex: _safeCurrentIndex(state.queue.length),
+          forceReloadCurrent: false,
+        );
+        await _applyPlayMode(state.playMode);
+      });
+      await _persistQueueState();
+      return true;
+    } finally {
+      _isLoadingRadioNextPage = false;
+    }
+  }
+
+  PlayerPlayMode _resolveNextPlayMode({required bool isRadioMode}) {
+    if (isRadioMode) {
+      return PlayerPlayMode.sequence;
+    }
+    if (state.isRadioMode) {
+      return state.previousPlayModeBeforeRadio ?? state.playMode;
+    }
+    return state.playMode;
+  }
+
+  PlayerPlayMode? _resolvePreviousPlayModeBeforeRadio({
+    required bool isRadioMode,
+  }) {
+    if (!isRadioMode) {
+      return null;
+    }
+    if (state.isRadioMode) {
+      return state.previousPlayModeBeforeRadio;
+    }
+    return state.playMode;
+  }
+
+  PlayerTrack _historyItemToTrack(PlayerHistoryItem item) {
+    final platform = item.platform?.trim() ?? '';
+    return PlayerTrack(
+      id: item.id,
+      title: item.title.isEmpty ? item.id : item.title,
+      artist: item.artist,
+      album: item.album.isEmpty ? null : item.album,
+      url: platform == 'local' ? item.url : '',
+      artworkUrl: item.artworkUrl.isEmpty ? null : item.artworkUrl,
+      platform: platform.isEmpty ? null : platform,
+    );
+  }
+
+  PlayerTrack _buildRadioTrack(SongInfo song) {
+    final platformId = song.platform.trim();
+    final config = ref.read(appConfigProvider);
+    final platforms =
+        ref.read(onlinePlatformsProvider).valueOrNull ??
+        const <OnlinePlatform>[];
+    final coverUrl = resolveSongCoverUrl(
+      baseUrl: config.apiBaseUrl,
+      token: config.authToken ?? '',
+      platforms: platforms,
+      platformId: platformId,
+      songId: song.id,
+      cover: song.cover,
+      size: 300,
+    );
+    final localPath = song.path?.trim();
+    return PlayerTrack(
+      id: song.id,
+      title: song.title,
+      path: localPath == null || localPath.isEmpty ? null : localPath,
+      duration: song.duration > 0
+          ? Duration(milliseconds: song.duration)
+          : null,
+      links: song.links,
+      artist: song.artist,
+      albumId: song.album?.id,
+      album: song.album?.name,
+      artists: song.artists,
+      mvId: song.mvId,
+      artworkUrl: coverUrl.isEmpty ? null : coverUrl,
+      platform: platformId,
+    );
   }
 
   int _randomNextIndex(int queueLength, {required int excluding}) {

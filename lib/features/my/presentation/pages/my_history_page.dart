@@ -80,21 +80,9 @@ class MyHistoryPage extends ConsumerWidget {
     if (startIndex < 0 || startIndex >= items.length) {
       return;
     }
-    final track = _toTrack(items[startIndex]);
-    await ref.read(playerControllerProvider.notifier).insertNextAndPlay(track);
-  }
-
-  PlayerTrack _toTrack(PlayerHistoryItem item) {
-    final platform = item.platform?.trim() ?? '';
-    return PlayerTrack(
-      id: item.id,
-      title: item.title.isEmpty ? item.id : item.title,
-      artist: item.artist,
-      album: item.album.isEmpty ? null : item.album,
-      url: platform == 'local' ? item.url : '',
-      artworkUrl: item.artworkUrl.isEmpty ? null : item.artworkUrl,
-      platform: platform.isEmpty ? null : platform,
-    );
+    await ref
+        .read(playerControllerProvider.notifier)
+        .playHistoryItem(items[startIndex]);
   }
 }
 
@@ -286,9 +274,7 @@ class _HistoryList extends ConsumerWidget {
     required WidgetRef ref,
     required PlayerHistoryItem item,
   }) async {
-    await ref
-        .read(playerControllerProvider.notifier)
-        .insertNextAndPlay(_toTrack(item));
+    await ref.read(playerControllerProvider.notifier).playHistoryItem(item);
   }
 
   Future<void> _insertNext({

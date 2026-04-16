@@ -13,6 +13,7 @@ class DesktopPageShell extends StatelessWidget {
     this.mobileBottomBar,
     this.maxContentWidth = LayoutTokens.desktopContentMaxWidth,
     this.contentPadding = const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    this.mobileContentPadding = EdgeInsets.zero,
     super.key,
   });
 
@@ -25,6 +26,7 @@ class DesktopPageShell extends StatelessWidget {
   final Widget? mobileBottomBar;
   final double maxContentWidth;
   final EdgeInsets contentPadding;
+  final EdgeInsets mobileContentPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +64,9 @@ class DesktopPageShell extends StatelessWidget {
                                       : double.infinity,
                                 ),
                                 child: Padding(
-                                  padding: contentPadding,
+                                  padding: useDesktopLayout
+                                      ? contentPadding
+                                      : mobileContentPadding,
                                   child: child,
                                 ),
                               ),

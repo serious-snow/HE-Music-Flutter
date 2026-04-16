@@ -27,6 +27,7 @@ class PlayerPlaybackState {
     this.currentRadioId,
     this.currentRadioPlatform,
     this.currentRadioPageIndex,
+    this.previousPlayModeBeforeRadio,
     this.errorMessage,
   });
 
@@ -48,6 +49,7 @@ class PlayerPlaybackState {
   final String? currentRadioId;
   final String? currentRadioPlatform;
   final int? currentRadioPageIndex;
+  final PlayerPlayMode? previousPlayModeBeforeRadio;
   final String? errorMessage;
 
   PlayerTrack? get currentTrack {
@@ -82,6 +84,8 @@ class PlayerPlaybackState {
     bool clearCurrentRadioPlatform = false,
     int? currentRadioPageIndex,
     bool clearCurrentRadioPageIndex = false,
+    PlayerPlayMode? previousPlayModeBeforeRadio,
+    bool clearPreviousPlayModeBeforeRadio = false,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -115,6 +119,9 @@ class PlayerPlaybackState {
       currentRadioPageIndex: clearCurrentRadioPageIndex
           ? null
           : currentRadioPageIndex ?? this.currentRadioPageIndex,
+      previousPlayModeBeforeRadio: clearPreviousPlayModeBeforeRadio
+          ? null
+          : previousPlayModeBeforeRadio ?? this.previousPlayModeBeforeRadio,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
@@ -135,6 +142,7 @@ class PlayerPlaybackState {
       isRadioMode: false,
       queueSource: null,
       previousQueueSnapshot: null,
+      previousPlayModeBeforeRadio: null,
     );
   }
 }

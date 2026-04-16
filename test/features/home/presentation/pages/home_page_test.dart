@@ -10,6 +10,7 @@ import 'package:he_music_flutter/features/home/presentation/providers/home_disco
 import 'package:he_music_flutter/features/my/domain/entities/my_favorite_item.dart';
 import 'package:he_music_flutter/features/my/domain/entities/my_overview_state.dart';
 import 'package:he_music_flutter/features/my/presentation/controllers/my_overview_controller.dart';
+import 'package:he_music_flutter/features/my/presentation/pages/my_page.dart';
 import 'package:he_music_flutter/features/my/presentation/providers/my_overview_providers.dart';
 import 'package:he_music_flutter/features/my/presentation/providers/my_playlist_shelf_providers.dart';
 import 'package:he_music_flutter/features/online/domain/entities/online_platform.dart';
@@ -20,18 +21,67 @@ import 'package:he_music_flutter/features/player/presentation/controllers/player
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
 
 void main() {
-  testWidgets('home page switches to navigation rail at queue desktop breakpoint', (
+  testWidgets('home page uses page gutter only on mobile home tab', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(720, 900));
+    await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(_buildTestApp());
     await tester.pump();
 
-    expect(find.byType(NavigationRail), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    final titleTopLeft = tester.getTopLeft(find.text('现在想听什么'));
+
+    expect(titleTopLeft.dx, 12);
   });
+
+  testWidgets('home page uses page gutter only on mobile my tab', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_buildTestApp());
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.account_circle_outlined));
+    await tester.pumpAndSettle();
+
+    final listViewTopLeft = tester.getTopLeft(
+      find.descendant(of: find.byType(MyPage), matching: find.byType(ListView)),
+    );
+
+    expect(listViewTopLeft.dx, 0);
+  });
+
+  testWidgets('home page quick entries allow multiline english labels', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_buildTestApp());
+    await tester.pump();
+
+    final playlistLabel = tester.widget<Text>(find.text('Playlist'));
+
+    expect(playlistLabel.maxLines, 2);
+    expect(playlistLabel.textAlign, TextAlign.center);
+  });
+
+  testWidgets(
+    'home page switches to navigation rail at queue desktop breakpoint',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(720, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(_buildTestApp());
+      await tester.pump();
+
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+    },
+  );
 
   testWidgets('home page shows navigation rail on desktop layout', (
     tester,
