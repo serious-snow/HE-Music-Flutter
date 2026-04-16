@@ -12,12 +12,14 @@ class LyricPanel extends ConsumerStatefulWidget {
     required this.emptyText,
     this.compact = false,
     this.onSeek,
+    this.activeHighlightColor,
     super.key,
   });
 
   final String emptyText;
   final bool compact;
   final ValueChanged<Duration>? onSeek;
+  final Color? activeHighlightColor;
 
   @override
   ConsumerState<LyricPanel> createState() => _LyricPanelState();
@@ -109,7 +111,9 @@ class _LyricPanelState extends ConsumerState<LyricPanel> {
       lineGap: 16,
       translationLineGap: 4,
       translationActiveColor: Colors.white,
-      activeHighlightColor: Theme.of(context).colorScheme.inversePrimary,
+      activeHighlightColor:
+          widget.activeHighlightColor ??
+          Theme.of(context).colorScheme.inversePrimary,
       // activeHighlightGradient: const LinearGradient(
       //   colors: <Color>[Color(0xFF3BB2B8), Color(0xFF42E695)],
       // ),

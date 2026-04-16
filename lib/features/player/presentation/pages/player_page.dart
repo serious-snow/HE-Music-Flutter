@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 import '../../../../app/app_message_service.dart';
 import '../../../../app/config/app_config_controller.dart';
@@ -156,6 +157,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                   onSeek: (position) {
                     controller.seek(position);
                   },
+                  artworkUrl: track?.artworkUrl,
+                  artworkBytes: track?.artworkBytes,
                 );
                 return Stack(
                   children: <Widget>[
@@ -1355,18 +1358,114 @@ class _PlayerCoverHero extends StatelessWidget {
   }
 }
 
-class _PlayerLyricPage extends StatelessWidget {
-  const _PlayerLyricPage({required this.emptyText, required this.onSeek});
+Color? _pickHighlightColor(PaletteGenerator palette) {
+  final candidates = <PaletteColor?>[
+    palette.lightVibrantColor,
+    palette.vibrantColor,
+    palette.dominantColor,
+    palette.lightMutedColor,
+    palette.mutedColor,
+  ];
+  for (final candidate in candidates) {
+    final color = candidate?.color;
+    if (color == null) {
+      continue;
+    }
+    final hsl = HSLColor.fromColor(color);
+    if (hsl.lightness < 0.40 || hsl.saturation < 0.24) {
+      continue;
+    }
+    return hsl
+        .withLightness(math.max(hsl.lightness, 0.72))
+        .withSaturation(math.max(hsl.saturation, 0.56))
+        .toColor();
+  }
+  final fallback = palette.dominantColor?.color;
+  if (fallback == null) {
+    return null;
+  }
+  final hsl = HSLColor.fromColor(fallback);
+  return hsl
+      .withLightness(math.max(hsl.lightness, 0.70))
+      .withSaturation(math.max(hsl.saturation, 0.46))
+      .toColor();
+}
+
+class _PlayerLyricPage extends StatefulWidget {
+  const _PlayerLyricPage({
+    required this.emptyText,
+    required this.onSeek,
+    this.artworkUrl,
+    this.artworkBytes,
+  });
 
   final String emptyText;
   final ValueChanged<Duration> onSeek;
+  final String? artworkUrl;
+  final Uint8List? artworkBytes;
+
+  @override
+  State<_PlayerLyricPage> createState() => _PlayerLyricPageState();
+}
+
+class _PlayerLyricPageState extends State<_PlayerLyricPage> {
+  Future<Color?>? _highlightColorFuture;
+  String? _lastArtworkUrl;
+  int? _lastArtworkByteLength;
+
+  @override
+  void initState() {
+    super.initState();
+    _highlightColorFuture = _loadHighlightColor();
+    _lastArtworkUrl = widget.artworkUrl;
+    _lastArtworkByteLength = widget.artworkBytes?.length;
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlayerLyricPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextUrl = widget.artworkUrl;
+    final nextByteLength = widget.artworkBytes?.length;
+    if (_lastArtworkUrl == nextUrl &&
+        _lastArtworkByteLength == nextByteLength) {
+      return;
+    }
+    _lastArtworkUrl = nextUrl;
+    _lastArtworkByteLength = nextByteLength;
+    _highlightColorFuture = _loadHighlightColor();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
-      child: LyricPanel(emptyText: emptyText, onSeek: onSeek),
+      child: FutureBuilder<Color?>(
+        future: _highlightColorFuture,
+        builder: (context, snapshot) {
+          return LyricPanel(
+            emptyText: widget.emptyText,
+            onSeek: widget.onSeek,
+            activeHighlightColor: snapshot.data,
+          );
+        },
+      ),
     );
+  }
+
+  Future<Color?> _loadHighlightColor() async {
+    final imageProvider = _artworkProvider(
+      widget.artworkUrl,
+      widget.artworkBytes,
+    );
+    if (imageProvider == null) {
+      return null;
+    }
+    final palette = await PaletteGenerator.fromImageProvider(
+      imageProvider,
+      size: const Size(112, 112),
+      maximumColorCount: 12,
+    );
+    return _pickHighlightColor(palette);
   }
 }
 
