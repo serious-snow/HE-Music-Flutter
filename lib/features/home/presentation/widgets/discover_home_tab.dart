@@ -55,9 +55,14 @@ const _entries = <_DiscoverEntry>[
     icon: Icons.ondemand_video_rounded,
     titleKey: 'home.entry.video',
   ),
+  _DiscoverEntry(
+    type: _DiscoverEntryType.radio,
+    icon: Icons.radio_rounded,
+    titleKey: 'home.entry.radio',
+  ),
 ];
 
-enum _DiscoverEntryType { ranking, playlist, artist, video }
+enum _DiscoverEntryType { ranking, playlist, artist, video, radio }
 
 class DiscoverHomeTab extends ConsumerWidget {
   const DiscoverHomeTab({super.key});
@@ -946,6 +951,10 @@ class DiscoverHomeTab extends ConsumerWidget {
       ),
       _DiscoverEntryType.video => Uri(
         path: AppRoutes.videoPlaza,
+        queryParameters: <String, String>{'platform': platformId},
+      ),
+      _DiscoverEntryType.radio => Uri(
+        path: AppRoutes.radioPlaza,
         queryParameters: <String, String>{'platform': platformId},
       ),
     };

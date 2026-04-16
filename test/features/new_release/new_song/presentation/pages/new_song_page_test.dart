@@ -17,6 +17,7 @@ import 'package:he_music_flutter/features/online/presentation/controllers/online
 import 'package:he_music_flutter/features/online/presentation/providers/online_providers.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_playback_state.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_quality_option.dart';
+import 'package:he_music_flutter/features/player/domain/entities/player_queue_source.dart';
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
 import 'package:he_music_flutter/features/player/presentation/controllers/player_controller.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
@@ -212,7 +213,11 @@ class _TestPlayerController extends PlayerController {
     List<PlayerTrack> queue, {
     int startIndex = 0,
     bool autoplay = true,
-    queueSource,
+    PlayerQueueSource? queueSource,
+    bool isRadioMode = false,
+    String? currentRadioId,
+    String? currentRadioPlatform,
+    int? currentRadioPageIndex,
   }) async {
     lastReplacedQueue = List<PlayerTrack>.from(queue);
     state = state.copyWith(

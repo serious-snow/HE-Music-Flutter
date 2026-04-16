@@ -17,6 +17,10 @@ class PlayerQueueDataSource {
     required List<PlayerTrack> queue,
     required int currentIndex,
     required PlayerPlayMode playMode,
+    required bool isRadioMode,
+    String? currentRadioId,
+    String? currentRadioPlatform,
+    int? currentRadioPageIndex,
     PlayerQueueSource? source,
     PlayerQueueSnapshot? previousSnapshot,
   }) async {
@@ -30,6 +34,10 @@ class PlayerQueueDataSource {
     final payload = <String, dynamic>{
       'current_index': currentIndex,
       'play_mode': playMode.name,
+      'is_radio_mode': isRadioMode,
+      'current_radio_id': currentRadioId,
+      'current_radio_platform': currentRadioPlatform,
+      'current_radio_page_index': currentRadioPageIndex,
       'queue': queue.map(_trackToMap).toList(growable: false),
       'source': source?.toMap(),
       'previous_snapshot':
@@ -67,8 +75,12 @@ class PlayerQueueDataSource {
             ? 0
             : currentIndex.clamp(0, queue.length - 1).toInt(),
         playMode: playMode,
+        isRadioMode: raw['is_radio_mode'] == true,
         source: _sourceFromValue(raw['source']),
         previousSnapshot: previousSnapshot,
+        currentRadioId: _nullableString(raw['current_radio_id']),
+        currentRadioPlatform: _nullableString(raw['current_radio_platform']),
+        currentRadioPageIndex: _toInt(raw['current_radio_page_index']),
       );
     } catch (_) {
       return null;
@@ -106,8 +118,15 @@ class PlayerQueueDataSource {
     return <String, dynamic>{
       'current_index': snapshot.currentIndex,
       'play_mode': snapshot.playMode.name,
+      'is_radio_mode': snapshot.isRadioMode,
+      'current_radio_id': snapshot.currentRadioId,
+      'current_radio_platform': snapshot.currentRadioPlatform,
+      'current_radio_page_index': snapshot.currentRadioPageIndex,
       'queue': snapshot.queue.map(_trackToMap).toList(growable: false),
       'source': snapshot.source?.toMap(),
+      'previous_snapshot': snapshot.previousSnapshot == null
+          ? null
+          : _snapshotToMap(snapshot.previousSnapshot!),
     };
   }
 
@@ -181,8 +200,12 @@ class PlayerQueueDataSource {
       queue: queue,
       currentIndex: currentIndex.clamp(0, queue.length - 1).toInt(),
       playMode: playMode,
+      isRadioMode: raw['is_radio_mode'] == true,
       source: _sourceFromValue(raw['source']),
       previousSnapshot: previousSnapshotFromValue(raw['previous_snapshot']),
+      currentRadioId: _nullableString(raw['current_radio_id']),
+      currentRadioPlatform: _nullableString(raw['current_radio_platform']),
+      currentRadioPageIndex: _toInt(raw['current_radio_page_index']),
     );
   }
 

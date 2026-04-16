@@ -15,6 +15,8 @@ class MediaGridCard extends StatelessWidget {
     required this.coverUrl,
     this.caption,
     this.playCount,
+    this.selected = false,
+    this.showCenterPlayIcon = false,
     required this.onTap,
     super.key,
   });
@@ -25,6 +27,8 @@ class MediaGridCard extends StatelessWidget {
   final String coverUrl;
   final String? caption;
   final String? playCount;
+  final bool selected;
+  final bool showCenterPlayIcon;
   final VoidCallback onTap;
 
   @override
@@ -33,101 +37,135 @@ class MediaGridCard extends StatelessWidget {
     final locale = Localizations.localeOf(context);
     final showSubtitle = subtitle.trim().isNotEmpty;
     final showCaption = (caption ?? '').trim().isNotEmpty;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_mediaGridCardRadius + 2),
-        child: Padding(
-          padding: const EdgeInsets.all(2),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  children: <Widget>[
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          _mediaGridCardRadius,
+    final selectedBackground = theme.colorScheme.primaryContainer.withValues(
+      alpha: 0.3,
+    );
+    final selectedBorder = theme.colorScheme.primary.withValues(alpha: 0.4);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: selected ? selectedBackground : Colors.transparent,
+        borderRadius: BorderRadius.circular(_mediaGridCardRadius + 6),
+        border: selected
+            ? Border.all(color: selectedBorder)
+            : Border.all(color: Colors.transparent),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_mediaGridCardRadius + 6),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    children: <Widget>[
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            _mediaGridCardRadius,
+                          ),
+                          child: _MediaGridCover(url: coverUrl, kind: kind),
                         ),
-                        child: _MediaGridCover(url: coverUrl, kind: kind),
                       ),
-                    ),
-                    if ((playCount ?? '').trim().isNotEmpty)
-                      Positioned(
-                        right: 10,
-                        bottom: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.42),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              const Icon(
-                                Icons.play_arrow_rounded,
-                                size: 13,
+                      if (showCenterPlayIcon)
+                        Positioned.fill(
+                          child: Center(
+                            child: Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.graphic_eq_rounded,
                                 color: Colors.white,
+                                size: 22,
                               ),
-                              const SizedBox(width: 2),
-                              Text(
-                                formatCompactPlayCount(playCount!, locale),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: _mediaGridOverlayFontSize,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  height: 1.2,
-                ),
-              ),
-              if (showSubtitle) ...<Widget>[
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.1,
+                      if ((playCount ?? '').trim().isNotEmpty)
+                        Positioned(
+                          right: 10,
+                          bottom: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.42),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                const Icon(
+                                  Icons.play_arrow_rounded,
+                                  size: 13,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  formatCompactPlayCount(playCount!, locale),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: _mediaGridOverlayFontSize,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              ],
-              if (showCaption) ...<Widget>[
-                const SizedBox(height: 3),
+                const SizedBox(height: 6),
                 Text(
-                  caption!,
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                    height: 1.1,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    height: 1.2,
+                    color: selected ? theme.colorScheme.primary : null,
                   ),
                 ),
+                if (showSubtitle) ...<Widget>[
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+                if (showCaption) ...<Widget>[
+                  const SizedBox(height: 3),
+                  Text(
+                    caption!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

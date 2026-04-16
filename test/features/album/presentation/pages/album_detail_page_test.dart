@@ -227,6 +227,10 @@ class _TestPlayerController extends PlayerController {
     int startIndex = 0,
     bool autoplay = true,
     PlayerQueueSource? queueSource,
+    bool isRadioMode = false,
+    String? currentRadioId,
+    String? currentRadioPlatform,
+    int? currentRadioPageIndex,
   }) async {
     replaceQueueCallCount += 1;
     lastReplacedQueue = List<PlayerTrack>.from(queue);

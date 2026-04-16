@@ -182,6 +182,56 @@ class SongInfo {
   }
 }
 
+class RadioInfo {
+  const RadioInfo({
+    required this.name,
+    required this.id,
+    required this.cover,
+    required this.platform,
+  });
+
+  final String name;
+  final String id;
+  final String cover;
+  final String platform;
+
+  factory RadioInfo.fromMap(
+    Map<String, dynamic> raw, {
+    String fallbackPlatform = '',
+  }) {
+    return RadioInfo(
+      name: _string(raw['name']),
+      id: _string(raw['id']),
+      cover: _cover(raw),
+      platform: _platform(raw, fallbackPlatform),
+    );
+  }
+}
+
+class RadioGroupInfo {
+  const RadioGroupInfo({
+    required this.name,
+    required this.radios,
+    required this.platform,
+  });
+
+  final String name;
+  final List<RadioInfo> radios;
+  final String platform;
+
+  factory RadioGroupInfo.fromMap(
+    Map<String, dynamic> raw, {
+    String fallbackPlatform = '',
+  }) {
+    final platform = _platform(raw, fallbackPlatform);
+    return RadioGroupInfo(
+      name: _string(raw['name']),
+      radios: _radios(raw['radios'], platform),
+      platform: platform,
+    );
+  }
+}
+
 class ArtistInfo {
   const ArtistInfo({
     required this.id,
@@ -549,6 +599,32 @@ List<CategoryInfo> _categories(dynamic value) {
         return CategoryInfo(name: name, id: '');
       })
       .where((item) => item.name.isNotEmpty)
+      .toList(growable: false);
+}
+
+List<RadioInfo> _radios(dynamic value, String fallbackPlatform) {
+  if (value is! List) {
+    return const <RadioInfo>[];
+  }
+  return value
+      .map((item) {
+        if (item is Map<String, dynamic>) {
+          return RadioInfo.fromMap(item, fallbackPlatform: fallbackPlatform);
+        }
+        if (item is Map) {
+          return RadioInfo.fromMap(
+            item.map((key, entry) => MapEntry('$key', entry)),
+            fallbackPlatform: fallbackPlatform,
+          );
+        }
+        return RadioInfo(
+          name: '',
+          id: '',
+          cover: '',
+          platform: fallbackPlatform,
+        );
+      })
+      .where((item) => item.id.isNotEmpty && item.name.isNotEmpty)
       .toList(growable: false);
 }
 

@@ -27,6 +27,7 @@ import '../../features/playlist/presentation/pages/playlist_plaza_page.dart';
 import '../../features/player/presentation/pages/player_page.dart';
 import '../../features/ranking/presentation/pages/ranking_detail_page.dart';
 import '../../features/ranking/presentation/pages/ranking_list_page.dart';
+import '../../features/radio/presentation/pages/radio_plaza_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/settings/presentation/pages/about_page.dart';
 import '../../features/video/presentation/pages/video_detail_page.dart';
@@ -199,6 +200,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.videoPlaza,
         builder: (context, state) => VideoPlazaPage(
+          initialPlatform: _readOptionalQuery(state, 'platform'),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.radioPlaza,
+        builder: (context, state) => RadioPlazaPage(
           initialPlatform: _readOptionalQuery(state, 'platform'),
         ),
       ),

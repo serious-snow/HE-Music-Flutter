@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
 import 'app_message_service.dart';
+import 'app_scroll_behavior.dart';
 import 'config/app_config_controller.dart';
 import 'config/app_config_state.dart';
 import 'config/app_theme_mode.dart';
@@ -31,6 +32,7 @@ class HeMusicApp extends ConsumerWidget {
       title: AppI18n.t(appConfig, 'app.title'),
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootScaffoldMessengerKey,
+      scrollBehavior: const AppScrollBehavior(),
       themeMode: _toThemeMode(appConfig.themeMode),
       theme: AppTheme.light(appConfig.themeAccent),
       darkTheme: AppTheme.dark(appConfig.themeAccent),

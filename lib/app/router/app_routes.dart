@@ -23,6 +23,7 @@ abstract final class AppRoutes {
   static const newAlbum = '/new-album';
   static const playlistPlaza = '/playlist/plaza';
   static const videoPlaza = '/video/plaza';
+  static const radioPlaza = '/radio/plaza';
   static const playlistDetail = '/playlist/detail';
   static const userPlaylistDetail = '/my/playlist/detail';
   static const albumDetail = '/album/detail';

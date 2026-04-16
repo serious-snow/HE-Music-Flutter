@@ -7,15 +7,23 @@ class PlayerQueueSnapshot {
     required this.queue,
     required this.currentIndex,
     required this.playMode,
+    required this.isRadioMode,
     this.source,
     this.previousSnapshot,
+    this.currentRadioId,
+    this.currentRadioPlatform,
+    this.currentRadioPageIndex,
   });
 
   final List<PlayerTrack> queue;
   final int currentIndex;
   final PlayerPlayMode playMode;
+  final bool isRadioMode;
   final PlayerQueueSource? source;
   final PlayerQueueSnapshot? previousSnapshot;
+  final String? currentRadioId;
+  final String? currentRadioPlatform;
+  final int? currentRadioPageIndex;
 
   bool get isEmpty => queue.isEmpty;
 }

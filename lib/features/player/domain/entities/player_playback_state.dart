@@ -20,9 +20,13 @@ class PlayerPlaybackState {
     required this.speed,
     required this.playMode,
     required this.currentAvailableQualities,
+    required this.isRadioMode,
     this.queueSource,
     this.previousQueueSnapshot,
     this.currentSelectedQualityName,
+    this.currentRadioId,
+    this.currentRadioPlatform,
+    this.currentRadioPageIndex,
     this.errorMessage,
   });
 
@@ -37,9 +41,13 @@ class PlayerPlaybackState {
   final double speed;
   final PlayerPlayMode playMode;
   final List<PlayerQualityOption> currentAvailableQualities;
+  final bool isRadioMode;
   final PlayerQueueSource? queueSource;
   final PlayerQueueSnapshot? previousQueueSnapshot;
   final String? currentSelectedQualityName;
+  final String? currentRadioId;
+  final String? currentRadioPlatform;
+  final int? currentRadioPageIndex;
   final String? errorMessage;
 
   PlayerTrack? get currentTrack {
@@ -61,12 +69,19 @@ class PlayerPlaybackState {
     double? speed,
     PlayerPlayMode? playMode,
     List<PlayerQualityOption>? currentAvailableQualities,
+    bool? isRadioMode,
     PlayerQueueSource? queueSource,
     bool clearQueueSource = false,
     PlayerQueueSnapshot? previousQueueSnapshot,
     bool clearPreviousQueueSnapshot = false,
     String? currentSelectedQualityName,
     bool clearCurrentSelectedQuality = false,
+    String? currentRadioId,
+    bool clearCurrentRadioId = false,
+    String? currentRadioPlatform,
+    bool clearCurrentRadioPlatform = false,
+    int? currentRadioPageIndex,
+    bool clearCurrentRadioPageIndex = false,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -83,6 +98,7 @@ class PlayerPlaybackState {
       playMode: playMode ?? this.playMode,
       currentAvailableQualities:
           currentAvailableQualities ?? this.currentAvailableQualities,
+      isRadioMode: isRadioMode ?? this.isRadioMode,
       queueSource: clearQueueSource ? null : queueSource ?? this.queueSource,
       previousQueueSnapshot: clearPreviousQueueSnapshot
           ? null
@@ -90,6 +106,15 @@ class PlayerPlaybackState {
       currentSelectedQualityName: clearCurrentSelectedQuality
           ? null
           : currentSelectedQualityName ?? this.currentSelectedQualityName,
+      currentRadioId: clearCurrentRadioId
+          ? null
+          : currentRadioId ?? this.currentRadioId,
+      currentRadioPlatform: clearCurrentRadioPlatform
+          ? null
+          : currentRadioPlatform ?? this.currentRadioPlatform,
+      currentRadioPageIndex: clearCurrentRadioPageIndex
+          ? null
+          : currentRadioPageIndex ?? this.currentRadioPageIndex,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
@@ -107,6 +132,7 @@ class PlayerPlaybackState {
       speed: defaultPlayerSpeed,
       playMode: PlayerPlayMode.sequence,
       currentAvailableQualities: const <PlayerQualityOption>[],
+      isRadioMode: false,
       queueSource: null,
       previousQueueSnapshot: null,
     );

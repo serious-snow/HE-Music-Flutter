@@ -86,6 +86,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       speed: defaultPlayerSpeed,
       playMode: PlayerPlayMode.sequence,
       currentAvailableQualities: <PlayerQualityOption>[],
+      isRadioMode: false,
     );
   }
 
@@ -105,10 +106,20 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     int startIndex = _defaultQueueIndex,
     bool autoplay = true,
     PlayerQueueSource? queueSource,
+    bool isRadioMode = false,
+    String? currentRadioId,
+    String? currentRadioPlatform,
+    int? currentRadioPageIndex,
   }) async {
     _validateQueueInput(queue, startIndex);
     await _ensureInitialized();
-    if (_isSameQueueContext(queue, queueSource)) {
+    if (_isSameQueueContext(queue, queueSource) &&
+        _isSameRadioContext(
+          isRadioMode: isRadioMode,
+          currentRadioId: currentRadioId,
+          currentRadioPlatform: currentRadioPlatform,
+          currentRadioPageIndex: currentRadioPageIndex,
+        )) {
       await playAt(startIndex);
       return;
     }
@@ -133,6 +144,17 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       currentSelectedQualityName: selectedQualityName,
       queueSource: queueSource,
       previousQueueSnapshot: previousSnapshot,
+      isRadioMode: isRadioMode,
+      currentRadioId: isRadioMode ? _normalizeRadioValue(currentRadioId) : null,
+      clearCurrentRadioId: !isRadioMode,
+      currentRadioPlatform: isRadioMode
+          ? _normalizeRadioValue(currentRadioPlatform)
+          : null,
+      clearCurrentRadioPlatform: !isRadioMode,
+      currentRadioPageIndex: isRadioMode
+          ? _normalizeRadioPageIndex(currentRadioPageIndex)
+          : null,
+      clearCurrentRadioPageIndex: !isRadioMode,
       clearError: true,
     );
     _markFreshPositionPending();
@@ -196,6 +218,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       currentSelectedQualityName: selectedQualityName,
       queueSource: snapshot.source,
       previousQueueSnapshot: currentSnapshot,
+      isRadioMode: snapshot.isRadioMode,
+      currentRadioId: snapshot.currentRadioId,
+      clearCurrentRadioId: snapshot.currentRadioId == null,
+      currentRadioPlatform: snapshot.currentRadioPlatform,
+      clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
+      currentRadioPageIndex: snapshot.currentRadioPageIndex,
+      clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
       clearError: true,
     );
     _markFreshPositionPending();
@@ -388,6 +417,10 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         queue: resolution.updatedQueue,
         currentAvailableQualities: resolution.availableQualities,
         currentSelectedQualityName: resolution.selectedQualityName,
+        isRadioMode: false,
+        clearCurrentRadioId: true,
+        clearCurrentRadioPlatform: true,
+        clearCurrentRadioPageIndex: true,
         clearError: true,
       );
       _guardTrackSwitchRequest(requestId);
@@ -437,7 +470,11 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       state = state.copyWith(
         queue: nextQueue,
         currentIndex: nextCurrentIndex,
+        isRadioMode: false,
         clearQueueSource: true,
+        clearCurrentRadioId: true,
+        clearCurrentRadioPlatform: true,
+        clearCurrentRadioPageIndex: true,
         clearError: true,
       );
       await _execute(() async {
@@ -489,6 +526,10 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         queue: resolution.updatedQueue,
         currentAvailableQualities: resolution.availableQualities,
         currentSelectedQualityName: resolution.selectedQualityName,
+        isRadioMode: false,
+        clearCurrentRadioId: true,
+        clearCurrentRadioPlatform: true,
+        clearCurrentRadioPageIndex: true,
         clearError: true,
       );
       _guardTrackSwitchRequest(requestId);
@@ -519,8 +560,12 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         position: Duration.zero,
         duration: Duration.zero,
         currentAvailableQualities: const <PlayerQualityOption>[],
+        isRadioMode: false,
         clearQueueSource: true,
         clearCurrentSelectedQuality: true,
+        clearCurrentRadioId: true,
+        clearCurrentRadioPlatform: true,
+        clearCurrentRadioPageIndex: true,
         clearError: true,
       );
     });
@@ -556,7 +601,11 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       currentIndex: nextCurrentIndex < 0
           ? _defaultQueueIndex
           : nextCurrentIndex,
+      isRadioMode: false,
       clearQueueSource: true,
+      clearCurrentRadioId: true,
+      clearCurrentRadioPlatform: true,
+      clearCurrentRadioPageIndex: true,
       clearError: true,
     );
     await _execute(() async {
@@ -1288,12 +1337,19 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         return;
       }
       if (snapshot.queue.isEmpty) {
-        state = state.copyWith(
-          playMode: snapshot.playMode,
-          clearQueueSource: true,
-          previousQueueSnapshot: snapshot.previousSnapshot,
-          clearError: true,
-        );
+      state = state.copyWith(
+        playMode: snapshot.playMode,
+        isRadioMode: snapshot.isRadioMode,
+        currentRadioId: snapshot.currentRadioId,
+        clearCurrentRadioId: snapshot.currentRadioId == null,
+        currentRadioPlatform: snapshot.currentRadioPlatform,
+        clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
+        currentRadioPageIndex: snapshot.currentRadioPageIndex,
+        clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
+        clearQueueSource: true,
+        previousQueueSnapshot: snapshot.previousSnapshot,
+        clearError: true,
+      );
         await _applyPlayMode(snapshot.playMode);
         return;
       }
@@ -1312,6 +1368,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         currentSelectedQualityName: selectedQualityName,
         queueSource: snapshot.source,
         previousQueueSnapshot: snapshot.previousSnapshot,
+        isRadioMode: snapshot.isRadioMode,
+        currentRadioId: snapshot.currentRadioId,
+        clearCurrentRadioId: snapshot.currentRadioId == null,
+        currentRadioPlatform: snapshot.currentRadioPlatform,
+        clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
+        currentRadioPageIndex: snapshot.currentRadioPageIndex,
+        clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
         clearError: true,
       );
       await _applyPlayMode(snapshot.playMode);
@@ -1349,6 +1412,10 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       queue: queue,
       currentIndex: queue.isEmpty ? 0 : _safeCurrentIndex(queue.length),
       playMode: state.playMode,
+      isRadioMode: state.isRadioMode,
+      currentRadioId: state.currentRadioId,
+      currentRadioPlatform: state.currentRadioPlatform,
+      currentRadioPageIndex: state.currentRadioPageIndex,
       source: state.queueSource,
       previousSnapshot: previousSnapshot,
     );
@@ -1435,7 +1502,12 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       queue: List<PlayerTrack>.unmodifiable(queue),
       currentIndex: _safeCurrentIndex(queue.length),
       playMode: state.playMode,
+      isRadioMode: state.isRadioMode,
       source: state.queueSource,
+      previousSnapshot: state.previousQueueSnapshot,
+      currentRadioId: state.currentRadioId,
+      currentRadioPlatform: state.currentRadioPlatform,
+      currentRadioPageIndex: state.currentRadioPageIndex,
     );
   }
 
@@ -1456,6 +1528,43 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       }
     }
     return currentQueue.isNotEmpty;
+  }
+
+  bool _isSameRadioContext({
+    required bool isRadioMode,
+    String? currentRadioId,
+    String? currentRadioPlatform,
+    int? currentRadioPageIndex,
+  }) {
+    if (state.isRadioMode != isRadioMode) {
+      return false;
+    }
+    if (!isRadioMode) {
+      return true;
+    }
+    return state.currentRadioId == _normalizeRadioValue(currentRadioId) &&
+        state.currentRadioPlatform ==
+            _normalizeRadioValue(currentRadioPlatform) &&
+        state.currentRadioPageIndex ==
+            _normalizeRadioPageIndex(currentRadioPageIndex);
+  }
+
+  String? _normalizeRadioValue(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
+
+  int? _normalizeRadioPageIndex(int? pageIndex) {
+    if (pageIndex == null || pageIndex <= 0) {
+      return null;
+    }
+    return pageIndex;
   }
 
   bool _isSameQueueSource(PlayerQueueSource? current, PlayerQueueSource? next) {
@@ -1502,7 +1611,11 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     state = state.copyWith(
       queue: nextQueue,
       currentIndex: currentIndex,
+      isRadioMode: false,
       clearQueueSource: true,
+      clearCurrentRadioId: true,
+      clearCurrentRadioPlatform: true,
+      clearCurrentRadioPageIndex: true,
       clearError: true,
     );
     await _execute(() async {
@@ -1513,6 +1626,7 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       );
       await _applyPlayMode(state.playMode);
     });
+    await _persistQueueState();
   }
 
   int _randomNextIndex(int queueLength, {required int excluding}) {
