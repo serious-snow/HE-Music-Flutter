@@ -26,6 +26,7 @@ class SongListItemData {
     List<String>? tags,
     bool isCurrent = false,
     bool showMoreVersionButton = false,
+    String originalTagLabel = 'Original',
   }) {
     return SongListItemData(
       title: song.title,
@@ -33,7 +34,7 @@ class SongListItemData {
       subtitleText: subtitleText,
       coverUrl: coverUrl,
       coverBytes: null,
-      tags: tags ?? _defaultSongTags(song),
+      tags: tags ?? _defaultSongTags(song, originalTagLabel),
       isCurrent: isCurrent,
       showMoreVersionButton: showMoreVersionButton,
     );
@@ -49,14 +50,14 @@ class SongListItemData {
   final bool showMoreVersionButton;
 }
 
-List<String> _defaultSongTags(SongInfo song) {
+List<String> _defaultSongTags(SongInfo song, String originalTagLabel) {
   final tags = <String>[];
   final quality = _songQualityLabel(song);
   if (quality.isNotEmpty) {
     tags.add(quality);
   }
   if (song.originalType == 1) {
-    tags.add('原唱');
+    tags.add(originalTagLabel);
   }
   return tags;
 }
@@ -109,6 +110,7 @@ class SongListItem extends StatelessWidget {
     this.onLikeTap,
     this.onMoreTap,
     this.onMoreVersionTap,
+    this.moreVersionLabel = 'More Versions',
     super.key,
   });
 
@@ -122,6 +124,7 @@ class SongListItem extends StatelessWidget {
   final VoidCallback? onLikeTap;
   final VoidCallback? onMoreTap;
   final VoidCallback? onMoreVersionTap;
+  final String moreVersionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -188,6 +191,7 @@ class SongListItem extends StatelessWidget {
                         subtitle: data.subtitleText,
                         showMoreVersionButton: data.showMoreVersionButton,
                         onMoreVersionTap: onMoreVersionTap,
+                        moreVersionLabel: moreVersionLabel,
                         isCurrent: isCurrent,
                       ),
                     ],
@@ -388,12 +392,14 @@ class _BottomMetaLine extends StatelessWidget {
     required this.subtitle,
     required this.showMoreVersionButton,
     required this.onMoreVersionTap,
+    required this.moreVersionLabel,
     required this.isCurrent,
   });
 
   final String subtitle;
   final bool showMoreVersionButton;
   final VoidCallback? onMoreVersionTap;
+  final String moreVersionLabel;
   final bool isCurrent;
 
   @override
@@ -428,7 +434,7 @@ class _BottomMetaLine extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
               child: Text(
-                '更多版本',
+                moreVersionLabel,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w500,
@@ -545,7 +551,7 @@ class _TagChip extends StatelessWidget {
 
   (Color, Color) _tagStyle(String value) {
     final normalized = value.toUpperCase();
-    if (value == '原唱') {
+    if (value == '原唱' || normalized == 'ORIGINAL') {
       return (const Color(0xFF64748B), const Color(0xFF475569));
     }
     if (normalized == 'HQ') {

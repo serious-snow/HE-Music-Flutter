@@ -487,14 +487,15 @@ class _Cover extends StatelessWidget {
   }
 }
 
-class _ErrorView extends StatelessWidget {
+class _ErrorView extends ConsumerWidget {
   const _ErrorView({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback? onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -502,7 +503,10 @@ class _ErrorView extends StatelessWidget {
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 10),
           if (onRetry != null)
-            OutlinedButton(onPressed: onRetry, child: const Text('重试')),
+            OutlinedButton(
+              onPressed: onRetry,
+              child: Text(AppI18n.t(config, 'common.retry')),
+            ),
         ],
       ),
     );

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/config/app_config_controller.dart';
+import '../../app/i18n/app_i18n.dart';
 import '../../app/router/app_routes.dart';
 import '../../features/player/presentation/widgets/mini_player_bar.dart';
 import '../../features/player/presentation/widgets/player_queue_panel.dart';
@@ -51,7 +54,7 @@ class DetailLoadingBody extends StatelessWidget {
   }
 }
 
-class DetailErrorBody extends StatelessWidget {
+class DetailErrorBody extends ConsumerWidget {
   const DetailErrorBody({
     required this.message,
     required this.onRetry,
@@ -62,14 +65,18 @@ class DetailErrorBody extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 10),
-          OutlinedButton(onPressed: onRetry, child: const Text('重试')),
+          OutlinedButton(
+            onPressed: onRetry,
+            child: Text(AppI18n.t(config, 'common.retry')),
+          ),
         ],
       ),
     );

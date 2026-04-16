@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/config/app_config_controller.dart';
+import '../../app/i18n/app_i18n.dart';
 import '../helpers/current_track_helper.dart';
 import '../helpers/song_batch_helpers.dart';
 import '../models/he_music_models.dart';
@@ -159,14 +162,15 @@ class SongInfoListSection extends StatelessWidget {
   }
 }
 
-class _RetryBody extends StatelessWidget {
+class _RetryBody extends ConsumerWidget {
   const _RetryBody({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function()? onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -175,7 +179,7 @@ class _RetryBody extends StatelessWidget {
           const SizedBox(height: 12),
           FilledButton(
             onPressed: onRetry == null ? null : () => onRetry!(),
-            child: const Text('重试'),
+            child: Text(AppI18n.t(config, 'common.retry')),
           ),
         ],
       ),

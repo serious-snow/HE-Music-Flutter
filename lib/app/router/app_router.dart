@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../config/app_config_controller.dart';
+import '../i18n/app_i18n.dart';
 import '../../features/album/presentation/pages/album_detail_page.dart';
 import '../../features/artist/presentation/pages/artist_detail_page.dart';
 import '../../features/artist/presentation/pages/artist_plaza_page.dart';
@@ -226,7 +228,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.userPlaylistDetail,
         builder: (context, state) => UserPlaylistDetailPage(
           id: _readQuery(state, 'id'),
-          title: _readOptionalQuery(state, 'title') ?? '歌单',
+          title: _readOptionalQuery(state, 'title') ??
+              AppI18n.t(
+                ProviderScope.containerOf(context).read(appConfigProvider),
+                'common.default_playlist',
+              ),
         ),
       ),
     ],

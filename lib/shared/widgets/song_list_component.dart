@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/config/app_config_controller.dart';
+import '../../app/i18n/app_i18n.dart';
 import 'animated_skeleton.dart';
 
-class SongListComponent extends StatefulWidget {
+class SongListComponent extends ConsumerStatefulWidget {
   const SongListComponent({
     required this.itemCount,
     required this.itemBuilder,
@@ -27,10 +30,10 @@ class SongListComponent extends StatefulWidget {
   final Widget? empty;
 
   @override
-  State<SongListComponent> createState() => _SongListComponentState();
+  ConsumerState<SongListComponent> createState() => _SongListComponentState();
 }
 
-class _SongListComponentState extends State<SongListComponent> {
+class _SongListComponentState extends ConsumerState<SongListComponent> {
   bool _loadingMoreTriggered = false;
 
   @override
@@ -53,6 +56,7 @@ class _SongListComponentState extends State<SongListComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final config = ref.watch(appConfigProvider);
     if (widget.initialLoading) {
       return ListView.separated(
         padding: EdgeInsets.zero,
@@ -62,7 +66,8 @@ class _SongListComponentState extends State<SongListComponent> {
       );
     }
     if (widget.itemCount == 0) {
-      return widget.empty ?? const Center(child: Text('暂无搜索结果'));
+      return widget.empty ??
+          Center(child: Text(AppI18n.t(config, 'search.result.empty')));
     }
     final showFooter =
         widget.enablePaging && (widget.loadingMore || !widget.hasMore);
@@ -95,6 +100,7 @@ class _SongListComponentState extends State<SongListComponent> {
   }
 
   Widget _buildFooter(BuildContext context) {
+    final config = ref.watch(appConfigProvider);
     if (widget.loadingMore) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
@@ -106,7 +112,7 @@ class _SongListComponentState extends State<SongListComponent> {
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Center(
           child: Text(
-            '没有更多了',
+            AppI18n.t(config, 'search.result.no_more'),
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),

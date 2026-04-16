@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../app/config/app_config_controller.dart';
+import '../../../../../app/i18n/app_i18n.dart';
 import '../../../../../app/router/app_routes.dart';
 import '../../../../../shared/layout/adaptive_media_grid_spec.dart';
 import '../../../../../shared/widgets/detail_page_shell.dart';
@@ -52,11 +53,12 @@ class _NewAlbumPageState extends ConsumerState<NewAlbumPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(newAlbumPageControllerProvider);
     final controller = ref.read(newAlbumPageControllerProvider.notifier);
-    final localeCode = ref.watch(appConfigProvider).localeCode;
+    final config = ref.watch(appConfigProvider);
+    final localeCode = config.localeCode;
 
     return DetailPageShell(
       child: Scaffold(
-        appBar: AppBar(title: const Text('新碟')),
+        appBar: AppBar(title: Text(AppI18n.t(config, 'new_album.title'))),
         body: Column(
           children: <Widget>[
             Padding(
@@ -103,7 +105,7 @@ class _NewAlbumPageState extends ConsumerState<NewAlbumPage> {
   }
 }
 
-class _NewAlbumBody extends StatelessWidget {
+class _NewAlbumBody extends ConsumerWidget {
   const _NewAlbumBody({
     required this.localeCode,
     required this.scrollController,
@@ -117,7 +119,8 @@ class _NewAlbumBody extends StatelessWidget {
   final Future<void> Function() onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     if (state.tabsLoading && state.tabs.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -128,7 +131,7 @@ class _NewAlbumBody extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.albums.isEmpty) {
-      return const Center(child: Text('暂无新碟'));
+      return Center(child: Text(AppI18n.t(config, 'new_album.empty')));
     }
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -148,7 +151,7 @@ class _NewAlbumBody extends StatelessWidget {
               }
               return Center(
                 child: Text(
-                  '没有更多了',
+                  AppI18n.t(config, 'common.no_more'),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               );
@@ -222,21 +225,25 @@ class _ReleaseTabBar extends StatelessWidget {
   }
 }
 
-class _RetryBody extends StatelessWidget {
+class _RetryBody extends ConsumerWidget {
   const _RetryBody({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton(onPressed: () => onRetry(), child: const Text('重试')),
+          FilledButton(
+            onPressed: () => onRetry(),
+            child: Text(AppI18n.t(config, 'common.retry')),
+          ),
         ],
       ),
     );

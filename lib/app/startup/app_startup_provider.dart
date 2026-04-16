@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config_controller.dart';
+import '../i18n/app_i18n.dart';
 import '../../features/my/presentation/providers/favorite_collection_status_providers.dart';
 import '../../features/my/presentation/providers/favorite_song_status_providers.dart';
 import '../../features/online/presentation/providers/online_providers.dart';
@@ -9,7 +10,8 @@ import '../../features/online/presentation/providers/online_providers.dart';
 final appStartupProvider = FutureProvider<void>((ref) async {
   final apiBaseUrl = ref.read(appConfigProvider).apiBaseUrl.trim();
   if (apiBaseUrl.isEmpty) {
-    throw StateError('未配置接口地址，请检查 assets/app_config.json。');
+    final config = ref.read(appConfigProvider);
+    throw StateError(AppI18n.t(config, 'startup.config_missing'));
   }
   try {
     await ref.read(onlinePlatformsProvider.future);

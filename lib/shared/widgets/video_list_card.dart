@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/config/app_config_controller.dart';
+import '../../app/i18n/app_i18n.dart';
 import '../utils/compact_number_formatter.dart';
 
 const _videoCardRadius = 14.0;
 const _videoOverlayFontSize = 10.0;
 
-class VideoListCard extends StatelessWidget {
+class VideoListCard extends ConsumerWidget {
   const VideoListCard({
     required this.title,
     this.creator,
@@ -24,8 +27,9 @@ class VideoListCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final config = ref.watch(appConfigProvider);
     return Material(
       color: theme.colorScheme.surface.withValues(alpha: 0.76),
       borderRadius: BorderRadius.circular(_videoCardRadius + 2),
@@ -60,7 +64,9 @@ class VideoListCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        (creator ?? '').trim().isEmpty ? '未知作者' : creator!,
+                        (creator ?? '').trim().isEmpty
+                            ? AppI18n.t(config, 'common.unknown_author')
+                            : creator!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(

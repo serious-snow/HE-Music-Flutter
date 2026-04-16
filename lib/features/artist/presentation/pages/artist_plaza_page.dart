@@ -217,6 +217,7 @@ class _ArtistPlazaBody extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
+    final config = ProviderScope.containerOf(context).read(appConfigProvider);
     if (state.artistsLoading && state.artists.isEmpty) {
       return const PlazaArtistListSkeleton();
     }
@@ -224,7 +225,7 @@ class _ArtistPlazaBody extends StatelessWidget {
       return _ErrorView(message: state.artistsErrorMessage!, onRetry: onRetry);
     }
     if (state.artists.isEmpty) {
-      return const _EmptyState(label: '当前筛选下暂无歌手');
+      return _EmptyState(label: AppI18n.t(config, 'artist.plaza.empty'));
     }
     final showTail = state.loadingMore || state.artistsErrorMessage != null;
     return ListView.builder(

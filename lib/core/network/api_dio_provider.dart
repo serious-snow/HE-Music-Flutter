@@ -76,7 +76,7 @@ final apiDioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     CaptchaChallengeInterceptor(dio: dio, coordinator: captchaCoordinator),
   );
-  dio.interceptors.add(ErrorMessageInterceptor());
+  dio.interceptors.add(ErrorMessageInterceptor(ref));
 
   ref.onDispose(() {
     dio.close(force: true);

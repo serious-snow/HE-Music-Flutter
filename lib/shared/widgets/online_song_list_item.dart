@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/config/app_config_controller.dart';
+import '../../app/i18n/app_i18n.dart';
 import '../models/he_music_models.dart';
 import 'song_list_item.dart';
 
-class OnlineSongListItem extends StatelessWidget {
+class OnlineSongListItem extends ConsumerWidget {
   const OnlineSongListItem({
     required this.song,
     this.coverUrl,
@@ -42,7 +45,8 @@ class OnlineSongListItem extends StatelessWidget {
   final VoidCallback? onMoreVersionTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return SongListItem(
       data: SongListItemData.fromSongInfo(
         song: song,
@@ -52,6 +56,7 @@ class OnlineSongListItem extends StatelessWidget {
         tags: tags,
         isCurrent: isCurrent,
         showMoreVersionButton: showMoreVersionButton,
+        originalTagLabel: AppI18n.t(config, 'song.tag.original'),
       ),
       isLiked: isLiked,
       selectable: selectable,
@@ -62,6 +67,7 @@ class OnlineSongListItem extends StatelessWidget {
       onLikeTap: onLikeTap,
       onMoreTap: onMoreTap,
       onMoreVersionTap: onMoreVersionTap,
+      moreVersionLabel: AppI18n.t(config, 'song.more_versions'),
     );
   }
 }

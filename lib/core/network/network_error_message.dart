@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../app/i18n/app_i18n.dart';
 import '../error/app_exception.dart';
 
 class NetworkErrorMessage {
@@ -11,6 +12,7 @@ class NetworkErrorMessage {
     Object error, {
     bool ignoreUnauthorized = false,
     bool ignoreCaptchaRequired = false,
+    String localeCode = 'zh',
   }) {
     if (error is AppException) {
       return error.failure.message.trim();
@@ -34,33 +36,38 @@ class NetworkErrorMessage {
     }
     if (statusCode != null) {
       return switch (statusCode) {
-        400 => '请求参数错误',
-        403 => '当前操作被拒绝',
-        404 => '请求的内容不存在',
-        500 => '服务器开小差了，请稍后重试',
-        _ => _messageForType(error),
+        400 => AppI18n.tByLocaleCode(localeCode, 'error.network.bad_request'),
+        403 => AppI18n.tByLocaleCode(localeCode, 'error.network.forbidden'),
+        404 => AppI18n.tByLocaleCode(localeCode, 'error.network.not_found'),
+        500 => AppI18n.tByLocaleCode(localeCode, 'error.network.server_error'),
+        _ => _messageForType(error, localeCode),
       };
     }
-    return _messageForType(error);
+    return _messageForType(error, localeCode);
   }
 
-  static String _messageForType(DioException error) {
+  static String _messageForType(DioException error, String localeCode) {
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.sendTimeout => '网络连接超时，请稍后重试',
-      DioExceptionType.connectionError => '网络连接失败，请检查网络后重试',
-      DioExceptionType.badCertificate => '网络证书校验失败',
-      DioExceptionType.cancel => '请求已取消',
-      DioExceptionType.badResponse => '服务响应异常，请稍后重试',
-      DioExceptionType.unknown => _fallbackMessage(error.message),
+      DioExceptionType.sendTimeout =>
+        AppI18n.tByLocaleCode(localeCode, 'error.network.timeout'),
+      DioExceptionType.connectionError =>
+        AppI18n.tByLocaleCode(localeCode, 'error.network.connection_failed'),
+      DioExceptionType.badCertificate =>
+        AppI18n.tByLocaleCode(localeCode, 'error.network.bad_certificate'),
+      DioExceptionType.cancel =>
+        AppI18n.tByLocaleCode(localeCode, 'error.network.cancelled'),
+      DioExceptionType.badResponse =>
+        AppI18n.tByLocaleCode(localeCode, 'error.network.bad_response'),
+      DioExceptionType.unknown => _fallbackMessage(error.message, localeCode),
     };
   }
 
-  static String _fallbackMessage(String? message) {
+  static String _fallbackMessage(String? message, String localeCode) {
     final normalized = message?.trim() ?? '';
     if (normalized.isEmpty) {
-      return '请求失败，请稍后重试';
+      return AppI18n.tByLocaleCode(localeCode, 'error.network.request_failed');
     }
     return normalized;
   }

@@ -322,6 +322,7 @@ class _PlaylistPlazaBody extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
+    final config = ProviderScope.containerOf(context).read(appConfigProvider);
     final showTail = state.loadingMore || state.playlistsErrorMessage != null;
     if (state.playlistsLoading && state.playlists.isEmpty) {
       return const PlazaGridSkeleton();
@@ -333,7 +334,7 @@ class _PlaylistPlazaBody extends StatelessWidget {
       );
     }
     if (state.playlists.isEmpty) {
-      return const _EmptyState(label: '当前分类下暂无歌单');
+      return _EmptyState(label: AppI18n.t(config, 'playlist.plaza.empty'));
     }
     return LayoutBuilder(
       builder: (context, constraints) {

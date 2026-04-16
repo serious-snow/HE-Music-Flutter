@@ -101,6 +101,7 @@ class _AppStartupGate extends ConsumerWidget {
     final bypassStartupGate =
         currentLocation.startsWith(AppRoutes.login) ||
         currentLocation.startsWith(AppRoutes.captcha);
+    final config = ref.watch(appConfigProvider);
     return startup.when(
       data: (_) => child,
       loading: () {
@@ -109,7 +110,7 @@ class _AppStartupGate extends ConsumerWidget {
         }
         return _StartupScaffold(
           title: 'HE MUSIC',
-          subtitle: '正在同步在线平台与会话状态',
+          subtitle: AppI18n.t(config, 'startup.syncing'),
           body: const _StartupLoadingBody(),
         );
       },
@@ -118,8 +119,8 @@ class _AppStartupGate extends ConsumerWidget {
           return child;
         }
         return _StartupScaffold(
-          title: '启动失败',
-          subtitle: _describeStartupError(error),
+          title: AppI18n.t(config, 'startup.failed'),
+          subtitle: _describeStartupError(error, config),
           body: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -128,7 +129,7 @@ class _AppStartupGate extends ConsumerWidget {
                   await ref.read(onlinePlatformsProvider.notifier).refresh();
                   ref.invalidate(appStartupProvider);
                 },
-                child: const Text('重试'),
+                child: Text(AppI18n.t(config, 'common.retry')),
               ),
             ],
           ),
@@ -149,25 +150,34 @@ class _AppStartupGate extends ConsumerWidget {
     return error is DioException && error.response?.statusCode == 401;
   }
 
-  String _describeStartupError(Object error) {
+  String _describeStartupError(Object error, AppConfigState config) {
     if (error is StateError) {
       final message = error.message.toString().trim();
-      return message.isEmpty ? '初始化失败，请重试。' : message;
+      return message.isEmpty
+          ? AppI18n.t(config, 'startup.init_failed')
+          : message;
     }
     if (error is DioException) {
       return switch (error.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.receiveTimeout ||
-        DioExceptionType.sendTimeout => '网络连接超时，请检查网络后重试。',
-        DioExceptionType.connectionError => '网络连接失败，请检查网络或域名解析后重试。',
-        DioExceptionType.badCertificate => '证书校验失败，请检查网络环境后重试。',
-        DioExceptionType.badResponse =>
-          '服务响应异常（${error.response?.statusCode ?? '-'}），请稍后重试。',
-        DioExceptionType.cancel => '请求已取消，请重试。',
-        DioExceptionType.unknown => '网络异常，请检查网络后重试。',
+        DioExceptionType.sendTimeout =>
+          AppI18n.t(config, 'startup.network_timeout'),
+        DioExceptionType.connectionError =>
+          AppI18n.t(config, 'startup.network_failed'),
+        DioExceptionType.badCertificate =>
+          AppI18n.t(config, 'startup.certificate_failed'),
+        DioExceptionType.badResponse => AppI18n.format(
+            config,
+            'startup.response_error',
+            {'code': '${error.response?.statusCode ?? '-'}'},
+          ),
+        DioExceptionType.cancel =>
+          AppI18n.t(config, 'startup.request_cancelled'),
+        DioExceptionType.unknown => AppI18n.t(config, 'startup.network_error'),
       };
     }
-    return '初始化失败，请重试。';
+    return AppI18n.t(config, 'startup.init_failed');
   }
 }
 
