@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/i18n/app_i18n.dart';
+import '../../app/theme/app_theme.dart';
 
 class MusicDetailSliverAppBar extends StatelessWidget {
   const MusicDetailSliverAppBar({
@@ -72,9 +73,8 @@ class MusicDetailSliverAppBar extends StatelessWidget {
             theme.textTheme.titleMedium?.color ?? Colors.black,
             fade,
           )!;
-          final collapsedOverlayStyle = theme.brightness == Brightness.dark
-              ? SystemUiOverlayStyle.light
-              : SystemUiOverlayStyle.dark;
+          final collapsedOverlayStyle =
+              AppTheme.systemOverlayStyleForBrightness(theme.brightness);
           final overlayStyle =
               (fade > 0.58 ? collapsedOverlayStyle : SystemUiOverlayStyle.light)
                   .copyWith(statusBarColor: Colors.transparent);

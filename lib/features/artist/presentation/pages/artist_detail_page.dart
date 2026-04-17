@@ -9,6 +9,7 @@ import '../../../../app/app_message_service.dart';
 import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/network/network_error_message.dart';
 import '../../../../shared/helpers/detail_cover_preview_helper.dart';
 import '../../../../shared/helpers/detail_song_action_handler.dart';
@@ -776,9 +777,8 @@ class _ArtistSliverHeader extends StatelessWidget {
             theme.textTheme.titleMedium?.color ?? Colors.black,
             toolbarOpacity,
           )!;
-          final collapsedOverlayStyle = theme.brightness == Brightness.dark
-              ? SystemUiOverlayStyle.light
-              : SystemUiOverlayStyle.dark;
+          final collapsedOverlayStyle =
+              AppTheme.systemOverlayStyleForBrightness(theme.brightness);
           final overlayStyle =
               (toolbarOpacity > 0.58
                       ? collapsedOverlayStyle

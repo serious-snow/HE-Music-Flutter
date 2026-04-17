@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
@@ -51,7 +52,13 @@ class HeMusicApp extends ConsumerWidget {
             : AppAutoUpdateGate(
                 child: _AppStartupGate(appConfig: appConfig, child: content),
               );
-        if (!appConfig.isMonochrome) return gated;
+        final overlayChild = AnnotatedRegion<SystemUiOverlayStyle>(
+          value: AppTheme.systemOverlayStyleForBrightness(
+            Theme.of(context).brightness,
+          ),
+          child: gated,
+        );
+        if (!appConfig.isMonochrome) return overlayChild;
         return ColorFiltered(
           colorFilter: const ColorFilter.matrix(<double>[
             0.2126,
@@ -75,7 +82,7 @@ class HeMusicApp extends ConsumerWidget {
             1,
             0,
           ]),
-          child: gated,
+          child: overlayChild,
         );
       },
     );
@@ -163,19 +170,27 @@ class _AppStartupGate extends ConsumerWidget {
       return switch (error.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.receiveTimeout ||
-        DioExceptionType.sendTimeout =>
-          AppI18n.t(config, 'startup.network_timeout'),
-        DioExceptionType.connectionError =>
-          AppI18n.t(config, 'startup.network_failed'),
-        DioExceptionType.badCertificate =>
-          AppI18n.t(config, 'startup.certificate_failed'),
+        DioExceptionType.sendTimeout => AppI18n.t(
+          config,
+          'startup.network_timeout',
+        ),
+        DioExceptionType.connectionError => AppI18n.t(
+          config,
+          'startup.network_failed',
+        ),
+        DioExceptionType.badCertificate => AppI18n.t(
+          config,
+          'startup.certificate_failed',
+        ),
         DioExceptionType.badResponse => AppI18n.format(
-            config,
-            'startup.response_error',
-            {'code': '${error.response?.statusCode ?? '-'}'},
-          ),
-        DioExceptionType.cancel =>
-          AppI18n.t(config, 'startup.request_cancelled'),
+          config,
+          'startup.response_error',
+          {'code': '${error.response?.statusCode ?? '-'}'},
+        ),
+        DioExceptionType.cancel => AppI18n.t(
+          config,
+          'startup.request_cancelled',
+        ),
         DioExceptionType.unknown => AppI18n.t(config, 'startup.network_error'),
       };
     }

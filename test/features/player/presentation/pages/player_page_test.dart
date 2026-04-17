@@ -308,6 +308,32 @@ void main() {
 
     expect(find.byIcon(Icons.repeat_rounded), findsNothing);
   });
+
+  testWidgets('player page uses light status bar style while visible', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final overlayRegion = tester
+        .widgetList<AnnotatedRegion<SystemUiOverlayStyle>>(
+          find.byWidgetPredicate(
+            (widget) => widget is AnnotatedRegion<SystemUiOverlayStyle>,
+          ),
+        )
+        .last;
+    final overlayStyle = overlayRegion.value;
+
+    expect(overlayStyle.statusBarIconBrightness, Brightness.light);
+    expect(overlayStyle.statusBarBrightness, Brightness.dark);
+    expect(overlayStyle.statusBarColor, Colors.transparent);
+  });
 }
 
 Widget _buildPlayerTestApp({

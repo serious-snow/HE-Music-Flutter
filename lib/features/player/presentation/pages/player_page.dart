@@ -48,6 +48,11 @@ enum _PlayerLayoutMode { mobile, desktop }
 class _PlayerPageState extends ConsumerState<PlayerPage> {
   static const _pageCount = 2;
   static const double _desktopPlayerWidthBreakpoint = 720;
+  static const SystemUiOverlayStyle _playerOverlayStyle = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+  );
   late final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -82,155 +87,161 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     final track = ref.watch(
       playerControllerProvider.select((state) => state.currentTrack),
     );
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: <Widget>[
-          Positioned.fill(
-            child: _PlayerBackdrop(
-              artworkUrl: track?.artworkUrl,
-              artworkBytes: track?.artworkBytes,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _playerOverlayStyle,
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        body: Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: _PlayerBackdrop(
+                artworkUrl: track?.artworkUrl,
+                artworkBytes: track?.artworkBytes,
+              ),
             ),
-          ),
-          Positioned.fill(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final layoutMode = _resolveLayoutMode(constraints);
-                final useDesktopLayout = layoutMode != _PlayerLayoutMode.mobile;
-                final useDesktopQueuePanel =
-                    constraints.maxWidth >= playerQueuePanelBreakpoint;
-                final metaControlPage = _PlayerMetaControlPage(
-                  noTrackText: AppI18n.t(config, 'player.noTrack'),
-                  controller: controller,
-                  compactLayout: !useDesktopLayout,
-                  onOpenQueue: () => _openQueueSheet(useDesktopQueuePanel),
-                  onOpenMore: _openMoreSheet,
-                  onOpenLyrics: useDesktopLayout
-                      ? () {}
-                      : () => _animateToPage(1),
-                  onOpenQuality: () async {
-                    final track = ref.read(
-                      playerControllerProvider.select((s) => s.currentTrack),
-                    );
-                    final onlinePlatformId = (track?.platform ?? '').trim();
-                    final currentAvailableQualities =
-                        track != null &&
-                            onlinePlatformId.isNotEmpty &&
-                            onlinePlatformId != 'local'
-                        ? await _resolveSongQualityOptions(
-                            track: track,
-                            platformId: onlinePlatformId,
-                            ref: ref,
-                          )
-                        : ref.read(
-                            playerControllerProvider.select(
-                              (s) => s.currentAvailableQualities,
-                            ),
-                          );
-                    final currentSelectedQuality = ref.read(
-                      playerControllerProvider.select(
-                        (s) => s.currentSelectedQualityName,
-                      ),
-                    );
-                    if (currentAvailableQualities.isEmpty) {
-                      return;
-                    }
-                    if (!context.mounted) {
-                      return;
-                    }
-                    _openQualitySheet(
-                      context,
-                      controller,
-                      currentAvailableQualities,
-                      currentSelectedQuality,
-                    );
-                  },
-                  onOpenSpeed: () {
-                    final speed = ref.read(
-                      playerControllerProvider.select((s) => s.speed),
-                    );
-                    _openSpeedSheet(context, controller, speed);
-                  },
-                );
-                final lyricPage = _PlayerLyricPage(
-                  emptyText: AppI18n.t(config, 'player.lyrics.empty'),
-                  onSeek: (position) {
-                    controller.seek(position);
-                  },
-                  artworkUrl: track?.artworkUrl,
-                  artworkBytes: track?.artworkBytes,
-                );
-                return Stack(
-                  children: <Widget>[
-                    Positioned.fill(
-                      child: SafeArea(
-                        bottom: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-                          child: Column(
-                            children: <Widget>[
-                              _PlayerTopBar(
-                                currentPage: _currentPage,
-                                total: useDesktopLayout ? 0 : _pageCount,
-                                onTapDot: _animateToPage,
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final layoutMode = _resolveLayoutMode(constraints);
+                  final useDesktopLayout =
+                      layoutMode != _PlayerLayoutMode.mobile;
+                  final useDesktopQueuePanel =
+                      constraints.maxWidth >= playerQueuePanelBreakpoint;
+                  final metaControlPage = _PlayerMetaControlPage(
+                    noTrackText: AppI18n.t(config, 'player.noTrack'),
+                    controller: controller,
+                    compactLayout: !useDesktopLayout,
+                    onOpenQueue: () => _openQueueSheet(useDesktopQueuePanel),
+                    onOpenMore: _openMoreSheet,
+                    onOpenLyrics: useDesktopLayout
+                        ? () {}
+                        : () => _animateToPage(1),
+                    onOpenQuality: () async {
+                      final track = ref.read(
+                        playerControllerProvider.select((s) => s.currentTrack),
+                      );
+                      final onlinePlatformId = (track?.platform ?? '').trim();
+                      final currentAvailableQualities =
+                          track != null &&
+                              onlinePlatformId.isNotEmpty &&
+                              onlinePlatformId != 'local'
+                          ? await _resolveSongQualityOptions(
+                              track: track,
+                              platformId: onlinePlatformId,
+                              ref: ref,
+                            )
+                          : ref.read(
+                              playerControllerProvider.select(
+                                (s) => s.currentAvailableQualities,
                               ),
-                              const SizedBox(height: 4),
-                              Expanded(
-                                child: useDesktopLayout
-                                    ? Row(
-                                        key: ValueKey<String>(
-                                          'player-desktop-layout',
+                            );
+                      final currentSelectedQuality = ref.read(
+                        playerControllerProvider.select(
+                          (s) => s.currentSelectedQualityName,
+                        ),
+                      );
+                      if (currentAvailableQualities.isEmpty) {
+                        return;
+                      }
+                      if (!context.mounted) {
+                        return;
+                      }
+                      _openQualitySheet(
+                        context,
+                        controller,
+                        currentAvailableQualities,
+                        currentSelectedQuality,
+                      );
+                    },
+                    onOpenSpeed: () {
+                      final speed = ref.read(
+                        playerControllerProvider.select((s) => s.speed),
+                      );
+                      _openSpeedSheet(context, controller, speed);
+                    },
+                  );
+                  final lyricPage = _PlayerLyricPage(
+                    emptyText: AppI18n.t(config, 'player.lyrics.empty'),
+                    onSeek: (position) {
+                      controller.seek(position);
+                    },
+                    artworkUrl: track?.artworkUrl,
+                    artworkBytes: track?.artworkBytes,
+                  );
+                  return Stack(
+                    children: <Widget>[
+                      Positioned.fill(
+                        child: SafeArea(
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                            child: Column(
+                              children: <Widget>[
+                                _PlayerTopBar(
+                                  currentPage: _currentPage,
+                                  total: useDesktopLayout ? 0 : _pageCount,
+                                  onTapDot: _animateToPage,
+                                ),
+                                const SizedBox(height: 4),
+                                Expanded(
+                                  child: useDesktopLayout
+                                      ? Row(
+                                          key: ValueKey<String>(
+                                            'player-desktop-layout',
+                                          ),
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Expanded(
+                                              key: const ValueKey<String>(
+                                                'player-desktop-primary-pane',
+                                              ),
+                                              flex: 11,
+                                              child: metaControlPage,
+                                            ),
+                                            const SizedBox(width: 20),
+                                            Expanded(
+                                              key: const ValueKey<String>(
+                                                'player-desktop-lyric-pane',
+                                              ),
+                                              flex: 10,
+                                              child: _PlayerDesktopPane(
+                                                child: lyricPage,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : PageView(
+                                          controller: _pageController,
+                                          onPageChanged: (index) {
+                                            if (_currentPage == index) {
+                                              return;
+                                            }
+                                            setState(
+                                              () => _currentPage = index,
+                                            );
+                                          },
+                                          children: <Widget>[
+                                            metaControlPage,
+                                            lyricPage,
+                                          ],
                                         ),
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: <Widget>[
-                                          Expanded(
-                                            key: const ValueKey<String>(
-                                              'player-desktop-primary-pane',
-                                            ),
-                                            flex: 11,
-                                            child: metaControlPage,
-                                          ),
-                                          const SizedBox(width: 20),
-                                          Expanded(
-                                            key: const ValueKey<String>(
-                                              'player-desktop-lyric-pane',
-                                            ),
-                                            flex: 10,
-                                            child: _PlayerDesktopPane(
-                                              child: lyricPage,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : PageView(
-                                        controller: _pageController,
-                                        onPageChanged: (index) {
-                                          if (_currentPage == index) {
-                                            return;
-                                          }
-                                          setState(() => _currentPage = index);
-                                        },
-                                        children: <Widget>[
-                                          metaControlPage,
-                                          lyricPage,
-                                        ],
-                                      ),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    if (useDesktopQueuePanel)
-                      const Positioned.fill(child: PlayerQueuePanelOverlay()),
-                  ],
-                );
-              },
+                      if (useDesktopQueuePanel)
+                        const Positioned.fill(child: PlayerQueuePanelOverlay()),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

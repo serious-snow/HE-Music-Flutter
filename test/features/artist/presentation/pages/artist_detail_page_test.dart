@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/app/config/app_config_controller.dart';
@@ -123,6 +124,20 @@ void main() {
         find.byIcon(Icons.favorite_border_rounded).first,
       );
       expect(IconTheme.of(iconElement).color, Colors.white);
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -320));
+      await tester.pumpAndSettle();
+
+      final overlayStyle = tester
+          .widgetList<AnnotatedRegion<SystemUiOverlayStyle>>(
+            find.byWidgetPredicate(
+              (widget) => widget is AnnotatedRegion<SystemUiOverlayStyle>,
+            ),
+          )
+          .last
+          .value;
+      expect(overlayStyle.statusBarIconBrightness, Brightness.dark);
+      expect(overlayStyle.statusBarBrightness, Brightness.light);
     },
   );
 

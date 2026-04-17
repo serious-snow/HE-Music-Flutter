@@ -10,6 +10,18 @@ abstract final class AppTheme {
   static ThemeData dark(AppThemeAccent accent) =>
       _buildTheme(brightness: Brightness.dark, seedColor: accent.darkSeed);
 
+  static SystemUiOverlayStyle systemOverlayStyleForBrightness(
+    Brightness brightness,
+  ) {
+    final isDark = brightness == Brightness.dark;
+    return (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+        .copyWith(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        );
+  }
+
   static ThemeData _buildTheme({
     required Brightness brightness,
     required Color seedColor,
@@ -81,9 +93,7 @@ abstract final class AppTheme {
         letterSpacing: 0.1,
       ),
     );
-    final overlayStyle = isDark
-        ? SystemUiOverlayStyle.light
-        : SystemUiOverlayStyle.dark;
+    final overlayStyle = systemOverlayStyleForBrightness(brightness);
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -101,11 +111,7 @@ abstract final class AppTheme {
         backgroundColor: Colors.transparent,
         foregroundColor: colorScheme.onSurface,
         surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: overlayStyle.copyWith(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-        ),
+        systemOverlayStyle: overlayStyle,
         titleTextStyle: textTheme.titleLarge?.copyWith(
           color: colorScheme.onSurface,
         ),

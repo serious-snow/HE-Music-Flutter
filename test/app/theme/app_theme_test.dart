@@ -5,36 +5,26 @@ import 'package:he_music_flutter/app/theme/app_theme.dart';
 
 void main() {
   test('light theme uses dark status bar icons', () {
-    final theme = AppTheme.light(AppThemeAccent.cobalt);
-
-    expect(
-      theme.appBarTheme.systemOverlayStyle?.statusBarIconBrightness,
-      Brightness.dark,
-    );
-    expect(
-      theme.appBarTheme.systemOverlayStyle?.statusBarBrightness,
+    final overlayStyle = AppTheme.systemOverlayStyleForBrightness(
       Brightness.light,
     );
-    expect(
-      theme.appBarTheme.systemOverlayStyle?.statusBarColor,
-      Colors.transparent,
-    );
+    final theme = AppTheme.light(AppThemeAccent.cobalt);
+
+    expect(overlayStyle.statusBarIconBrightness, Brightness.dark);
+    expect(theme.appBarTheme.systemOverlayStyle, overlayStyle);
+    expect(overlayStyle.statusBarBrightness, Brightness.light);
+    expect(overlayStyle.statusBarColor, Colors.transparent);
   });
 
   test('dark theme uses light status bar icons', () {
-    final theme = AppTheme.dark(AppThemeAccent.cobalt);
-
-    expect(
-      theme.appBarTheme.systemOverlayStyle?.statusBarIconBrightness,
-      Brightness.light,
-    );
-    expect(
-      theme.appBarTheme.systemOverlayStyle?.statusBarBrightness,
+    final overlayStyle = AppTheme.systemOverlayStyleForBrightness(
       Brightness.dark,
     );
-    expect(
-      theme.appBarTheme.systemOverlayStyle?.statusBarColor,
-      Colors.transparent,
-    );
+    final theme = AppTheme.dark(AppThemeAccent.cobalt);
+
+    expect(overlayStyle.statusBarIconBrightness, Brightness.light);
+    expect(theme.appBarTheme.systemOverlayStyle, overlayStyle);
+    expect(overlayStyle.statusBarBrightness, Brightness.dark);
+    expect(overlayStyle.statusBarColor, Colors.transparent);
   });
 }

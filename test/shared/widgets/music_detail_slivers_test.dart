@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/shared/widgets/music_detail_slivers.dart';
 
@@ -96,6 +97,17 @@ void main() {
         _iconThemeColor(tester, Icons.favorite_border_rounded)?.toARGB32(),
         themeIconColor.toARGB32(),
       );
+
+      final overlayStyle = tester
+          .widgetList<AnnotatedRegion<SystemUiOverlayStyle>>(
+            find.byWidgetPredicate(
+              (widget) => widget is AnnotatedRegion<SystemUiOverlayStyle>,
+            ),
+          )
+          .last
+          .value;
+      expect(overlayStyle.statusBarIconBrightness, Brightness.dark);
+      expect(overlayStyle.statusBarBrightness, Brightness.light);
     },
   );
 }
