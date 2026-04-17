@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/config/app_config_controller.dart';
-import '../../../../app/config/app_online_audio_quality.dart';
 import '../../../../app/config/app_config_state.dart';
 import '../../../../core/audio/audio_handler_player_adapter.dart';
 import '../../../../core/audio/audio_player_port.dart';
