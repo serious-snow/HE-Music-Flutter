@@ -11,6 +11,7 @@ import '../../app/config/app_environment.dart';
 import '../../app/config/app_config_state.dart';
 import '../../app/config/app_online_audio_quality.dart';
 import '../../shared/models/he_music_models.dart';
+import '../../shared/utils/audio_quality_selector.dart';
 import 'audio_player_factory.dart';
 import 'audio_track.dart';
 
@@ -473,62 +474,14 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   LinkInfo? _resolvePreferredLink(List<LinkInfo> links) {
-    if (links.isEmpty) {
-      return null;
-    }
-    final lastSelected = _lastSelectedQualityName ?? '';
-    if (_qualityPreference.isAuto && lastSelected.isNotEmpty) {
-      for (final link in links) {
-        if (link.name.trim() == lastSelected) {
-          return link;
-        }
-      }
-    }
-    if (!_qualityPreference.isAuto) {
-      for (final link in links) {
-        if (link.name.trim().toLowerCase() == _qualityPreference.value) {
-          return link;
-        }
-      }
-    }
-    for (final preference in AppOnlineAudioQuality.autoFallbackOrder) {
-      for (final link in links) {
-        if (_qualityBucket(link) == preference) {
-          return link;
-        }
-      }
-    }
-    return links.first;
-  }
-
-  AppOnlineAudioQuality? _qualityBucket(LinkInfo link) {
-    final name = link.name.trim().toLowerCase();
-    final format = link.format.trim().toLowerCase();
-    if (name.contains('master')) {
-      return AppOnlineAudioQuality.master;
-    }
-    if (name.contains('galaxy')) {
-      return AppOnlineAudioQuality.galaxy;
-    }
-    if (name.contains('dolby')) {
-      return AppOnlineAudioQuality.dolby;
-    }
-    if (name.contains('hires') || name.contains('hi-res')) {
-      return AppOnlineAudioQuality.hires;
-    }
-    if (name.contains('flac') || format == 'flac') {
-      return AppOnlineAudioQuality.flac;
-    }
-    if (name.contains('320') || (format == 'mp3' && link.quality >= 320)) {
-      return AppOnlineAudioQuality.mp3320;
-    }
-    if (name.contains('192') || (format == 'mp3' && link.quality >= 192)) {
-      return AppOnlineAudioQuality.mp3192;
-    }
-    if (name.contains('128') || (format == 'mp3' && link.quality >= 128)) {
-      return AppOnlineAudioQuality.mp3128;
-    }
-    return null;
+    return selectPreferredAudioQuality(
+      links,
+      preference: _qualityPreference,
+      lastSelectedQualityName: _lastSelectedQualityName,
+      nameOf: (LinkInfo link) => link.name,
+      formatOf: (LinkInfo link) => link.format,
+      bitrateOf: (LinkInfo link) => link.quality,
+    );
   }
 
   int? _requestQuality(LinkInfo? selectedQuality) {

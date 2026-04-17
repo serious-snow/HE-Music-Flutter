@@ -15,6 +15,7 @@ import '../../../../core/network/network_error_message.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/utils/cover_resolver.dart';
+import '../../../../shared/utils/audio_quality_selector.dart';
 import '../../../online/presentation/providers/online_providers.dart';
 import '../../../radio/presentation/providers/radio_providers.dart';
 import '../../data/datasources/player_history_data_source.dart';
@@ -130,52 +131,48 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       await playAt(startIndex);
       return;
     }
-    await _persistTrackProgress(
-      track: state.currentTrack,
-      position: state.position,
-      force: true,
-    );
-    await _interruptPlaybackForTrackSwitch();
-    final currentTrack = queue[startIndex];
-    final availableQualities = _availableQualities(currentTrack);
-    final selectedQualityName = _resolveSelectedQualityName(
-      availableQualities: availableQualities,
-    );
     final previousSnapshot = _buildCurrentQueueSnapshot();
     final nextPlayMode = _resolveNextPlayMode(isRadioMode: isRadioMode);
     final nextPreviousPlayModeBeforeRadio = _resolvePreviousPlayModeBeforeRadio(
       isRadioMode: isRadioMode,
     );
-    state = state.copyWith(
+    await _switchCurrentPlaybackContext(
       queue: queue,
-      currentIndex: startIndex,
-      position: Duration.zero,
-      duration: Duration.zero,
-      currentAvailableQualities: availableQualities,
-      currentSelectedQualityName: selectedQualityName,
-      playMode: nextPlayMode,
-      queueSource: queueSource,
-      previousQueueSnapshot: previousSnapshot,
-      isRadioMode: isRadioMode,
-      currentRadioId: isRadioMode ? _normalizeRadioValue(currentRadioId) : null,
-      clearCurrentRadioId: !isRadioMode,
-      currentRadioPlatform: isRadioMode
-          ? _normalizeRadioValue(currentRadioPlatform)
-          : null,
-      clearCurrentRadioPlatform: !isRadioMode,
-      currentRadioPageIndex: isRadioMode
-          ? _normalizeRadioPageIndex(currentRadioPageIndex)
-          : null,
-      clearCurrentRadioPageIndex: !isRadioMode,
-      previousPlayModeBeforeRadio: nextPreviousPlayModeBeforeRadio,
-      clearPreviousPlayModeBeforeRadio: !isRadioMode,
-      clearError: true,
-    );
-    _markFreshPositionPending();
-    await _reloadQueueAt(
-      queue: queue,
-      index: startIndex,
+      targetIndex: startIndex,
       autoplay: autoplay,
+      buildState:
+          ({
+            required List<PlayerQualityOption> availableQualities,
+            required String? selectedQualityName,
+          }) {
+            return state.copyWith(
+              queue: queue,
+              currentIndex: startIndex,
+              position: Duration.zero,
+              duration: Duration.zero,
+              currentAvailableQualities: availableQualities,
+              currentSelectedQualityName: selectedQualityName,
+              playMode: nextPlayMode,
+              queueSource: queueSource,
+              previousQueueSnapshot: previousSnapshot,
+              isRadioMode: isRadioMode,
+              currentRadioId: isRadioMode
+                  ? _normalizeRadioValue(currentRadioId)
+                  : null,
+              clearCurrentRadioId: !isRadioMode,
+              currentRadioPlatform: isRadioMode
+                  ? _normalizeRadioValue(currentRadioPlatform)
+                  : null,
+              clearCurrentRadioPlatform: !isRadioMode,
+              currentRadioPageIndex: isRadioMode
+                  ? _normalizeRadioPageIndex(currentRadioPageIndex)
+                  : null,
+              clearCurrentRadioPageIndex: !isRadioMode,
+              previousPlayModeBeforeRadio: nextPreviousPlayModeBeforeRadio,
+              clearPreviousPlayModeBeforeRadio: !isRadioMode,
+              clearError: true,
+            );
+          },
       applyResolvedState: (_TrackPlaybackResolution resolution) {
         state = state.copyWith(
           queue: resolution.updatedQueue,
@@ -185,7 +182,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         );
       },
     );
-    await _persistQueueState();
   }
 
   bool get hasPreviousQueue =>
@@ -205,45 +201,40 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       0,
       snapshot.queue.length - 1,
     );
-    await _persistTrackProgress(
-      track: state.currentTrack,
-      position: state.position,
-      force: true,
-    );
-    await _interruptPlaybackForTrackSwitch();
     final currentSnapshot = _buildCurrentQueueSnapshot();
-    final currentTrack = snapshot.queue[targetIndex];
-    final availableQualities = _availableQualities(currentTrack);
-    final selectedQualityName = _resolveSelectedQualityName(
-      availableQualities: availableQualities,
-    );
-    state = state.copyWith(
+    await _switchCurrentPlaybackContext(
       queue: snapshot.queue,
-      currentIndex: targetIndex,
-      playMode: snapshot.playMode,
-      position: Duration.zero,
-      duration: Duration.zero,
-      currentAvailableQualities: availableQualities,
-      currentSelectedQualityName: selectedQualityName,
-      queueSource: snapshot.source,
-      previousQueueSnapshot: currentSnapshot,
-      isRadioMode: snapshot.isRadioMode,
-      currentRadioId: snapshot.currentRadioId,
-      clearCurrentRadioId: snapshot.currentRadioId == null,
-      currentRadioPlatform: snapshot.currentRadioPlatform,
-      clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
-      currentRadioPageIndex: snapshot.currentRadioPageIndex,
-      clearCurrentRadioPageIndex: snapshot.currentRadioPageIndex == null,
-      previousPlayModeBeforeRadio: snapshot.previousPlayModeBeforeRadio,
-      clearPreviousPlayModeBeforeRadio:
-          snapshot.previousPlayModeBeforeRadio == null,
-      clearError: true,
-    );
-    _markFreshPositionPending();
-    await _reloadQueueAt(
-      queue: snapshot.queue,
-      index: targetIndex,
+      targetIndex: targetIndex,
       autoplay: autoplay,
+      buildState:
+          ({
+            required List<PlayerQualityOption> availableQualities,
+            required String? selectedQualityName,
+          }) {
+            return state.copyWith(
+              queue: snapshot.queue,
+              currentIndex: targetIndex,
+              playMode: snapshot.playMode,
+              position: Duration.zero,
+              duration: Duration.zero,
+              currentAvailableQualities: availableQualities,
+              currentSelectedQualityName: selectedQualityName,
+              queueSource: snapshot.source,
+              previousQueueSnapshot: currentSnapshot,
+              isRadioMode: snapshot.isRadioMode,
+              currentRadioId: snapshot.currentRadioId,
+              clearCurrentRadioId: snapshot.currentRadioId == null,
+              currentRadioPlatform: snapshot.currentRadioPlatform,
+              clearCurrentRadioPlatform: snapshot.currentRadioPlatform == null,
+              currentRadioPageIndex: snapshot.currentRadioPageIndex,
+              clearCurrentRadioPageIndex:
+                  snapshot.currentRadioPageIndex == null,
+              previousPlayModeBeforeRadio: snapshot.previousPlayModeBeforeRadio,
+              clearPreviousPlayModeBeforeRadio:
+                  snapshot.previousPlayModeBeforeRadio == null,
+              clearError: true,
+            );
+          },
       applyResolvedState: (_TrackPlaybackResolution resolution) {
         state = state.copyWith(
           queue: resolution.updatedQueue,
@@ -253,7 +244,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         );
       },
     );
-    await _persistQueueState();
   }
 
   Future<void> togglePlayPause() async {
@@ -299,30 +289,24 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
   Future<void> playAt(int index) async {
     await _ensureInitialized();
     _validateQueueInput(state.queue, index);
-    await _persistTrackProgress(
-      track: state.currentTrack,
-      position: state.position,
-      force: true,
-    );
-    await _interruptPlaybackForTrackSwitch();
-    final currentTrack = state.queue[index];
-    final availableQualities = _availableQualities(currentTrack);
-    final selectedQualityName = _resolveSelectedQualityName(
-      availableQualities: availableQualities,
-    );
-    state = state.copyWith(
-      currentIndex: index,
-      position: Duration.zero,
-      duration: Duration.zero,
-      currentAvailableQualities: availableQualities,
-      currentSelectedQualityName: selectedQualityName,
-      clearError: true,
-    );
-    _markFreshPositionPending();
-    await _reloadQueueAt(
+    await _switchCurrentPlaybackContext(
       queue: state.queue,
-      index: index,
+      targetIndex: index,
       autoplay: true,
+      buildState:
+          ({
+            required List<PlayerQualityOption> availableQualities,
+            required String? selectedQualityName,
+          }) {
+            return state.copyWith(
+              currentIndex: index,
+              position: Duration.zero,
+              duration: Duration.zero,
+              currentAvailableQualities: availableQualities,
+              currentSelectedQualityName: selectedQualityName,
+              clearError: true,
+            );
+          },
       applyResolvedState: (_TrackPlaybackResolution resolution) {
         state = state.copyWith(
           queue: resolution.updatedQueue,
@@ -332,7 +316,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         );
       },
     );
-    await _persistQueueState();
   }
 
   Future<void> playNext() async {
@@ -383,39 +366,33 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       await replaceQueue(<PlayerTrack>[track]);
       return;
     }
-    await _persistTrackProgress(
-      track: state.currentTrack,
-      position: state.position,
-      force: true,
-    );
-    await _interruptPlaybackForTrackSwitch();
     final currentIndex = _safeCurrentIndex(currentQueue.length);
     final targetIndex = currentIndex + 1;
     final nextQueue = <PlayerTrack>[...currentQueue];
     nextQueue.insert(targetIndex, track);
-    final currentTrack = nextQueue[targetIndex];
-    final availableQualities = _availableQualities(currentTrack);
-    final selectedQualityName = _resolveSelectedQualityName(
-      availableQualities: availableQualities,
-    );
     final nextPlayMode = _resolveNextPlayMode(isRadioMode: false);
-    state = state.copyWith(
+    await _switchCurrentPlaybackContext(
       queue: nextQueue,
-      currentIndex: targetIndex,
-      position: Duration.zero,
-      duration: Duration.zero,
-      currentAvailableQualities: availableQualities,
-      currentSelectedQualityName: selectedQualityName,
-      playMode: nextPlayMode,
-      clearQueueSource: true,
-      clearPreviousPlayModeBeforeRadio: true,
-      clearError: true,
-    );
-    _markFreshPositionPending();
-    await _reloadQueueAt(
-      queue: nextQueue,
-      index: targetIndex,
+      targetIndex: targetIndex,
       autoplay: true,
+      buildState:
+          ({
+            required List<PlayerQualityOption> availableQualities,
+            required String? selectedQualityName,
+          }) {
+            return state.copyWith(
+              queue: nextQueue,
+              currentIndex: targetIndex,
+              position: Duration.zero,
+              duration: Duration.zero,
+              currentAvailableQualities: availableQualities,
+              currentSelectedQualityName: selectedQualityName,
+              playMode: nextPlayMode,
+              clearQueueSource: true,
+              clearPreviousPlayModeBeforeRadio: true,
+              clearError: true,
+            );
+          },
       applyResolvedState: (_TrackPlaybackResolution resolution) {
         state = state.copyWith(
           queue: resolution.updatedQueue,
@@ -429,7 +406,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         );
       },
     );
-    await _persistQueueState();
   }
 
   Future<void> insertNextTrack(PlayerTrack track) async {
@@ -489,38 +465,32 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       await _persistQueueState();
       return;
     }
-    await _persistTrackProgress(
-      track: state.currentTrack,
-      position: state.position,
-      force: true,
-    );
-    await _interruptPlaybackForTrackSwitch();
     final targetIndex = index >= nextQueue.length
         ? nextQueue.length - 1
         : index;
-    final currentTrack = nextQueue[targetIndex];
-    final availableQualities = _availableQualities(currentTrack);
-    final selectedQualityName = _resolveSelectedQualityName(
-      availableQualities: availableQualities,
-    );
     final nextPlayMode = _resolveNextPlayMode(isRadioMode: false);
-    state = state.copyWith(
+    await _switchCurrentPlaybackContext(
       queue: nextQueue,
-      currentIndex: targetIndex,
-      position: Duration.zero,
-      duration: Duration.zero,
-      currentAvailableQualities: availableQualities,
-      currentSelectedQualityName: selectedQualityName,
-      playMode: nextPlayMode,
-      clearQueueSource: true,
-      clearPreviousPlayModeBeforeRadio: true,
-      clearError: true,
-    );
-    _markFreshPositionPending();
-    await _reloadQueueAt(
-      queue: nextQueue,
-      index: targetIndex,
+      targetIndex: targetIndex,
       autoplay: wasPlaying,
+      buildState:
+          ({
+            required List<PlayerQualityOption> availableQualities,
+            required String? selectedQualityName,
+          }) {
+            return state.copyWith(
+              queue: nextQueue,
+              currentIndex: targetIndex,
+              position: Duration.zero,
+              duration: Duration.zero,
+              currentAvailableQualities: availableQualities,
+              currentSelectedQualityName: selectedQualityName,
+              playMode: nextPlayMode,
+              clearQueueSource: true,
+              clearPreviousPlayModeBeforeRadio: true,
+              clearError: true,
+            );
+          },
       applyResolvedState: (_TrackPlaybackResolution resolution) {
         state = state.copyWith(
           queue: resolution.updatedQueue,
@@ -534,7 +504,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         );
       },
     );
-    await _persistQueueState();
   }
 
   Future<void> clearQueue() async {
@@ -788,6 +757,43 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         restoreProgress: false,
       );
     }, trackSwitchRequestId: requestId);
+  }
+
+  Future<void> _switchCurrentPlaybackContext({
+    required List<PlayerTrack> queue,
+    required int targetIndex,
+    required bool autoplay,
+    required PlayerPlaybackState Function({
+      required List<PlayerQualityOption> availableQualities,
+      required String? selectedQualityName,
+    })
+    buildState,
+    required void Function(_TrackPlaybackResolution resolution)
+    applyResolvedState,
+  }) async {
+    await _persistTrackProgress(
+      track: state.currentTrack,
+      position: state.position,
+      force: true,
+    );
+    await _interruptPlaybackForTrackSwitch();
+    final currentTrack = queue[targetIndex];
+    final availableQualities = _availableQualities(currentTrack);
+    final selectedQualityName = _resolveSelectedQualityName(
+      availableQualities: availableQualities,
+    );
+    state = buildState(
+      availableQualities: availableQualities,
+      selectedQualityName: selectedQualityName,
+    );
+    _markFreshPositionPending();
+    await _reloadQueueAt(
+      queue: queue,
+      index: targetIndex,
+      autoplay: autoplay,
+      applyResolvedState: applyResolvedState,
+    );
+    await _persistQueueState();
   }
 
   int _beginTrackSwitchRequest() {
@@ -1143,28 +1149,13 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       return forced;
     }
     final config = ref.read(appConfigProvider);
-    final preference = config.onlineAudioQualityPreference;
-    if (preference.isAuto) {
-      final lastSelected =
-          config.lastSelectedOnlineAudioQualityName?.trim() ?? '';
-      if (lastSelected.isNotEmpty &&
-          _findQualityOptionByName(availableQualities, lastSelected) != null) {
-        return lastSelected;
-      }
-      for (final quality in AppOnlineAudioQuality.autoFallbackOrder) {
-        final matched = _findQualityOptionByPreference(
-          availableQualities,
-          quality,
-        );
-        if (matched != null) {
-          return matched.name;
-        }
-      }
-      return availableQualities.first.name;
-    }
-    final matched = _findQualityOptionByPreference(
+    final matched = selectPreferredAudioQuality(
       availableQualities,
-      preference,
+      preference: config.onlineAudioQualityPreference,
+      lastSelectedQualityName: config.lastSelectedOnlineAudioQualityName,
+      nameOf: (PlayerQualityOption option) => option.name,
+      formatOf: (PlayerQualityOption option) => option.format,
+      bitrateOf: (PlayerQualityOption option) => option.quality,
     );
     if (matched != null) {
       return matched.name;
@@ -1180,53 +1171,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       if (option.name == qualityName) {
         return option;
       }
-    }
-    return null;
-  }
-
-  PlayerQualityOption? _findQualityOptionByPreference(
-    List<PlayerQualityOption> options,
-    AppOnlineAudioQuality preference,
-  ) {
-    for (final option in options) {
-      if (option.name.trim().toLowerCase() == preference.value) {
-        return option;
-      }
-    }
-    for (final option in options) {
-      if (_qualityBucketFromOption(option) == preference) {
-        return option;
-      }
-    }
-    return null;
-  }
-
-  AppOnlineAudioQuality? _qualityBucketFromOption(PlayerQualityOption option) {
-    final name = option.name.trim().toLowerCase();
-    final format = option.format.trim().toLowerCase();
-    if (name.contains('master')) {
-      return AppOnlineAudioQuality.master;
-    }
-    if (name.contains('galaxy')) {
-      return AppOnlineAudioQuality.galaxy;
-    }
-    if (name.contains('dolby')) {
-      return AppOnlineAudioQuality.dolby;
-    }
-    if (name.contains('hires') || name.contains('hi-res')) {
-      return AppOnlineAudioQuality.hires;
-    }
-    if (name.contains('flac') || format == 'flac') {
-      return AppOnlineAudioQuality.flac;
-    }
-    if (name.contains('320') || (format == 'mp3' && option.quality >= 320)) {
-      return AppOnlineAudioQuality.mp3320;
-    }
-    if (name.contains('192') || (format == 'mp3' && option.quality >= 192)) {
-      return AppOnlineAudioQuality.mp3192;
-    }
-    if (name.contains('128') || (format == 'mp3' && option.quality >= 128)) {
-      return AppOnlineAudioQuality.mp3128;
     }
     return null;
   }
