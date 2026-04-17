@@ -28,6 +28,17 @@ class HeAudioHandlerRuntimeConfig {
   final String? lastSelectedQualityName;
 }
 
+typedef HeAudioHandlerFetchSongUrl =
+    Future<Map<String, dynamic>> Function({
+      required String songId,
+      required String platform,
+      int? quality,
+      String? format,
+    });
+
+typedef HeAudioHandlerSetAudioSource =
+    Future<Duration?> Function(AudioSource source, AudioPlayer player);
+
 @visibleForTesting
 Future<HeAudioHandlerRuntimeConfig> loadHeAudioHandlerRuntimeConfig({
   AppConfigDataSource dataSource = const AppConfigDataSource(),
@@ -57,7 +68,13 @@ bool shouldRefreshRemotePlaybackUrl(AudioTrack track) {
 }
 
 class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
-  HeAudioHandler() : _player = createHeAudioPlayer() {
+  HeAudioHandler({
+    AudioPlayer? player,
+    HeAudioHandlerFetchSongUrl? fetchSongUrlOverride,
+    HeAudioHandlerSetAudioSource? setAudioSourceOverride,
+  }) : _player = player ?? createHeAudioPlayer(),
+       _fetchSongUrlOverride = fetchSongUrlOverride,
+       _setAudioSourceOverride = setAudioSourceOverride {
     _player.playerStateStream.listen((_) {
       _refreshDurationFromPlayer();
       _broadcastPlaybackState();
@@ -77,7 +94,12 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     });
   }
 
+  static const int _fetchSongUrlMaxAttempts = 3;
+  static const int _setSourceMaxAttempts = 2;
+
   final AudioPlayer _player;
+  final HeAudioHandlerFetchSongUrl? _fetchSongUrlOverride;
+  final HeAudioHandlerSetAudioSource? _setAudioSourceOverride;
   final Random _random = Random();
 
   List<AudioTrack> _tracks = const <AudioTrack>[];
@@ -88,6 +110,7 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   bool _handlingCompletion = false;
   bool _configRecovered = false;
   Future<void>? _recoveringConfigFuture;
+  int _loadRequestId = 0;
 
   String _apiBaseUrl = AppEnvironment.apiBaseUrl;
   String? _authToken = AppConfigState.initial.authToken;
@@ -277,21 +300,67 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     if (track == null) {
       return;
     }
-    final resolved = await _resolveTrack(track);
+    final requestId = ++_loadRequestId;
+    AudioTrack resolved;
+    try {
+      resolved = await _resolveTrack(track);
+      _guardLoadRequest(requestId);
+    } on _StaleLoadRequestException {
+      return;
+    }
+    Object? lastError;
+    for (var attempt = 1; attempt <= _setSourceMaxAttempts; attempt += 1) {
+      try {
+        await _applyResolvedTrackAt(
+          index,
+          resolved,
+          autoplay: autoplay,
+          requestId: requestId,
+        );
+        return;
+      } on _StaleLoadRequestException {
+        return;
+      } catch (error) {
+        lastError = error;
+        final shouldRetry =
+            shouldRefreshRemotePlaybackUrl(track) &&
+            attempt < _setSourceMaxAttempts;
+        if (!shouldRetry) {
+          rethrow;
+        }
+        resolved = await _resolveTrack(track);
+        _guardLoadRequest(requestId);
+      }
+    }
+    throw lastError ?? StateError('Failed to load track.');
+  }
+
+  Future<void> _applyResolvedTrackAt(
+    int index,
+    AudioTrack resolved, {
+    required bool autoplay,
+    required int requestId,
+  }) async {
+    _guardLoadRequest(requestId);
     final next = <AudioTrack>[..._tracks];
     next[index] = resolved;
     _tracks = List<AudioTrack>.unmodifiable(next);
     queue.add(_tracks.map(_toMediaItem).toList(growable: false));
     _currentIndex = index;
     _duration = null;
-    final initialDuration = await _player.setAudioSource(
-      _buildSource(resolved),
-    );
+    final initialDuration = await _setAudioSource(_buildSource(resolved));
+    _guardLoadRequest(requestId);
     _refreshDuration(initialDuration ?? _player.duration);
     _broadcastMediaItem();
     _broadcastPlaybackState();
     if (autoplay) {
       await _player.play();
+    }
+  }
+
+  void _guardLoadRequest(int requestId) {
+    if (requestId != _loadRequestId) {
+      throw const _StaleLoadRequestException();
     }
   }
 
@@ -352,7 +421,7 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     if (platform.isEmpty) {
       return track;
     }
-    final payload = await _fetchSongUrl(
+    final payload = await _fetchSongUrlWithRetry(
       songId: track.id,
       platform: platform,
       quality: _requestQuality(matchedQuality),
@@ -506,12 +575,63 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     return null;
   }
 
+  bool _isRetryableFetchError(Object error) {
+    if (error is DioException) {
+      return error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.sendTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.connectionError ||
+          (error.response?.statusCode ?? 0) >= 500;
+    }
+    return false;
+  }
+
+  Future<Map<String, dynamic>> _fetchSongUrlWithRetry({
+    required String songId,
+    required String platform,
+    int? quality,
+    String? format,
+  }) async {
+    Object? lastError;
+    for (var attempt = 1; attempt <= _fetchSongUrlMaxAttempts; attempt += 1) {
+      try {
+        final payload = await _fetchSongUrl(
+          songId: songId,
+          platform: platform,
+          quality: quality,
+          format: format,
+        );
+        final url = '${payload['url'] ?? ''}'.trim();
+        if (url.isNotEmpty) {
+          return payload;
+        }
+        lastError = StateError('Missing playback url in response.');
+      } catch (error) {
+        lastError = error;
+        if (!_isRetryableFetchError(error) ||
+            attempt == _fetchSongUrlMaxAttempts) {
+          rethrow;
+        }
+      }
+    }
+    throw lastError ?? StateError('Failed to fetch playback url.');
+  }
+
   Future<Map<String, dynamic>> _fetchSongUrl({
     required String songId,
     required String platform,
     int? quality,
     String? format,
   }) async {
+    final override = _fetchSongUrlOverride;
+    if (override != null) {
+      return override(
+        songId: songId,
+        platform: platform,
+        quality: quality,
+        format: format,
+      );
+    }
     final dio = Dio(
       BaseOptions(
         baseUrl: _apiBaseUrl,
@@ -548,6 +668,14 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     } finally {
       dio.close(force: true);
     }
+  }
+
+  Future<Duration?> _setAudioSource(AudioSource source) {
+    final override = _setAudioSourceOverride;
+    if (override != null) {
+      return override(source, _player);
+    }
+    return _player.setAudioSource(source);
   }
 
   Future<void> _handlePlaybackCompleted() async {
@@ -674,6 +802,10 @@ class HeAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         rightPlatform.isNotEmpty &&
         leftPlatform == rightPlatform;
   }
+}
+
+class _StaleLoadRequestException implements Exception {
+  const _StaleLoadRequestException();
 }
 
 late final HeAudioHandler globalHeAudioHandler;

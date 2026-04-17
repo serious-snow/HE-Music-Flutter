@@ -64,15 +64,69 @@ void main() {
       final state = container.read(playerControllerProvider);
       expect(state.currentIndex, 1);
       expect(state.currentTrack?.id, 'song-2');
-      expect(state.currentTrack?.url, 'https://example.com/song-2.mp3');
+      expect(state.currentTrack?.url, isEmpty);
       expect(state.errorMessage, isNull);
       expect(audioPlayer.lastQueueInitialIndex, 1);
-      expect(
-        audioPlayer.lastQueueTracks[1].url,
-        'https://example.com/song-2.mp3',
-      );
+      expect(audioPlayer.lastQueueTracks[1].url, isEmpty);
     },
   );
+
+  test('replaceQueue 应同步未解析的远程轨道给音频层', () async {
+    final apiClient = _FakeOnlineApiClient(
+      handlers: <String, _SongUrlHandler>{},
+    );
+    final audioPlayer = _FakeAudioPlayerPort();
+    final container = ProviderContainer(
+      overrides: <Override>[
+        appConfigProvider.overrideWith(_TestAppConfigController.new),
+        audioPlayerPortProvider.overrideWithValue(audioPlayer),
+        playerPlaybackApiClientProvider.overrideWithValue(apiClient),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(playerControllerProvider.notifier);
+    await controller.replaceQueue(
+      _buildQueue(),
+      startIndex: 0,
+      autoplay: false,
+    );
+
+    expect(apiClient.requests, isEmpty);
+    expect(audioPlayer.lastQueueTracks.first.platform, 'qq');
+    expect(audioPlayer.lastQueueTracks.first.url, isEmpty);
+  });
+
+  test('切换音质时应委托音频层刷新 source，而不是在 controller 重新请求链接', () async {
+    final apiClient = _FakeOnlineApiClient(
+      handlers: <String, _SongUrlHandler>{},
+    );
+    final audioPlayer = _FakeAudioPlayerPort();
+    final container = ProviderContainer(
+      overrides: <Override>[
+        appConfigProvider.overrideWith(_TestAppConfigController.new),
+        audioPlayerPortProvider.overrideWithValue(audioPlayer),
+        playerPlaybackApiClientProvider.overrideWithValue(apiClient),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(playerControllerProvider.notifier);
+    await controller.replaceQueue(
+      _buildQualityQueue(),
+      startIndex: 0,
+      autoplay: false,
+    );
+    await controller.switchCurrentQualityByName('FLAC');
+
+    expect(apiClient.requests, isEmpty);
+    expect(audioPlayer.setSourceCallCount, 1);
+    expect(audioPlayer.lastSetSourceTrack?.url, isEmpty);
+    expect(
+      container.read(playerControllerProvider).currentSelectedQualityName,
+      'FLAC',
+    );
+  });
 
   test(
     'playAt should ignore stale success from previous track switch',
@@ -112,14 +166,11 @@ void main() {
       final state = container.read(playerControllerProvider);
       expect(state.currentIndex, 1);
       expect(state.currentTrack?.id, 'song-2');
-      expect(state.currentTrack?.url, 'https://example.com/song-2.mp3');
+      expect(state.currentTrack?.url, isEmpty);
       expect(state.errorMessage, isNull);
       expect(audioPlayer.lastQueueInitialIndex, 1);
       expect(audioPlayer.lastQueueTracks[1].id, 'song-2');
-      expect(
-        audioPlayer.lastQueueTracks[1].url,
-        'https://example.com/song-2.mp3',
-      );
+      expect(audioPlayer.lastQueueTracks[1].url, isEmpty);
     },
   );
 
@@ -350,6 +401,32 @@ List<PlayerTrack> _buildQueue() {
   ];
 }
 
+List<PlayerTrack> _buildQualityQueue() {
+  return const <PlayerTrack>[
+    PlayerTrack(
+      id: 'song-3',
+      title: '第三首',
+      platform: 'qq',
+      links: <LinkInfo>[
+        LinkInfo(
+          name: '320k',
+          quality: 320,
+          format: 'mp3',
+          size: '0',
+          url: 'https://cdn.example.com/song-3-320.mp3',
+        ),
+        LinkInfo(
+          name: 'FLAC',
+          quality: 999,
+          format: 'flac',
+          size: '0',
+          url: 'https://cdn.example.com/song-3.flac',
+        ),
+      ],
+    ),
+  ];
+}
+
 class _TestAppConfigController extends AppConfigController {
   @override
   AppConfigState build() {
@@ -373,6 +450,8 @@ class _FakeAudioPlayerPort implements AudioPlayerPort {
 
   List<AudioTrack> lastQueueTracks = const <AudioTrack>[];
   int? lastQueueInitialIndex;
+  AudioTrack? lastSetSourceTrack;
+  int setSourceCallCount = 0;
 
   @override
   Stream<bool> get playingStream => _playingController.stream;
@@ -404,6 +483,8 @@ class _FakeAudioPlayerPort implements AudioPlayerPort {
 
   @override
   Future<void> setSource(AudioTrack track) async {
+    setSourceCallCount += 1;
+    lastSetSourceTrack = track;
     lastQueueTracks = <AudioTrack>[track];
     lastQueueInitialIndex = 0;
   }
@@ -465,7 +546,8 @@ class _FakeAudioPlayerPort implements AudioPlayerPort {
 class _FakeOnlineApiClient extends OnlineApiClient {
   _FakeOnlineApiClient({required this.handlers}) : super(Dio());
 
-  final Map<String, Future<Map<String, dynamic>> Function()> handlers;
+  final Map<String, _SongUrlHandler> handlers;
+  final List<_SongUrlRequest> requests = <_SongUrlRequest>[];
 
   @override
   Future<Map<String, dynamic>> fetchSongUrl({
@@ -474,12 +556,36 @@ class _FakeOnlineApiClient extends OnlineApiClient {
     int? quality,
     String? format,
   }) {
+    requests.add(
+      _SongUrlRequest(
+        songId: songId,
+        platform: platform,
+        quality: quality,
+        format: format,
+      ),
+    );
     final handler = handlers[songId];
     if (handler == null) {
       throw StateError('缺少 $songId 的测试响应');
     }
     return handler();
   }
+}
+
+typedef _SongUrlHandler = Future<Map<String, dynamic>> Function();
+
+class _SongUrlRequest {
+  const _SongUrlRequest({
+    required this.songId,
+    required this.platform,
+    required this.quality,
+    required this.format,
+  });
+
+  final String songId;
+  final String platform;
+  final int? quality;
+  final String? format;
 }
 
 class _FakeRadioApiClient extends RadioApiClient {

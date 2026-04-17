@@ -28,7 +28,6 @@ import '../../domain/entities/player_queue_snapshot.dart';
 import '../../domain/entities/player_queue_source.dart';
 import '../../domain/entities/player_track.dart';
 import '../providers/player_audio_provider.dart';
-import '../providers/player_playback_api_provider.dart';
 import '../providers/player_history_provider.dart';
 import '../providers/player_progress_provider.dart';
 import '../providers/player_queue_provider.dart';
@@ -173,25 +172,19 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       clearError: true,
     );
     _markFreshPositionPending();
-    final requestId = _beginTrackSwitchRequest();
-    await _execute(() async {
-      _guardTrackSwitchRequest(requestId);
-      final resolution = await _resolveQueueTrackForPlayback(queue, startIndex);
-      _guardTrackSwitchRequest(requestId);
-      state = state.copyWith(
-        queue: resolution.updatedQueue,
-        currentAvailableQualities: resolution.availableQualities,
-        currentSelectedQualityName: resolution.selectedQualityName,
-        clearError: true,
-      );
-      _guardTrackSwitchRequest(requestId);
-      await _syncQueueToAudioPlayer(
-        queue: resolution.updatedQueue,
-        currentIndex: startIndex,
-        autoplay: autoplay,
-        restoreProgress: false,
-      );
-    }, trackSwitchRequestId: requestId);
+    await _reloadQueueAt(
+      queue: queue,
+      index: startIndex,
+      autoplay: autoplay,
+      applyResolvedState: (_TrackPlaybackResolution resolution) {
+        state = state.copyWith(
+          queue: resolution.updatedQueue,
+          currentAvailableQualities: resolution.availableQualities,
+          currentSelectedQualityName: resolution.selectedQualityName,
+          clearError: true,
+        );
+      },
+    );
     await _persistQueueState();
   }
 
@@ -247,28 +240,19 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       clearError: true,
     );
     _markFreshPositionPending();
-    final requestId = _beginTrackSwitchRequest();
-    await _execute(() async {
-      _guardTrackSwitchRequest(requestId);
-      final resolution = await _resolveQueueTrackForPlayback(
-        snapshot.queue,
-        targetIndex,
-      );
-      _guardTrackSwitchRequest(requestId);
-      state = state.copyWith(
-        queue: resolution.updatedQueue,
-        currentAvailableQualities: resolution.availableQualities,
-        currentSelectedQualityName: resolution.selectedQualityName,
-        clearError: true,
-      );
-      _guardTrackSwitchRequest(requestId);
-      await _syncQueueToAudioPlayer(
-        queue: resolution.updatedQueue,
-        currentIndex: targetIndex,
-        autoplay: autoplay,
-        restoreProgress: false,
-      );
-    }, trackSwitchRequestId: requestId);
+    await _reloadQueueAt(
+      queue: snapshot.queue,
+      index: targetIndex,
+      autoplay: autoplay,
+      applyResolvedState: (_TrackPlaybackResolution resolution) {
+        state = state.copyWith(
+          queue: resolution.updatedQueue,
+          currentAvailableQualities: resolution.availableQualities,
+          currentSelectedQualityName: resolution.selectedQualityName,
+          clearError: true,
+        );
+      },
+    );
     await _persistQueueState();
   }
 
@@ -335,25 +319,19 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       clearError: true,
     );
     _markFreshPositionPending();
-    final requestId = _beginTrackSwitchRequest();
-    await _execute(() async {
-      _guardTrackSwitchRequest(requestId);
-      final resolution = await _resolveTrackForPlayback(index);
-      _guardTrackSwitchRequest(requestId);
-      state = state.copyWith(
-        queue: resolution.updatedQueue,
-        currentAvailableQualities: resolution.availableQualities,
-        currentSelectedQualityName: resolution.selectedQualityName,
-        clearError: true,
-      );
-      _guardTrackSwitchRequest(requestId);
-      await _syncQueueToAudioPlayer(
-        queue: resolution.updatedQueue,
-        currentIndex: index,
-        autoplay: true,
-        restoreProgress: false,
-      );
-    }, trackSwitchRequestId: requestId);
+    await _reloadQueueAt(
+      queue: state.queue,
+      index: index,
+      autoplay: true,
+      applyResolvedState: (_TrackPlaybackResolution resolution) {
+        state = state.copyWith(
+          queue: resolution.updatedQueue,
+          currentAvailableQualities: resolution.availableQualities,
+          currentSelectedQualityName: resolution.selectedQualityName,
+          clearError: true,
+        );
+      },
+    );
     await _persistQueueState();
   }
 
@@ -434,32 +412,23 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       clearError: true,
     );
     _markFreshPositionPending();
-    final requestId = _beginTrackSwitchRequest();
-    await _execute(() async {
-      _guardTrackSwitchRequest(requestId);
-      final resolution = await _resolveQueueTrackForPlayback(
-        nextQueue,
-        targetIndex,
-      );
-      _guardTrackSwitchRequest(requestId);
-      state = state.copyWith(
-        queue: resolution.updatedQueue,
-        currentAvailableQualities: resolution.availableQualities,
-        currentSelectedQualityName: resolution.selectedQualityName,
-        isRadioMode: false,
-        clearCurrentRadioId: true,
-        clearCurrentRadioPlatform: true,
-        clearCurrentRadioPageIndex: true,
-        clearError: true,
-      );
-      _guardTrackSwitchRequest(requestId);
-      await _syncQueueToAudioPlayer(
-        queue: resolution.updatedQueue,
-        currentIndex: targetIndex,
-        autoplay: true,
-        restoreProgress: false,
-      );
-    }, trackSwitchRequestId: requestId);
+    await _reloadQueueAt(
+      queue: nextQueue,
+      index: targetIndex,
+      autoplay: true,
+      applyResolvedState: (_TrackPlaybackResolution resolution) {
+        state = state.copyWith(
+          queue: resolution.updatedQueue,
+          currentAvailableQualities: resolution.availableQualities,
+          currentSelectedQualityName: resolution.selectedQualityName,
+          isRadioMode: false,
+          clearCurrentRadioId: true,
+          clearCurrentRadioPlatform: true,
+          clearCurrentRadioPageIndex: true,
+          clearError: true,
+        );
+      },
+    );
     await _persistQueueState();
   }
 
@@ -548,32 +517,23 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       clearError: true,
     );
     _markFreshPositionPending();
-    final requestId = _beginTrackSwitchRequest();
-    await _execute(() async {
-      _guardTrackSwitchRequest(requestId);
-      final resolution = await _resolveQueueTrackForPlayback(
-        nextQueue,
-        targetIndex,
-      );
-      _guardTrackSwitchRequest(requestId);
-      state = state.copyWith(
-        queue: resolution.updatedQueue,
-        currentAvailableQualities: resolution.availableQualities,
-        currentSelectedQualityName: resolution.selectedQualityName,
-        isRadioMode: false,
-        clearCurrentRadioId: true,
-        clearCurrentRadioPlatform: true,
-        clearCurrentRadioPageIndex: true,
-        clearError: true,
-      );
-      _guardTrackSwitchRequest(requestId);
-      await _syncQueueToAudioPlayer(
-        queue: resolution.updatedQueue,
-        currentIndex: targetIndex,
-        autoplay: wasPlaying,
-        restoreProgress: false,
-      );
-    }, trackSwitchRequestId: requestId);
+    await _reloadQueueAt(
+      queue: nextQueue,
+      index: targetIndex,
+      autoplay: wasPlaying,
+      applyResolvedState: (_TrackPlaybackResolution resolution) {
+        state = state.copyWith(
+          queue: resolution.updatedQueue,
+          currentAvailableQualities: resolution.availableQualities,
+          currentSelectedQualityName: resolution.selectedQualityName,
+          isRadioMode: false,
+          clearCurrentRadioId: true,
+          clearCurrentRadioPlatform: true,
+          clearCurrentRadioPageIndex: true,
+          clearError: true,
+        );
+      },
+    );
     await _persistQueueState();
   }
 
@@ -744,6 +704,11 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         currentSelectedQualityName: resolution.selectedQualityName,
         clearError: true,
       );
+      ref
+          .read(appConfigProvider.notifier)
+          .setLastSelectedOnlineAudioQualityName(matchedOption.name);
+      await _syncAudioHandlerConfigFromState();
+      _guardTrackSwitchRequest(requestId);
       await _persistQueueState();
       _guardTrackSwitchRequest(requestId);
       await _audioPlayer.setSource(_toAudioTrack(resolution.track));
@@ -755,9 +720,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       if (wasPlaying) {
         await _audioPlayer.play();
       }
-      ref
-          .read(appConfigProvider.notifier)
-          .setLastSelectedOnlineAudioQualityName(matchedOption.name);
     }, trackSwitchRequestId: requestId);
   }
 
@@ -798,6 +760,34 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       state = state.copyWith(errorMessage: _userFacingPlaybackError(error));
       rethrow;
     }
+  }
+
+  Future<void> _reloadQueueAt({
+    required List<PlayerTrack> queue,
+    required int index,
+    required bool autoplay,
+    required void Function(_TrackPlaybackResolution resolution)
+    applyResolvedState,
+    String? forcedQualityName,
+  }) async {
+    final requestId = _beginTrackSwitchRequest();
+    await _execute(() async {
+      _guardTrackSwitchRequest(requestId);
+      final resolution = await _resolveQueueTrackForPlayback(
+        queue,
+        index,
+        forcedQualityName: forcedQualityName,
+      );
+      _guardTrackSwitchRequest(requestId);
+      applyResolvedState(resolution);
+      _guardTrackSwitchRequest(requestId);
+      await _syncQueueToAudioPlayer(
+        queue: resolution.updatedQueue,
+        currentIndex: index,
+        autoplay: autoplay,
+        restoreProgress: false,
+      );
+    }, trackSwitchRequestId: requestId);
   }
 
   int _beginTrackSwitchRequest() {
@@ -911,7 +901,17 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     if (localPath.isNotEmpty) {
       return true;
     }
+    final platform = track.platform?.trim() ?? '';
+    if (platform.isNotEmpty) {
+      return false;
+    }
     return track.url.trim().isNotEmpty;
+  }
+
+  Future<void> _syncAudioHandlerConfigFromState() async {
+    if (_audioPlayer case final AudioHandlerPlayerAdapter adapter) {
+      await adapter.syncConfig(ref.read(appConfigProvider));
+    }
   }
 
   Future<void> _applyPlayMode(PlayerPlayMode mode) async {
@@ -1026,15 +1026,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       availableQualities: availableQualities,
       forcedQualityName: forcedQualityName,
     );
-    final matchedQuality = selectedQualityName == null
-        ? null
-        : _findQualityOptionByName(availableQualities, selectedQualityName);
-    var resolvedTrack = track;
-    if (matchedQuality != null) {
-      resolvedTrack = track.copyWith(url: matchedQuality.url.trim());
-    } else if (track.links.isNotEmpty) {
-      resolvedTrack = track.copyWith(url: '');
-    }
     final localPath = track.path?.trim() ?? '';
     if (localPath.isNotEmpty) {
       final localUrl = _localPathToUrl(localPath);
@@ -1050,28 +1041,15 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
         selectedQualityName: selectedQualityName,
       );
     }
-    if (resolvedTrack.url.trim().isEmpty) {
-      final platform = (track.platform ?? '').trim();
-      if (platform.isEmpty) {
-        throw const AppException(
-          ValidationFailure('Player track url is missing.'),
-        );
-      }
-      final payload = await ref
-          .read(playerPlaybackApiClientProvider)
-          .fetchSongUrl(
-            songId: track.id,
-            platform: platform,
-            quality: _requestQuality(matchedQuality),
-            format: _requestFormat(matchedQuality),
-          );
-      final url = '${payload['url'] ?? ''}'.trim();
-      if (url.isEmpty) {
-        throw const AppException(
-          NetworkFailure('Invalid /v1/song/url response: missing url'),
-        );
-      }
-      resolvedTrack = track.copyWith(url: url);
+    final platform = (track.platform ?? '').trim();
+    var resolvedTrack = track;
+    if (platform.isNotEmpty) {
+      resolvedTrack = track.copyWith(url: '');
+    }
+    if (resolvedTrack.url.trim().isEmpty && platform.isEmpty) {
+      throw const AppException(
+        ValidationFailure('Player track url is missing.'),
+      );
     }
     final nextQueue = <PlayerTrack>[...queue];
     nextQueue[index] = resolvedTrack;
@@ -1249,50 +1227,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     }
     if (name.contains('128') || (format == 'mp3' && option.quality >= 128)) {
       return AppOnlineAudioQuality.mp3128;
-    }
-    return null;
-  }
-
-  int? _requestQuality(PlayerQualityOption? selectedQuality) {
-    if (selectedQuality == null) {
-      return null;
-    }
-    if (selectedQuality.quality > 0) {
-      return selectedQuality.quality;
-    }
-    final numeric = RegExp(r'(\d+)').firstMatch(selectedQuality.name.trim());
-    if (numeric == null) {
-      return null;
-    }
-    return int.tryParse(numeric.group(1)!);
-  }
-
-  String? _requestFormat(PlayerQualityOption? selectedQuality) {
-    final linkFormat = selectedQuality?.format.trim();
-    if (linkFormat != null && linkFormat.isNotEmpty) {
-      return linkFormat;
-    }
-    final name = selectedQuality?.name.trim().toLowerCase() ?? '';
-    if (name.contains('flac')) {
-      return 'flac';
-    }
-    if (name.contains('ape')) {
-      return 'ape';
-    }
-    if (name.contains('m4a')) {
-      return 'm4a';
-    }
-    if (name.contains('ogg')) {
-      return 'ogg';
-    }
-    if (name.contains('wav')) {
-      return 'wav';
-    }
-    if (name.contains('aac')) {
-      return 'aac';
-    }
-    if (name.contains('mp3')) {
-      return 'mp3';
     }
     return null;
   }
