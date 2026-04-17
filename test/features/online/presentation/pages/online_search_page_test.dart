@@ -13,6 +13,7 @@ import 'package:he_music_flutter/features/player/domain/entities/player_playback
 import 'package:he_music_flutter/features/player/domain/entities/player_track.dart';
 import 'package:he_music_flutter/features/player/presentation/controllers/player_controller.dart';
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
+import 'package:he_music_flutter/features/player/presentation/widgets/mini_player_bar.dart';
 import 'package:he_music_flutter/features/player/presentation/widgets/player_queue_sheet.dart';
 import 'package:he_music_flutter/shared/models/he_music_models.dart';
 
@@ -63,6 +64,32 @@ void main() {
       findsNothing,
     );
     expect(find.byType(PlayerQueueSheet), findsOneWidget);
+  });
+
+  testWidgets('online search keeps mini player position when keyboard opens', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async {
+      tester.view.resetViewInsets();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(_buildOnlineSearchApp());
+    await tester.pump();
+    await tester.pump();
+
+    final miniPlayerFinder = find.byType(MiniPlayerBar);
+    final beforeKeyboardTop = tester.getTopLeft(miniPlayerFinder).dy;
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    await tester.pump();
+
+    final afterKeyboardTop = tester.getTopLeft(miniPlayerFinder).dy;
+    expect(afterKeyboardTop, beforeKeyboardTop);
   });
 }
 

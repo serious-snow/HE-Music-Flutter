@@ -10,10 +10,16 @@ import '../../features/player/presentation/widgets/player_queue_panel.dart';
 import 'detail_loading_skeleton.dart';
 
 class DetailPageShell extends StatelessWidget {
-  const DetailPageShell({required this.child, this.bottomBar, super.key});
+  const DetailPageShell({
+    required this.child,
+    this.bottomBar,
+    this.resizeToAvoidBottomInset = true,
+    super.key,
+  });
 
   final Widget child;
   final Widget? bottomBar;
+  final bool resizeToAvoidBottomInset;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +28,7 @@ class DetailPageShell extends StatelessWidget {
         final useDesktopLayout =
             constraints.maxWidth >= playerQueuePanelBreakpoint;
         return Scaffold(
+          resizeToAvoidBottomInset: resizeToAvoidBottomInset,
           body: Stack(
             children: <Widget>[
               Column(

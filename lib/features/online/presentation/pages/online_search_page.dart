@@ -164,6 +164,7 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
         : null;
 
     return DetailPageShell(
+      resizeToAvoidBottomInset: false,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         body: SafeArea(
