@@ -74,7 +74,7 @@ class ArtistPlazaController extends AutoDisposeNotifier<ArtistPlazaState> {
     final platformId = state.selectedPlatformId?.trim() ?? '';
     final normalizedGroupId = groupId.trim();
     final normalizedValue = value.trim();
-    if (platformId.isEmpty || normalizedGroupId.isEmpty){
+    if (platformId.isEmpty || normalizedGroupId.isEmpty) {
       return;
     }
     if (state.selectedFilters[normalizedGroupId] == normalizedValue &&

@@ -19,9 +19,8 @@ class RadioPlazaState {
   final List<RadioGroupInfo> groups;
   final String? errorMessage;
 
-  List<RadioGroupInfo> get availableGroups => groups
-      .where((group) => group.radios.isNotEmpty)
-      .toList(growable: false);
+  List<RadioGroupInfo> get availableGroups =>
+      groups.where((group) => group.radios.isNotEmpty).toList(growable: false);
 
   RadioGroupInfo? get selectedGroup {
     final selectedName = selectedGroupName?.trim() ?? '';
@@ -120,7 +119,9 @@ class RadioPlazaController extends AutoDisposeNotifier<RadioPlazaState> {
       clearError: true,
     );
     try {
-      final groups = await _apiClient.fetchGroups(platform: normalizedPlatformId);
+      final groups = await _apiClient.fetchGroups(
+        platform: normalizedPlatformId,
+      );
       _groupCache[normalizedPlatformId] = groups;
       final selectedGroupName = _resolveSelectedGroupName(
         normalizedPlatformId,
@@ -153,10 +154,14 @@ class RadioPlazaController extends AutoDisposeNotifier<RadioPlazaState> {
       state.groups,
       preferredGroupName: normalizedGroupName,
     );
-    if (selectedGroupName == null || selectedGroupName == state.selectedGroupName) {
+    if (selectedGroupName == null ||
+        selectedGroupName == state.selectedGroupName) {
       return;
     }
-    state = state.copyWith(selectedGroupName: selectedGroupName, clearError: true);
+    state = state.copyWith(
+      selectedGroupName: selectedGroupName,
+      clearError: true,
+    );
   }
 
   Future<void> retry() async {

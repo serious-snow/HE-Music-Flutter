@@ -235,7 +235,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.userPlaylistDetail,
         builder: (context, state) => UserPlaylistDetailPage(
           id: _readQuery(state, 'id'),
-          title: _readOptionalQuery(state, 'title') ??
+          title:
+              _readOptionalQuery(state, 'title') ??
               AppI18n.t(
                 ProviderScope.containerOf(context).read(appConfigProvider),
                 'common.default_playlist',

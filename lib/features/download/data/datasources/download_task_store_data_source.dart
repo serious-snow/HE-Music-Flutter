@@ -11,7 +11,10 @@ class DownloadTaskStoreDataSource {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_downloadTaskStoreKey) ?? const <String>[];
     return raw
-        .map((item) => DownloadTask.fromJson(jsonDecode(item) as Map<String, dynamic>))
+        .map(
+          (item) =>
+              DownloadTask.fromJson(jsonDecode(item) as Map<String, dynamic>),
+        )
         .toList(growable: false);
   }
 

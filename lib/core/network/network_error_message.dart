@@ -50,16 +50,26 @@ class NetworkErrorMessage {
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.sendTimeout =>
-        AppI18n.tByLocaleCode(localeCode, 'error.network.timeout'),
-      DioExceptionType.connectionError =>
-        AppI18n.tByLocaleCode(localeCode, 'error.network.connection_failed'),
-      DioExceptionType.badCertificate =>
-        AppI18n.tByLocaleCode(localeCode, 'error.network.bad_certificate'),
-      DioExceptionType.cancel =>
-        AppI18n.tByLocaleCode(localeCode, 'error.network.cancelled'),
-      DioExceptionType.badResponse =>
-        AppI18n.tByLocaleCode(localeCode, 'error.network.bad_response'),
+      DioExceptionType.sendTimeout => AppI18n.tByLocaleCode(
+        localeCode,
+        'error.network.timeout',
+      ),
+      DioExceptionType.connectionError => AppI18n.tByLocaleCode(
+        localeCode,
+        'error.network.connection_failed',
+      ),
+      DioExceptionType.badCertificate => AppI18n.tByLocaleCode(
+        localeCode,
+        'error.network.bad_certificate',
+      ),
+      DioExceptionType.cancel => AppI18n.tByLocaleCode(
+        localeCode,
+        'error.network.cancelled',
+      ),
+      DioExceptionType.badResponse => AppI18n.tByLocaleCode(
+        localeCode,
+        'error.network.bad_response',
+      ),
       DioExceptionType.unknown => _fallbackMessage(error.message, localeCode),
     };
   }

@@ -23,11 +23,10 @@ final downloadRunnerDataSourceProvider = Provider<DownloadRunnerDataSource>((
   return DownloadRunnerDataSource();
 });
 
-final downloadTaskStoreDataSourceProvider = Provider<DownloadTaskStoreDataSource>(
-  (ref) {
-    return DownloadTaskStoreDataSource();
-  },
-);
+final downloadTaskStoreDataSourceProvider =
+    Provider<DownloadTaskStoreDataSource>((ref) {
+      return DownloadTaskStoreDataSource();
+    });
 
 final downloadRepositoryProvider = Provider<DownloadRepository>((ref) {
   final runnerDataSource = ref.read(downloadRunnerDataSourceProvider);
@@ -41,7 +40,9 @@ final downloadRepositoryProvider = Provider<DownloadRepository>((ref) {
 });
 
 final downloadMetadataWriterProvider = Provider<DownloadMetadataWriter>((ref) {
-  final lyricDataSource = OnlineLyricDataSource(ref.read(onlineApiClientProvider));
+  final lyricDataSource = OnlineLyricDataSource(
+    ref.read(onlineApiClientProvider),
+  );
   return DownloadMetadataWriter(
     lyricResolver: DownloadLyricResolver.fromDataSource(lyricDataSource),
     metadataAdapter: const AudioMetadataAdapter(),

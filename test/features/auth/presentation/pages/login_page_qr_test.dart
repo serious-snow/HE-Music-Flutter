@@ -42,62 +42,62 @@ void main() {
     expect(client.createQrCallCount, 1);
   });
 
-  testWidgets(
-    'desktop login page recreates qr session after reopening',
-    (tester) async {
-      final container = ProviderContainer(
-        overrides: <Override>[
-          appConfigProvider.overrideWith(() => _TestAppConfigController()),
-          onlineApiClientProvider.overrideWithValue(
-            _LoginPageTestClient.desktop(),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-      final client = container.read(onlineApiClientProvider) as _LoginPageTestClient;
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            theme: ThemeData(platform: TargetPlatform.macOS),
-            home: const LoginPage(redirectLocation: null),
-          ),
+  testWidgets('desktop login page recreates qr session after reopening', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: <Override>[
+        appConfigProvider.overrideWith(() => _TestAppConfigController()),
+        onlineApiClientProvider.overrideWithValue(
+          _LoginPageTestClient.desktop(),
         ),
-      );
-      await tester.pump();
-      await tester.tap(find.text('扫码登录'));
-      await tester.pump();
+      ],
+    );
+    addTearDown(container.dispose);
+    final client =
+        container.read(onlineApiClientProvider) as _LoginPageTestClient;
 
-      expect(client.createQrCallCount, 1);
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            theme: ThemeData(platform: TargetPlatform.macOS),
-            home: const SizedBox.shrink(),
-          ),
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
+          home: const LoginPage(redirectLocation: null),
         ),
-      );
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('扫码登录'));
+    await tester.pump();
 
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            theme: ThemeData(platform: TargetPlatform.macOS),
-            home: const LoginPage(redirectLocation: null),
-          ),
+    expect(client.createQrCallCount, 1);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
+          home: const SizedBox.shrink(),
         ),
-      );
-      await tester.pump();
-      await tester.tap(find.text('扫码登录'));
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
 
-      expect(client.createQrCallCount, 2);
-    },
-  );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
+          home: const LoginPage(redirectLocation: null),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('扫码登录'));
+    await tester.pump();
+
+    expect(client.createQrCallCount, 2);
+  });
 
   testWidgets(
     'desktop login page shows overlay and refresh only when expired',

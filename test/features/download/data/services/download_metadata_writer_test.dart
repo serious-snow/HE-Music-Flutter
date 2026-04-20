@@ -195,27 +195,30 @@ void main() {
     },
   );
 
-  test('audio metadata adapter still writes when reading existing tag fails', () async {
-    at.Tag? persistedMetadata;
-    final adapter = AudioMetadataAdapter(
-      readTag: (_) async => throw RangeError(1684098068),
-      writeTag: (_, metadata) async {
-        persistedMetadata = metadata;
-      },
-    );
+  test(
+    'audio metadata adapter still writes when reading existing tag fails',
+    () async {
+      at.Tag? persistedMetadata;
+      final adapter = AudioMetadataAdapter(
+        readTag: (_) async => throw RangeError(1684098068),
+        writeTag: (_, metadata) async {
+          persistedMetadata = metadata;
+        },
+      );
 
-    await adapter.write(
-      path: '/tmp/test-song.flac',
-      title: 'Runway(Explicit)',
-      artist: 'Lady Gaga / Doechii',
-      album: 'Runway (Explicit)',
-    );
+      await adapter.write(
+        path: '/tmp/test-song.flac',
+        title: 'Runway(Explicit)',
+        artist: 'Lady Gaga / Doechii',
+        album: 'Runway (Explicit)',
+      );
 
-    final metadata = persistedMetadata;
-    expect(metadata, isNotNull);
-    expect(metadata!.artists, <String>['Lady Gaga', 'Doechii']);
-    expect(metadata.albumArtists, <String>['Lady Gaga', 'Doechii']);
-  });
+      final metadata = persistedMetadata;
+      expect(metadata, isNotNull);
+      expect(metadata!.artists, <String>['Lady Gaga', 'Doechii']);
+      expect(metadata.albumArtists, <String>['Lady Gaga', 'Doechii']);
+    },
+  );
 }
 
 class _FakeMetadataAdapter implements DownloadMetadataAdapter {

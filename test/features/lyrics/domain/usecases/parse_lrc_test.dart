@@ -84,19 +84,21 @@ void main() {
     expect(result.romanization, contains('[00:01.00]yin yi ge ci'));
   });
 
-  test('normalizeWordLyricText should keep text and strip word timing tokens', () {
-    final result = normalizeWordLyricText(
-      '[00:01.00]<0,500>夜<500,500>曲',
-    );
+  test(
+    'normalizeWordLyricText should keep text and strip word timing tokens',
+    () {
+      final result = normalizeWordLyricText('[00:01.00]<0,500>夜<500,500>曲');
 
-    expect(result, '[00:01.00]夜曲');
-  });
+      expect(result, '[00:01.00]夜曲');
+    },
+  );
 
-  test('parseTimedLyricEntries should preserve word lyric content after normalization', () {
-    final result = parseTimedLyricEntries(
-      '[00:01.00]<0,500>夜<500,500>曲',
-    );
+  test(
+    'parseTimedLyricEntries should preserve word lyric content after normalization',
+    () {
+      final result = parseTimedLyricEntries('[00:01.00]<0,500>夜<500,500>曲');
 
-    expect(result, <String>['夜曲']);
-  });
+      expect(result, <String>['夜曲']);
+    },
+  );
 }

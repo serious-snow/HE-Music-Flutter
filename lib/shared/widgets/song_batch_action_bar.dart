@@ -121,7 +121,10 @@ class SongBatchActionBar extends StatelessWidget {
       ),
       AdaptiveActionMenuItem<VoidCallback>(
         value: onAddToPlaylistPressed ?? () {},
-        label: AppI18n.tByLocaleCode(localeCode, 'detail.batch.add_to_playlist'),
+        label: AppI18n.tByLocaleCode(
+          localeCode,
+          'detail.batch.add_to_playlist',
+        ),
         icon: Icons.playlist_add_rounded,
         enabled: onAddToPlaylistPressed != null,
       ),

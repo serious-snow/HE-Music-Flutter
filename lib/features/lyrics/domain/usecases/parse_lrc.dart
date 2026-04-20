@@ -113,9 +113,10 @@ bool hasTimedLyricEntries(String raw) {
 }
 
 List<String> parseTimedLyricEntries(String raw) {
-  return _parseEntries(raw, normalizeWordLyric: true)
-      .map((entry) => entry.content)
-      .toList(growable: false);
+  return _parseEntries(
+    raw,
+    normalizeWordLyric: true,
+  ).map((entry) => entry.content).toList(growable: false);
 }
 
 LyricDocument _parseWordLyric({
@@ -209,10 +210,7 @@ String? _findByRawTimeOrStart(
 }
 
 String normalizeWordLyric(String input) {
-  return input.replaceAllMapped(
-    _tokenPattern,
-    (match) => match.group(3) ?? '',
-  );
+  return input.replaceAllMapped(_tokenPattern, (match) => match.group(3) ?? '');
 }
 
 List<LyricToken> _parseTokens(String raw) {

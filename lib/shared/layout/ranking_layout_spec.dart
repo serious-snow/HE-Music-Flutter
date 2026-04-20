@@ -55,9 +55,11 @@ RankingWrapLayoutSpec resolveRankingWrapLayoutSpec({
     minCount,
     ((safeWidth + spacing) / (minItemWidth + spacing)).floor(),
   );
-  final preferredCount = ((safeWidth + spacing) / (preferredItemWidth + spacing))
-      .floor()
-      .clamp(minCount, maxCount);
+  final preferredCount =
+      ((safeWidth + spacing) / (preferredItemWidth + spacing)).floor().clamp(
+        minCount,
+        maxCount,
+      );
   final totalSpacing = spacing * (preferredCount - 1);
   final itemWidth = (safeWidth - totalSpacing) / preferredCount;
 

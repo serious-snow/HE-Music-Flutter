@@ -858,7 +858,8 @@ abstract final class AppI18n {
       'error.network.not_found': 'Content not found',
       'error.network.server_error': 'Server error, please try again later',
       'error.network.timeout': 'Network timeout, please try again later',
-      'error.network.connection_failed': 'Network connection failed, please check your network',
+      'error.network.connection_failed':
+          'Network connection failed, please check your network',
       'error.network.bad_certificate': 'Certificate verification failed',
       'error.network.cancelled': 'Request cancelled',
       'error.network.bad_response': 'Bad response, please try again later',
@@ -866,13 +867,19 @@ abstract final class AppI18n {
       'startup.syncing': 'Syncing online platforms and session state',
       'startup.failed': 'Startup Failed',
       'startup.init_failed': 'Initialization failed, please try again.',
-      'startup.config_missing': 'API base URL not configured, please check assets/app_config.json.',
-      'startup.network_timeout': 'Network timeout, please check your network and try again.',
-      'startup.network_failed': 'Network connection failed, please check your network or DNS and try again.',
-      'startup.certificate_failed': 'Certificate verification failed, please check your network environment and try again.',
-      'startup.response_error': 'Response error ({code}), please try again later.',
+      'startup.config_missing':
+          'API base URL not configured, please check assets/app_config.json.',
+      'startup.network_timeout':
+          'Network timeout, please check your network and try again.',
+      'startup.network_failed':
+          'Network connection failed, please check your network or DNS and try again.',
+      'startup.certificate_failed':
+          'Certificate verification failed, please check your network environment and try again.',
+      'startup.response_error':
+          'Response error ({code}), please try again later.',
       'startup.request_cancelled': 'Request cancelled, please try again.',
-      'startup.network_error': 'Network error, please check your network and try again.',
+      'startup.network_error':
+          'Network error, please check your network and try again.',
       'song.tag.original': 'Original',
       'song.more_versions': 'More Versions',
       'common.unknown_author': 'Unknown Author',

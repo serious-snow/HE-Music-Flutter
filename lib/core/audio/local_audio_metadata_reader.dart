@@ -91,17 +91,10 @@ class LocalAudioMetadataReader {
         metadata.sampleRate == null;
   }
 
-  String? _normalizeArtists(
-    List<String> artists,
-    List<String> albumArtists,
-  ) {
+  String? _normalizeArtists(List<String> artists, List<String> albumArtists) {
     final normalized = <String>{
-      ...artists
-          .map(_normalizeText)
-          .whereType<String>(),
-      ...albumArtists
-          .map(_normalizeText)
-          .whereType<String>(),
+      ...artists.map(_normalizeText).whereType<String>(),
+      ...albumArtists.map(_normalizeText).whereType<String>(),
     }.toList(growable: false);
     if (normalized.isEmpty) {
       return null;
@@ -110,11 +103,10 @@ class LocalAudioMetadataReader {
   }
 
   String? _normalizeText(String? value) {
-    final normalized =
-        value
-            ?.replaceAll('\u0000', ' / ')
-            .replaceAll(RegExp(r'\s+/\s+'), ' / ')
-            .trim();
+    final normalized = value
+        ?.replaceAll('\u0000', ' / ')
+        .replaceAll(RegExp(r'\s+/\s+'), ' / ')
+        .trim();
     if (normalized == null || normalized.isEmpty || normalized == '<unknown>') {
       return null;
     }

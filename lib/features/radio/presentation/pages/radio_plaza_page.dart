@@ -130,7 +130,9 @@ class _RadioPlazaPageState extends ConsumerState<RadioPlazaPage> {
       if (!mounted) {
         return;
       }
-      ref.read(radioPlazaControllerProvider.notifier).initialize(initialPlatformId);
+      ref
+          .read(radioPlazaControllerProvider.notifier)
+          .initialize(initialPlatformId);
     });
   }
 
@@ -174,11 +176,9 @@ class _RadioPlazaPageState extends ConsumerState<RadioPlazaPage> {
       return;
     }
     try {
-      final songs = await ref.read(radioApiClientProvider).fetchSongs(
-        id: radioId,
-        platform: radioPlatform,
-        pageIndex: 1,
-      );
+      final songs = await ref
+          .read(radioApiClientProvider)
+          .fetchSongs(id: radioId, platform: radioPlatform, pageIndex: 1);
       if (songs.isEmpty) {
         if (!mounted) {
           return;
@@ -227,7 +227,9 @@ class _RadioPlazaPageState extends ConsumerState<RadioPlazaPage> {
       id: song.id,
       title: song.title,
       path: localPath == null || localPath.isEmpty ? null : localPath,
-      duration: song.duration > 0 ? Duration(milliseconds: song.duration) : null,
+      duration: song.duration > 0
+          ? Duration(milliseconds: song.duration)
+          : null,
       links: song.links,
       artist: song.artist,
       albumId: song.album?.id,
@@ -352,43 +354,41 @@ class _GroupTabsState extends State<_GroupTabs> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: widget.groups
-              .map(
-                (group) {
-                  final normalizedGroupName = group.name.trim();
-                  final groupName = normalizedGroupName.isEmpty
-                      ? '-'
-                      : normalizedGroupName;
-                  final selected =
-                      normalizedGroupName == normalizedSelectedGroupName;
-                  return Padding(
-                    key: _keyForGroup(normalizedGroupName),
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(groupName),
-                      showCheckmark: false,
-                      selectedColor: colorScheme.primary.withValues(alpha: 0.10),
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      side: BorderSide(
-                        color: selected
-                            ? colorScheme.primary.withValues(alpha: 0.30)
-                            : colorScheme.outlineVariant,
-                      ),
-                      labelStyle: theme.textTheme.labelLarge?.copyWith(
-                        color: selected
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 0,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      selected: selected,
-                      onSelected: (_) => widget.onSelected(group.name),
+              .map((group) {
+                final normalizedGroupName = group.name.trim();
+                final groupName = normalizedGroupName.isEmpty
+                    ? '-'
+                    : normalizedGroupName;
+                final selected =
+                    normalizedGroupName == normalizedSelectedGroupName;
+                return Padding(
+                  key: _keyForGroup(normalizedGroupName),
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(groupName),
+                    showCheckmark: false,
+                    selectedColor: colorScheme.primary.withValues(alpha: 0.10),
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    side: BorderSide(
+                      color: selected
+                          ? colorScheme.primary.withValues(alpha: 0.30)
+                          : colorScheme.outlineVariant,
                     ),
-                  );
-                },
-              )
+                    labelStyle: theme.textTheme.labelLarge?.copyWith(
+                      color: selected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 0,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    selected: selected,
+                    onSelected: (_) => widget.onSelected(group.name),
+                  ),
+                );
+              })
               .toList(growable: false),
         ),
       ),
@@ -432,14 +432,17 @@ class _RadioGrid extends ConsumerWidget {
     final playerState = ref.watch(playerControllerProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spec = resolveAdaptiveMediaGridSpec(maxWidth: constraints.maxWidth);
+        final spec = resolveAdaptiveMediaGridSpec(
+          maxWidth: constraints.maxWidth,
+        );
         return GridView.builder(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
           gridDelegate: spec.sliverDelegate,
           itemCount: radios.length,
           itemBuilder: (context, index) {
             final radio = radios[index];
-            final isPlaying = playerState.isRadioMode &&
+            final isPlaying =
+                playerState.isRadioMode &&
                 playerState.currentRadioId == radio.id.trim() &&
                 playerState.currentRadioPlatform == radio.platform.trim();
             return MediaGridCard(

@@ -262,23 +262,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
     if (currentTrack == null) {
       return;
     }
-    final currentIndex = _safeCurrentIndex(state.queue.length);
-    if (!_hasReadyPlaybackSource(currentTrack)) {
-      await _execute(() async {
-        final resolution = await _resolveTrackForPlayback(currentIndex);
-        state = state.copyWith(
-          queue: resolution.updatedQueue,
-          currentAvailableQualities: resolution.availableQualities,
-          currentSelectedQualityName: resolution.selectedQualityName,
-          clearError: true,
-        );
-        await _persistQueueState();
-        await _audioPlayer.setSource(_toAudioTrack(resolution.track));
-        await _audioPlayer.play();
-        await _recordCurrentTrackHistory(index: currentIndex);
-      });
-      return;
-    }
     await _execute(() async {
       await _audioPlayer.play();
       await _recordCurrentTrackHistory();
@@ -899,18 +882,6 @@ class PlayerController extends Notifier<PlayerPlaybackState> {
       artworkUrl: track.artworkUrl,
       platform: track.platform,
     );
-  }
-
-  bool _hasReadyPlaybackSource(PlayerTrack track) {
-    final localPath = track.path?.trim() ?? '';
-    if (localPath.isNotEmpty) {
-      return true;
-    }
-    final platform = track.platform?.trim() ?? '';
-    if (platform.isNotEmpty) {
-      return false;
-    }
-    return track.url.trim().isNotEmpty;
   }
 
   Future<void> _syncAudioHandlerConfigFromState() async {

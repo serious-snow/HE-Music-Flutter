@@ -32,6 +32,8 @@ class CurrentLyricStoreState {
 }
 
 class CurrentLyricStore extends Notifier<CurrentLyricStoreState> {
+  int _requestVersion = 0;
+
   @override
   CurrentLyricStoreState build() {
     return const CurrentLyricStoreState();
@@ -42,23 +44,27 @@ class CurrentLyricStore extends Notifier<CurrentLyricStoreState> {
         state.document is AsyncData<LyricDocument>) {
       return;
     }
+    final requestVersion = ++_requestVersion;
     state = CurrentLyricStoreState(
       request: request,
       document: const AsyncLoading<LyricDocument>(),
     );
-    state = state.copyWith(
-      document: await AsyncValue.guard(() async {
-        final repository = ref.read(lyricRepositoryProvider);
-        return repository.fetchLyrics(
-          trackId: request.trackId,
-          platform: request.platform,
-          localPath: request.localPath,
-        );
-      }),
-    );
+    final document = await AsyncValue.guard(() async {
+      final repository = ref.read(lyricRepositoryProvider);
+      return repository.fetchLyrics(
+        trackId: request.trackId,
+        platform: request.platform,
+        localPath: request.localPath,
+      );
+    });
+    if (requestVersion != _requestVersion || state.request != request) {
+      return;
+    }
+    state = state.copyWith(document: document);
   }
 
   void clear() {
+    _requestVersion += 1;
     state = const CurrentLyricStoreState();
   }
 }

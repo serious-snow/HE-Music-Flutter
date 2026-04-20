@@ -7,7 +7,8 @@ const _downloadDirName = 'HEMusic';
 class DownloadPathDataSource {
   Future<Directory> ensureDownloadDirectory() async {
     final baseDir =
-        await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+        await getDownloadsDirectory() ??
+        await getApplicationDocumentsDirectory();
     final targetDir = Directory('${baseDir.path}/$_downloadDirName');
     try {
       if (await targetDir.exists()) {
@@ -16,7 +17,9 @@ class DownloadPathDataSource {
       return await targetDir.create(recursive: true);
     } on FileSystemException {
       final fallbackBaseDir = await getApplicationDocumentsDirectory();
-      final fallbackDir = Directory('${fallbackBaseDir.path}/$_downloadDirName');
+      final fallbackDir = Directory(
+        '${fallbackBaseDir.path}/$_downloadDirName',
+      );
       if (await fallbackDir.exists()) {
         return fallbackDir;
       }

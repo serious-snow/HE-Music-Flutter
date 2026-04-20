@@ -390,7 +390,9 @@ class _AdaptiveActionMenuBottomSheetBody<T> extends StatelessWidget {
               ),
               SizedBox(width: isCompact ? 12 : 14),
             ],
-            Expanded(child: _ActionMenuLabel(item: item, compact: isCompact)),
+            Expanded(
+              child: _ActionMenuLabel(item: item, compact: isCompact),
+            ),
           ],
         ),
       ),

@@ -32,7 +32,9 @@ void main() {
         overrides: <Override>[
           appConfigProvider.overrideWith(_TestAppConfigController.new),
           playerControllerProvider.overrideWith(_TestPlayerController.new),
-          onlinePlatformsProvider.overrideWith(_TestOnlinePlatformsController.new),
+          onlinePlatformsProvider.overrideWith(
+            _TestOnlinePlatformsController.new,
+          ),
           playlistDetailRepositoryProvider.overrideWithValue(repository),
           favoriteSongStatusProvider.overrideWith(
             _TestFavoriteSongStatusController.new,
@@ -117,7 +119,9 @@ class _LikedPlaylistCollectionStatusController
 
 class _FakePlaylistDetailRepository implements PlaylistDetailRepository {
   @override
-  Future<PlaylistDetailContent> fetchDetail(PlaylistDetailRequest request) async {
+  Future<PlaylistDetailContent> fetchDetail(
+    PlaylistDetailRequest request,
+  ) async {
     return PlaylistDetailContent(
       info: PlaylistInfo(
         name: '测试歌单',

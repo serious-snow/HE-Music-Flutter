@@ -16,28 +16,33 @@ void main() {
     _CountingFavoriteCollectionStatusController.reset();
   });
 
-  test('app startup refreshes favorite states when auth token exists', () async {
-    final container = ProviderContainer(
-      overrides: <Override>[
-        appConfigProvider.overrideWith(
-          () => _TestAppConfigController(authToken: 'token'),
-        ),
-        onlinePlatformsProvider.overrideWith(_TestOnlinePlatformsController.new),
-        favoriteSongStatusProvider.overrideWith(
-          _CountingFavoriteSongStatusController.new,
-        ),
-        favoriteCollectionStatusProvider.overrideWith(
-          _CountingFavoriteCollectionStatusController.new,
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'app startup refreshes favorite states when auth token exists',
+    () async {
+      final container = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(
+            () => _TestAppConfigController(authToken: 'token'),
+          ),
+          onlinePlatformsProvider.overrideWith(
+            _TestOnlinePlatformsController.new,
+          ),
+          favoriteSongStatusProvider.overrideWith(
+            _CountingFavoriteSongStatusController.new,
+          ),
+          favoriteCollectionStatusProvider.overrideWith(
+            _CountingFavoriteCollectionStatusController.new,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    await container.read(appStartupProvider.future);
+      await container.read(appStartupProvider.future);
 
-    expect(_CountingFavoriteSongStatusController.refreshCallCount, 1);
-    expect(_CountingFavoriteCollectionStatusController.refreshCallCount, 1);
-  });
+      expect(_CountingFavoriteSongStatusController.refreshCallCount, 1);
+      expect(_CountingFavoriteCollectionStatusController.refreshCallCount, 1);
+    },
+  );
 
   test('app startup ignores favorite state preload failures', () async {
     final container = ProviderContainer(
@@ -45,7 +50,9 @@ void main() {
         appConfigProvider.overrideWith(
           () => _TestAppConfigController(authToken: 'token'),
         ),
-        onlinePlatformsProvider.overrideWith(_TestOnlinePlatformsController.new),
+        onlinePlatformsProvider.overrideWith(
+          _TestOnlinePlatformsController.new,
+        ),
         favoriteSongStatusProvider.overrideWith(
           _ThrowingFavoriteSongStatusController.new,
         ),
@@ -89,7 +96,8 @@ class _TestOnlinePlatformsController extends OnlinePlatformsController {
   }
 }
 
-class _CountingFavoriteSongStatusController extends FavoriteSongStatusController {
+class _CountingFavoriteSongStatusController
+    extends FavoriteSongStatusController {
   static int refreshCallCount = 0;
 
   static void reset() {
@@ -126,7 +134,8 @@ class _CountingFavoriteCollectionStatusController
   }
 }
 
-class _ThrowingFavoriteSongStatusController extends FavoriteSongStatusController {
+class _ThrowingFavoriteSongStatusController
+    extends FavoriteSongStatusController {
   @override
   FavoriteSongStatusState build() {
     return FavoriteSongStatusState.initial;

@@ -23,10 +23,8 @@ class RadioApiClient {
     }
     return groupsRaw
         .map(
-          (item) => RadioGroupInfo.fromMap(
-            _asMap(item),
-            fallbackPlatform: platform,
-          ),
+          (item) =>
+              RadioGroupInfo.fromMap(_asMap(item), fallbackPlatform: platform),
         )
         .toList(growable: false);
   }
@@ -56,7 +54,9 @@ class RadioApiClient {
       );
     }
     return songsRaw
-        .map((item) => SongInfo.fromMap(_asMap(item), fallbackPlatform: platform))
+        .map(
+          (item) => SongInfo.fromMap(_asMap(item), fallbackPlatform: platform),
+        )
         .toList(growable: false);
   }
 

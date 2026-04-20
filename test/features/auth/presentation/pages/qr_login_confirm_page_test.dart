@@ -15,10 +15,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      _buildPage(
-        authToken: 'token',
-        state: _scannedState,
-      ),
+      _buildPage(authToken: 'token', state: _scannedState),
     );
     await tester.pump();
 
@@ -27,30 +24,25 @@ void main() {
     expect(find.text('取消'), findsNothing);
   });
 
-  testWidgets('confirm page shows login action when session scanned but user is not logged in', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _buildPage(
-        authToken: null,
-        state: _scannedState,
-      ),
-    );
-    await tester.pump();
+  testWidgets(
+    'confirm page shows login action when session scanned but user is not logged in',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildPage(authToken: null, state: _scannedState),
+      );
+      await tester.pump();
 
-    expect(find.widgetWithText(FilledButton, '先登录当前账号'), findsOneWidget);
-    expect(find.text('确认登录这台设备'), findsNothing);
-    expect(find.text('返回我的'), findsNothing);
-  });
+      expect(find.widgetWithText(FilledButton, '先登录当前账号'), findsOneWidget);
+      expect(find.text('确认登录这台设备'), findsNothing);
+      expect(find.text('返回我的'), findsNothing);
+    },
+  );
 
   testWidgets('confirm page shows confirm action only for scanned session', (
     tester,
   ) async {
     await tester.pumpWidget(
-      _buildPage(
-        authToken: 'token',
-        state: _scannedState,
-      ),
+      _buildPage(authToken: 'token', state: _scannedState),
     );
     await tester.pump();
 
@@ -59,39 +51,35 @@ void main() {
     expect(find.text('返回我的'), findsNothing);
   });
 
-  testWidgets('confirm page hides confirm action for expired session and shows back action', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _buildPage(
-        authToken: 'token',
-        state: _expiredState,
-      ),
-    );
-    await tester.pump();
+  testWidgets(
+    'confirm page hides confirm action for expired session and shows back action',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildPage(authToken: 'token', state: _expiredState),
+      );
+      await tester.pump();
 
-    expect(find.text('确认登录这台设备'), findsNothing);
-    expect(find.text('先登录当前账号'), findsNothing);
-    expect(find.text('返回我的'), findsOneWidget);
-    expect(find.text('二维码已过期，请重新扫码'), findsOneWidget);
-  });
+      expect(find.text('确认登录这台设备'), findsNothing);
+      expect(find.text('先登录当前账号'), findsNothing);
+      expect(find.text('返回我的'), findsOneWidget);
+      expect(find.text('二维码已过期，请重新扫码'), findsOneWidget);
+    },
+  );
 
-  testWidgets('confirm page shows empty state when there is no pending session', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _buildPage(
-        authToken: 'token',
-        state: QrLoginState.initial,
-      ),
-    );
-    await tester.pump();
+  testWidgets(
+    'confirm page shows empty state when there is no pending session',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildPage(authToken: 'token', state: QrLoginState.initial),
+      );
+      await tester.pump();
 
-    expect(find.text('暂无待确认的登录会话'), findsAtLeastNWidgets(1));
-    expect(find.text('确认登录这台设备'), findsNothing);
-    expect(find.text('先登录当前账号'), findsNothing);
-    expect(find.text('返回我的'), findsOneWidget);
-  });
+      expect(find.text('暂无待确认的登录会话'), findsAtLeastNWidgets(1));
+      expect(find.text('确认登录这台设备'), findsNothing);
+      expect(find.text('先登录当前账号'), findsNothing);
+      expect(find.text('返回我的'), findsOneWidget);
+    },
+  );
 
   testWidgets('confirm page back goes to my tab', (tester) async {
     final router = GoRouter(
@@ -127,16 +115,15 @@ void main() {
   });
 }
 
-Widget _buildPage({
-  required String? authToken,
-  required QrLoginState state,
-}) {
+Widget _buildPage({required String? authToken, required QrLoginState state}) {
   return ProviderScope(
     overrides: <Override>[
       appConfigProvider.overrideWith(
         () => _TestAppConfigController(authToken: authToken),
       ),
-      qrLoginControllerProvider.overrideWith(() => _TestQrLoginController(state)),
+      qrLoginControllerProvider.overrideWith(
+        () => _TestQrLoginController(state),
+      ),
     ],
     child: const MaterialApp(home: QrLoginConfirmPage()),
   );
@@ -152,7 +139,9 @@ Widget _buildRouterPage({
       appConfigProvider.overrideWith(
         () => _TestAppConfigController(authToken: authToken),
       ),
-      qrLoginControllerProvider.overrideWith(() => _TestQrLoginController(state)),
+      qrLoginControllerProvider.overrideWith(
+        () => _TestQrLoginController(state),
+      ),
     ],
     child: MaterialApp.router(routerConfig: router),
   );

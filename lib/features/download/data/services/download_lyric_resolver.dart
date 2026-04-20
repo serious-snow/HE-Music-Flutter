@@ -10,10 +10,7 @@ typedef FetchRawDownloadLyric =
     });
 
 class ResolvedDownloadLyric {
-  const ResolvedDownloadLyric({
-    required this.content,
-    required this.format,
-  });
+  const ResolvedDownloadLyric({required this.content, required this.format});
 
   const ResolvedDownloadLyric.none()
     : content = null,
@@ -38,10 +35,7 @@ class DownloadLyricResolver {
     required String songId,
     required String platform,
   }) async {
-    final bundle = await _fetchRawLyric(
-      trackId: songId,
-      platform: platform,
-    );
+    final bundle = await _fetchRawLyric(trackId: songId, platform: platform);
     return resolveBundle(bundle);
   }
 
