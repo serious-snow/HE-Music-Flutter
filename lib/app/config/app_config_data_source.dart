@@ -33,7 +33,7 @@ class AppConfigDataSource {
       onlineAudioQualityPreference: AppOnlineAudioQuality.fromValue(
         prefs.getString(_onlineAudioQualityPreferenceKey),
       ),
-      autoCheckUpdates: prefs.getBool(_autoCheckUpdatesKey) ?? false,
+      autoCheckUpdates: prefs.getBool(_autoCheckUpdatesKey) ?? true,
       lastSelectedOnlineAudioQualityName:
           _readLastSelectedOnlineAudioQualityName(
             prefs.getString(_lastSelectedOnlineAudioQualityNameKey),

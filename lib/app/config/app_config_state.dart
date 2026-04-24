@@ -62,7 +62,7 @@ class AppConfigState {
     isMonochrome: false,
     localeCode: 'zh',
     onlineAudioQualityPreference: AppOnlineAudioQuality.auto,
-    autoCheckUpdates: false,
+    autoCheckUpdates: true,
     apiBaseUrl: AppEnvironment.apiBaseUrl,
   );
 }

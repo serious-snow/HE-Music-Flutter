@@ -38,11 +38,11 @@ void main() {
     expect(state.authToken, 'token');
   });
 
-  test('load should keep autoCheckUpdates disabled by default', () async {
+  test('load should enable autoCheckUpdates by default', () async {
     const dataSource = AppConfigDataSource();
 
     final state = await dataSource.load();
 
-    expect(state.autoCheckUpdates, isFalse);
+    expect(state.autoCheckUpdates, isTrue);
   });
 }

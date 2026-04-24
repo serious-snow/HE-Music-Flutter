@@ -54,11 +54,11 @@ void main() {
     await tester.pump();
 
     expect(find.text('自动检查更新'), findsOneWidget);
-    expect(container.read(appConfigProvider).autoCheckUpdates, isFalse);
+    expect(container.read(appConfigProvider).autoCheckUpdates, isTrue);
 
     await tester.tap(find.text('自动检查更新'));
     await tester.pump();
 
-    expect(container.read(appConfigProvider).autoCheckUpdates, isTrue);
+    expect(container.read(appConfigProvider).autoCheckUpdates, isFalse);
   });
 }
