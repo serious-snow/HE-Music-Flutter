@@ -25,7 +25,6 @@ mixin LyricLineSwitchMixin<T extends StatefulWidget>
 
   late final AnimationController _exitAnimationController;
   late final AnimationController _enterAnimationController;
-  bool _disposed = false;
 
   @override
   void initState() {
@@ -47,9 +46,6 @@ mixin LyricLineSwitchMixin<T extends StatefulWidget>
   }
 
   void onPlaySwitchAnimation(_) {
-    if (_disposed || !mounted) {
-      return;
-    }
     _exitAnimationController.forward(from: 0);
     _enterAnimationController.forward(from: 0);
   }
@@ -89,16 +85,19 @@ mixin LyricLineSwitchMixin<T extends StatefulWidget>
     _exitIndex = _enterIndex;
     final old = _enterIndex;
     _enterIndex = controller.activeIndexNotifiter.value;
-    if (_enterIndex != _exitIndex && old != -1) {
+    if (_enterIndex != _exitIndex) {
       _exitAnimationController.reset();
       _enterAnimationController.reset();
       _exitAnimationController.duration = style.switchExitDuration;
       _enterAnimationController.duration = style.switchEnterDuration;
       scheduleMicrotask(() {
-        if (_disposed || !mounted) {
-          return;
+        // 如果是第一次切换（old == -1），只播放 enter 动画，不播放 exit 动画
+        if (old != -1) {
+          _exitAnimationController.forward(from: 0);
+        } else {
+          // 第一次切换时，将 exit 动画设置为完成状态，避免显示 exit 效果
+          _exitAnimationController.value = 1.0;
         }
-        _exitAnimationController.forward(from: 0);
         _enterAnimationController.forward(from: 0);
       });
     }
@@ -106,7 +105,6 @@ mixin LyricLineSwitchMixin<T extends StatefulWidget>
 
   @override
   void dispose() {
-    _disposed = true;
     controller.unregisterEvent(LyricEvent.reset, _reset);
     _exitAnimationController.dispose();
     _enterAnimationController.dispose();
