@@ -6,6 +6,7 @@ const romaSeparator = '[lang:roma]';
 
 final _lrcPattern = RegExp(r'\[(\d{2}):(\d{2})(?:[.:](\d{1,3}))?\]');
 final _tokenPattern = RegExp(r'<(\d+),(\d+)>([^<]*)');
+final _offsetPattern = RegExp(r'^\[offset:([+-]?\d+)\]$', multiLine: true);
 final _linePattern = RegExp(
   r'^(?<timestamps>(?:\[.+?\])+)(?!\[)(?<content>.+)$',
 );
@@ -91,16 +92,19 @@ LyricDocument parseLyricDocument({
   if (normalizedMain.isEmpty) {
     return const LyricDocument.empty();
   }
+  final offset = _parseOffset(normalizedMain);
   return isWordLyric(normalizedMain)
       ? _parseWordLyric(
           lyric: normalizedMain,
           translation: translation,
           romanization: romanization,
+          offset: offset,
         )
       : _parseLineLyric(
           lyric: normalizedMain,
           translation: translation,
           romanization: romanization,
+          offset: offset,
         );
 }
 
@@ -123,6 +127,7 @@ LyricDocument _parseWordLyric({
   required String lyric,
   required String translation,
   required String romanization,
+  required int offset,
 }) {
   final lyrics = _parseEntries(lyric, normalizeWordLyric: false);
   final translations = _parseEntries(translation, normalizeWordLyric: true);
@@ -153,13 +158,14 @@ LyricDocument _parseWordLyric({
       ),
     );
   }
-  return LyricDocument(lines: result);
+  return LyricDocument(lines: result, offset: offset);
 }
 
 LyricDocument _parseLineLyric({
   required String lyric,
   required String translation,
   required String romanization,
+  required int offset,
 }) {
   final lyrics = _parseEntries(lyric, normalizeWordLyric: true);
   final translations = _parseEntries(translation, normalizeWordLyric: true);
@@ -188,7 +194,15 @@ LyricDocument _parseLineLyric({
       ),
     );
   }
-  return LyricDocument(lines: result);
+  return LyricDocument(lines: result, offset: offset);
+}
+
+int _parseOffset(String raw) {
+  final match = _offsetPattern.firstMatch(raw);
+  if (match == null) {
+    return 0;
+  }
+  return int.tryParse(match.group(1) ?? '') ?? 0;
 }
 
 String? _findByRawTime(List<_ParsedLrcEntry> entries, String rawTime) {

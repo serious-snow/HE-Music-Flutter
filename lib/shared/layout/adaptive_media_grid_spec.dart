@@ -29,8 +29,8 @@ class AdaptiveMediaGridSpec {
 AdaptiveMediaGridSpec resolveAdaptiveMediaGridSpec({
   required double maxWidth,
   double minItemWidth = 160,
-  double crossAxisSpacing = 10,
-  double mainAxisSpacing = 10,
+  double crossAxisSpacing = 8,
+  double mainAxisSpacing = 8,
   double childAspectRatio = 0.76,
   int minCrossAxisCount = 2,
 }) {

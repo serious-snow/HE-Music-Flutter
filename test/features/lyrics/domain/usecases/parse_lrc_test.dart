@@ -101,4 +101,14 @@ void main() {
       expect(result, <String>['夜曲']);
     },
   );
+
+  test('parseLyricDocument should preserve lrc offset tag', () {
+    final result = parseLyricDocument(
+      lyric: '[offset:120]\n[00:01.00]第一句\n[00:02.00]第二句',
+    );
+
+    expect(result.offset, 120);
+    expect(result.lines, hasLength(2));
+    expect(result.lines.first.start, const Duration(seconds: 1));
+  });
 }

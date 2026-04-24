@@ -4,6 +4,7 @@ import '../utils/compact_number_formatter.dart';
 
 const _mediaGridCardRadius = 14.0;
 const _mediaGridOverlayFontSize = 10.0;
+const _mediaGridCardPadding = 4.0;
 
 enum MediaGridCardKind { album, playlist }
 
@@ -57,7 +58,7 @@ class MediaGridCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(_mediaGridCardRadius + 6),
           child: Padding(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(_mediaGridCardPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -93,12 +94,12 @@ class MediaGridCard extends StatelessWidget {
                         ),
                       if ((playCount ?? '').trim().isNotEmpty)
                         Positioned(
-                          right: 10,
-                          bottom: 10,
+                          right: 8,
+                          bottom: 8,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 5,
+                              horizontal: 7,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.42),
@@ -128,7 +129,7 @@ class MediaGridCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   title,
                   maxLines: 1,
@@ -140,7 +141,7 @@ class MediaGridCard extends StatelessWidget {
                   ),
                 ),
                 if (showSubtitle) ...<Widget>[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
                     maxLines: 1,
@@ -152,7 +153,7 @@ class MediaGridCard extends StatelessWidget {
                   ),
                 ],
                 if (showCaption) ...<Widget>[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
                     caption!,
                     maxLines: 1,

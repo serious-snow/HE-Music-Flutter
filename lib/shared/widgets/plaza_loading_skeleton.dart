@@ -181,9 +181,9 @@ class GridCardSkeleton extends StatelessWidget {
             radius: 18,
           ),
         ),
-        SizedBox(height: 10),
-        SkeletonBox(width: double.infinity, height: 14, radius: 7),
         SizedBox(height: 8),
+        SkeletonBox(width: double.infinity, height: 14, radius: 7),
+        SizedBox(height: 6),
         SkeletonBox(width: 120, height: 12, radius: 6),
       ],
     );

@@ -537,7 +537,7 @@ abstract final class AppI18n {
       'home.section.new_album': 'New Albums',
       'home.section.playlist': 'Featured Playlists',
       'home.section.video': 'Featured Videos',
-      'home.hero.title': 'What do you want to hear right now?',
+      'home.hero.title': 'What do you want to hear?',
       'home.platform_not_ready': 'Platform is not ready',
       'my.title': 'My',
       'my.theme': 'Theme Mode',

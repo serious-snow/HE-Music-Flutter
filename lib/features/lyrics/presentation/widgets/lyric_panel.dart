@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_lyric/core/lyric_model.dart' as flm;
 import 'package:flutter_lyric/flutter_lyric.dart' as fl;
@@ -6,6 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/lyric_document.dart';
 import '../../domain/entities/lyric_line.dart' as domain;
 import '../providers/lyrics_providers.dart';
+
+@visibleForTesting
+flm.LyricModel buildFlutterLyricModel(LyricDocument document) {
+  return flm.LyricModel(
+    tags: <String, String>{'offset': document.offset.toString()},
+    lines: document.lines.map(_toFlutterLyricLine).toList(growable: false),
+  );
+}
 
 class LyricPanel extends ConsumerStatefulWidget {
   const LyricPanel({
@@ -177,34 +186,30 @@ class _LyricPanelState extends ConsumerState<LyricPanel> {
       return;
     }
     _loadedKey = key;
-    _controller.loadLyricModel(
-      flm.LyricModel(
-        lines: document.lines.map(_toLyricLine).toList(growable: false),
-      ),
-    );
+    _controller.loadLyricModel(buildFlutterLyricModel(document));
   }
+}
 
-  flm.LyricLine _toLyricLine(domain.LyricLine line) {
-    final translation = line.translation.trim();
-    final romanization = line.romanization.trim();
-    return flm.LyricLine(
-      start: line.start,
-      end: line.end,
-      text: line.text,
-      translation: translation.isNotEmpty
-          ? translation
-          : (romanization.isNotEmpty ? romanization : null),
-      words: line.tokens.isEmpty
-          ? null
-          : line.tokens
-                .map(
-                  (token) => flm.LyricWord(
-                    text: token.text,
-                    start: line.start + token.startOffset,
-                    end: line.start + token.endOffset,
-                  ),
-                )
-                .toList(growable: false),
-    );
-  }
+flm.LyricLine _toFlutterLyricLine(domain.LyricLine line) {
+  final translation = line.translation.trim();
+  final romanization = line.romanization.trim();
+  return flm.LyricLine(
+    start: line.start,
+    end: line.end,
+    text: line.text,
+    translation: translation.isNotEmpty
+        ? translation
+        : (romanization.isNotEmpty ? romanization : null),
+    words: line.tokens.isEmpty
+        ? null
+        : line.tokens
+              .map(
+                (token) => flm.LyricWord(
+                  text: token.text,
+                  start: line.start + token.startOffset,
+                  end: line.start + token.endOffset,
+                ),
+              )
+              .toList(growable: false),
+  );
 }
