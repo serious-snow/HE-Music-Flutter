@@ -10,6 +10,7 @@ import '../../../../shared/layout/adaptive_media_grid_spec.dart';
 import '../../../../shared/widgets/detail_page_shell.dart';
 import '../../../../shared/widgets/media_grid_card.dart';
 import '../../../../shared/widgets/online_platform_tabs.dart';
+import '../../../../features/player/presentation/widgets/player_queue_panel.dart';
 import '../../../../shared/widgets/plaza_loading_skeleton.dart';
 import '../../../online/domain/entities/online_platform.dart';
 import '../../../online/presentation/providers/online_providers.dart';
@@ -193,88 +194,167 @@ class _PlaylistPlazaPageState extends ConsumerState<PlaylistPlazaPage> {
         .where((platform) => platform.id == selectedPlatformId)
         .firstOrNull;
     final totalCategories = state.allCategories.length;
+    final content = _AllCategoriesPanel(
+      currentPlatform: currentPlatform,
+      totalCategories: totalCategories,
+      categoryGroups: state.categoryGroups,
+      selectedCategoryId: state.selectedCategoryId,
+      onClose: null,
+      onSelected: (id) {
+        Navigator.of(context).pop();
+        ref.read(playlistPlazaControllerProvider.notifier).selectCategory(id);
+      },
+    );
+    if (MediaQuery.sizeOf(context).width >= playerQueuePanelBreakpoint) {
+      return showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 960, maxHeight: 720),
+              child: _AllCategoriesPanel(
+                currentPlatform: currentPlatform,
+                totalCategories: totalCategories,
+                categoryGroups: state.categoryGroups,
+                selectedCategoryId: state.selectedCategoryId,
+                onClose: () => Navigator.of(dialogContext).pop(),
+                onSelected: (id) {
+                  Navigator.of(dialogContext).pop();
+                  ref
+                      .read(playlistPlazaControllerProvider.notifier)
+                      .selectCategory(id);
+                },
+              ),
+            ),
+          );
+        },
+      );
+    }
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) {
         return SafeArea(
-          child: FractionallySizedBox(
-            heightFactor: 0.82,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    '全部分类',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          child: FractionallySizedBox(heightFactor: 0.82, child: content),
+        );
+      },
+    );
+  }
+}
+
+class _AllCategoriesPanel extends StatelessWidget {
+  const _AllCategoriesPanel({
+    required this.currentPlatform,
+    required this.totalCategories,
+    required this.categoryGroups,
+    required this.selectedCategoryId,
+    required this.onClose,
+    required this.onSelected,
+  });
+
+  final OnlinePlatform? currentPlatform;
+  final int totalCategories;
+  final List<PlaylistCategoryGroup> categoryGroups;
+  final String? selectedCategoryId;
+  final VoidCallback? onClose;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final localeCode = Localizations.localeOf(context).languageCode;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  AppI18n.tByLocaleCode(
+                    localeCode,
+                    'playlist.plaza.all_categories',
+                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
+                ),
+              ),
+              if (onClose != null)
+                IconButton(
+                  key: const ValueKey<String>(
+                    'playlist-plaza-categories-close',
+                  ),
+                  onPressed: onClose,
+                  tooltip: AppI18n.tByLocaleCode(
+                    localeCode,
+                    'playlist.plaza.close_categories',
+                  ),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: <Widget>[
+              if (currentPlatform != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    currentPlatform!.name,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: <Widget>[
-                      if (currentPlatform != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            currentPlatform.name,
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      if (currentPlatform != null) const SizedBox(width: 8),
-                      Text(
-                        '$totalCategories 个分类',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                ),
+              if (currentPlatform != null) const SizedBox(width: 8),
+              Text(
+                AppI18n.formatByLocaleCode(
+                  localeCode,
+                  'playlist.plaza.category_count',
+                  <String, String>{'count': '$totalCategories'},
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: categoryGroups
+                    .map(
+                      (group) => _CategoryGroupSection(
+                        group: group,
+                        selectedCategoryId: selectedCategoryId,
+                        onSelected: onSelected,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Divider(height: 1),
-                  const SizedBox(height: 14),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: state.categoryGroups
-                            .map(
-                              (group) => _CategoryGroupSection(
-                                group: group,
-                                selectedCategoryId: state.selectedCategoryId,
-                                onSelected: (id) {
-                                  Navigator.of(context).pop();
-                                  ref
-                                      .read(
-                                        playlistPlazaControllerProvider
-                                            .notifier,
-                                      )
-                                      .selectCategory(id);
-                                },
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
-                    ),
-                  ),
-                ],
+                    )
+                    .toList(growable: false),
               ),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

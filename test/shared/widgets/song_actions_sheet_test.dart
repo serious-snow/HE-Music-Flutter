@@ -54,6 +54,75 @@ void main() {
     expect(addToPlaylistTapped, isTrue);
   });
 
+  testWidgets('song actions sheet shows view detail only when provided', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: Column(
+                children: <Widget>[
+                  FilledButton(
+                    onPressed: () {
+                      showSongActionsSheet(
+                        context: context,
+                        coverUrl: null,
+                        title: '在线歌曲',
+                        subtitle: '在线歌手',
+                        hasMv: false,
+                        sourceLabel: 'QQ 音乐',
+                        onPlay: () {},
+                        onPlayNext: () {},
+                        onAddToPlaylist: () {},
+                        onWatchMv: () {},
+                        onViewDetail: () {},
+                        onCopySongName: () {},
+                        onCopySongId: () {},
+                      );
+                    },
+                    child: const Text('Open with detail'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      showSongActionsSheet(
+                        context: context,
+                        coverUrl: null,
+                        title: '本地歌曲',
+                        subtitle: '本地歌手',
+                        hasMv: false,
+                        sourceLabel: '本地',
+                        onPlay: () {},
+                        onPlayNext: () {},
+                        onAddToPlaylist: () {},
+                        onWatchMv: () {},
+                        onCopySongName: () {},
+                        onCopySongId: () {},
+                      );
+                    },
+                    child: const Text('Open without detail'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open with detail'));
+    await tester.pumpAndSettle();
+    expect(find.text('View Detail'), findsOneWidget);
+
+    Navigator.of(tester.element(find.text('View Detail'))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open without detail'));
+    await tester.pumpAndSettle();
+    expect(find.text('View Detail'), findsNothing);
+  });
+
   testWidgets('song actions sheet shows download action only when provided', (
     tester,
   ) async {
@@ -130,6 +199,50 @@ void main() {
 
     expect(find.text('Download'), findsNothing);
   });
+
+  testWidgets(
+    'song actions sheet uses custom play action label when provided',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: Center(
+                  child: FilledButton(
+                    onPressed: () {
+                      showSongActionsSheet(
+                        context: context,
+                        coverUrl: null,
+                        title: '测试歌曲',
+                        subtitle: '测试歌手',
+                        hasMv: false,
+                        sourceLabel: 'QQ 音乐',
+                        playActionLabel: '暂停',
+                        onPlay: () {},
+                        onPlayNext: () {},
+                        onAddToPlaylist: () {},
+                        onWatchMv: () {},
+                        onCopySongName: () {},
+                        onCopySongId: () {},
+                      );
+                    },
+                    child: const Text('Open custom play'),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open custom play'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('暂停'), findsOneWidget);
+      expect(find.text('Play'), findsNothing);
+    },
+  );
 
   testWidgets('song actions uses anchored context menu on desktop', (
     tester,

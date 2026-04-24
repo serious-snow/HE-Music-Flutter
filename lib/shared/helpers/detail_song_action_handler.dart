@@ -28,6 +28,7 @@ import '../widgets/select_user_playlist_sheet.dart';
 import '../widgets/song_actions_sheet.dart';
 import 'album_id_helper.dart';
 import 'platform_label_helper.dart';
+import 'song_detail_navigation_helper.dart';
 import 'song_artist_navigation_helper.dart';
 import 'song_batch_helpers.dart' as batch_helpers;
 
@@ -123,6 +124,16 @@ class DetailSongActionHandler {
         ),
       );
     }
+  }
+
+  Future<void> playNextSong(SongInfo song) {
+    final coverUrl = resolveCoverUrl(song);
+    return _insertNext(song, coverUrl, resolvePlatformId(song));
+  }
+
+  Future<void> playSongNow(SongInfo song) {
+    final coverUrl = resolveCoverUrl(song);
+    return _playNow(song, coverUrl, resolvePlatformId(song));
   }
 
   Future<void> toggleSongFavorite(
@@ -260,6 +271,12 @@ class DetailSongActionHandler {
     required BuildContext context,
     required SongInfo song,
     required String coverUrl,
+    String? playActionLabel,
+    VoidCallback? onPlay,
+    BuildContext? anchorContext,
+    Offset? anchorPosition,
+    bool includeViewDetail = true,
+    bool forceBottomSheet = false,
   }) {
     final platformId = resolvePlatformId(song);
     if (platformId.isEmpty) {
@@ -273,6 +290,11 @@ class DetailSongActionHandler {
     final albumId = song.album?.id.trim() ?? '';
     final albumTitle = song.album?.name.trim() ?? '';
     final canViewAlbum = hasValidAlbumId(albumId);
+    final canViewDetail = canOpenSongDetail(
+      songId: song.id,
+      platformId: platformId,
+      platforms: platforms,
+    );
     final availableQualities = _resolveDownloadQualities(
       song: song,
       platforms: platforms,
@@ -280,14 +302,18 @@ class DetailSongActionHandler {
     );
     showSongActionsSheet(
       context: context,
+      anchorContext: anchorContext,
+      anchorPosition: anchorPosition,
+      forceBottomSheet: forceBottomSheet,
       coverUrl: coverUrl.isEmpty ? null : coverUrl,
       title: song.title,
       subtitle: song.artist,
       hasMv: onWatchMv != null && song.hasMv,
+      playActionLabel: playActionLabel,
       sourceLabel: AppI18n.format(config, 'song.source', <String, String>{
         'platform': resolvePlatformLabel(platformId, platforms: platforms),
       }),
-      onPlay: () => unawaited(_playNow(song, coverUrl, platformId)),
+      onPlay: onPlay ?? () => unawaited(playSongNow(song)),
       onPlayNext: () => unawaited(_insertNext(song, coverUrl, platformId)),
       onAddToPlaylist: () =>
           unawaited(_appendToQueue(song, coverUrl, platformId)),
@@ -308,6 +334,14 @@ class DetailSongActionHandler {
           onWatchMv!.call(context, song, platformId);
         }
       },
+      onViewDetail: includeViewDetail && canViewDetail
+          ? () => openSongDetailPage(
+              context: context,
+              songId: song.id,
+              platformId: platformId,
+              title: song.title,
+            )
+          : null,
       onViewComment: () => _openSongComments(
         context: context,
         songId: song.id,

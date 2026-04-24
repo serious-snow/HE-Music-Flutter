@@ -19,6 +19,8 @@ import 'package:he_music_flutter/shared/models/he_music_models.dart';
 import 'package:he_music_flutter/shared/widgets/plaza_loading_skeleton.dart';
 
 void main() {
+  const allCategoriesLabels = <String>['全部分类', 'All Categories'];
+
   testWidgets(
     'playlist plaza shows loading skeleton before first platform load',
     (tester) async {
@@ -85,6 +87,93 @@ void main() {
       find.byKey(const ValueKey<String>('player-queue-desktop-panel')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('playlist plaza shows dialog for all categories on wide screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(_TestAppConfigController.new),
+          playerControllerProvider.overrideWith(_TestPlayerController.new),
+          onlinePlatformsProvider.overrideWith(
+            _DelayedOnlinePlatformsController.new,
+          ),
+          playlistPlazaApiClientProvider.overrideWithValue(
+            _FakePlaylistPlazaApiClient(),
+          ),
+        ],
+        child: const MaterialApp(home: PlaylistPlazaPage()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 140));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.apps_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(
+      allCategoriesLabels
+          .map((label) => find.text(label))
+          .where((finder) => finder.evaluate().isNotEmpty)
+          .length,
+      1,
+    );
+    expect(find.text('流行'), findsWidgets);
+    expect(find.text('摇滚'), findsWidgets);
+    expect(find.text('民谣'), findsWidgets);
+  });
+
+  testWidgets('playlist plaza dialog for all categories has close button', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 960));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(_TestAppConfigController.new),
+          playerControllerProvider.overrideWith(_TestPlayerController.new),
+          onlinePlatformsProvider.overrideWith(
+            _DelayedOnlinePlatformsController.new,
+          ),
+          playlistPlazaApiClientProvider.overrideWithValue(
+            _FakePlaylistPlazaApiClient(),
+          ),
+        ],
+        child: const MaterialApp(home: PlaylistPlazaPage()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 140));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.apps_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('playlist-plaza-categories-close')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('playlist-plaza-categories-close')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Dialog), findsNothing);
+    for (final label in allCategoriesLabels) {
+      expect(find.text(label), findsNothing);
+    }
   });
 }
 
@@ -162,6 +251,15 @@ class _FakePlaylistPlazaApiClient extends PlaylistPlazaApiClient {
         name: '推荐',
         categories: <CategoryInfo>[
           CategoryInfo(name: '流行', id: 'pop', platform: platform),
+          CategoryInfo(name: '摇滚', id: 'rock', platform: platform),
+          CategoryInfo(name: '民谣', id: 'folk', platform: platform),
+        ],
+      ),
+      PlaylistCategoryGroup(
+        name: '语种',
+        categories: <CategoryInfo>[
+          CategoryInfo(name: '华语', id: 'cn', platform: platform),
+          CategoryInfo(name: '欧美', id: 'en', platform: platform),
         ],
       ),
     ];

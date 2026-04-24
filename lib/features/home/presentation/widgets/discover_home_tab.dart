@@ -14,6 +14,7 @@ import '../../../../shared/layout/adaptive_media_grid_spec.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
 import '../../../../shared/helpers/platform_label_helper.dart';
+import '../../../../shared/helpers/song_detail_navigation_helper.dart';
 import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/models/he_music_models.dart';
@@ -444,6 +445,19 @@ class DiscoverHomeTab extends ConsumerWidget {
         platformId: platformId,
         song: song,
       ),
+      onViewDetail:
+          canOpenSongDetail(
+            songId: song.id,
+            platformId: platformId,
+            platforms: platforms,
+          )
+          ? () => openSongDetailPage(
+              context: context,
+              songId: song.id,
+              platformId: platformId,
+              title: title,
+            )
+          : null,
       onViewComment: () => _openSongComments(
         context: context,
         ref: ref,

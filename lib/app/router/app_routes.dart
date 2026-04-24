@@ -27,6 +27,7 @@ abstract final class AppRoutes {
   static const playlistDetail = '/playlist/detail';
   static const userPlaylistDetail = '/my/playlist/detail';
   static const albumDetail = '/album/detail';
+  static const songDetail = '/song/detail';
   static const videoDetail = '/video/detail';
   static const rankingList = '/ranking-list';
   static const rankingDetail = '/ranking';

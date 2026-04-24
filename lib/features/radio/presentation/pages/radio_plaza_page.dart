@@ -347,49 +347,53 @@ class _GroupTabsState extends State<_GroupTabs> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final normalizedSelectedGroupName = widget.selectedGroupName.trim();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: widget.groups
-              .map((group) {
-                final normalizedGroupName = group.name.trim();
-                final groupName = normalizedGroupName.isEmpty
-                    ? '-'
-                    : normalizedGroupName;
-                final selected =
-                    normalizedGroupName == normalizedSelectedGroupName;
-                return Padding(
-                  key: _keyForGroup(normalizedGroupName),
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(groupName),
-                    showCheckmark: false,
-                    selectedColor: colorScheme.primary.withValues(alpha: 0.10),
-                    backgroundColor: colorScheme.surfaceContainerHighest,
-                    side: BorderSide(
-                      color: selected
-                          ? colorScheme.primary.withValues(alpha: 0.30)
-                          : colorScheme.outlineVariant,
-                    ),
-                    labelStyle: theme.textTheme.labelLarge?.copyWith(
-                      color: selected
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 0,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    selected: selected,
-                    onSelected: (_) => widget.onSelected(group.name),
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: widget.groups
+                .map((group) {
+              final normalizedGroupName = group.name.trim();
+              final groupName = normalizedGroupName.isEmpty
+                  ? '-'
+                  : normalizedGroupName;
+              final selected =
+                  normalizedGroupName == normalizedSelectedGroupName;
+              return Padding(
+                key: _keyForGroup(normalizedGroupName),
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(groupName),
+                  showCheckmark: false,
+                  selectedColor: colorScheme.primary.withValues(alpha: 0.10),
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  side: BorderSide(
+                    color: selected
+                        ? colorScheme.primary.withValues(alpha: 0.30)
+                        : colorScheme.outlineVariant,
                   ),
-                );
-              })
-              .toList(growable: false),
+                  labelStyle: theme.textTheme.labelLarge?.copyWith(
+                    color: selected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 0,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  selected: selected,
+                  onSelected: (_) => widget.onSelected(group.name),
+                ),
+              );
+            })
+                .toList(growable: false),
+          ),
         ),
       ),
     );

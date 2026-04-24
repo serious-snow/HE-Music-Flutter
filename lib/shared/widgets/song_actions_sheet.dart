@@ -7,17 +7,20 @@ Future<void> showSongActionsSheet({
   required BuildContext context,
   BuildContext? anchorContext,
   Offset? anchorPosition,
+  bool forceBottomSheet = false,
   required String? coverUrl,
   required String title,
   required String subtitle,
   required bool hasMv,
   required String sourceLabel,
+  String? playActionLabel,
   required VoidCallback onPlay,
   required VoidCallback onPlayNext,
   required VoidCallback onAddToPlaylist,
   VoidCallback? onDownload,
   VoidCallback? onAddToUserPlaylist,
   required VoidCallback onWatchMv,
+  VoidCallback? onViewDetail,
   VoidCallback? onViewComment,
   String? albumActionLabel,
   VoidCallback? onViewAlbum,
@@ -29,11 +32,13 @@ Future<void> showSongActionsSheet({
   required VoidCallback onCopySongId,
 }) {
   final localeCode = Localizations.localeOf(context).languageCode;
-  if (_shouldUseDesktopMenu(context)) {
+  final resolvedPlayActionLabel =
+      playActionLabel ?? AppI18n.tByLocaleCode(localeCode, 'song.action.play');
+  if (!forceBottomSheet && _shouldUseDesktopMenu(context)) {
     final actions = <AdaptiveActionMenuItem<VoidCallback>>[
       AdaptiveActionMenuItem<VoidCallback>(
         value: onPlay,
-        label: AppI18n.tByLocaleCode(localeCode, 'song.action.play'),
+        label: resolvedPlayActionLabel,
         icon: Icons.play_arrow_rounded,
       ),
       AdaptiveActionMenuItem<VoidCallback>(
@@ -67,6 +72,12 @@ Future<void> showSongActionsSheet({
         icon: Icons.ondemand_video_rounded,
         enabled: hasMv,
       ),
+      if (onViewDetail != null)
+        AdaptiveActionMenuItem<VoidCallback>(
+          value: onViewDetail,
+          label: AppI18n.tByLocaleCode(localeCode, 'song.action.view_detail'),
+          icon: Icons.info_outline_rounded,
+        ),
       if (onViewComment != null)
         AdaptiveActionMenuItem<VoidCallback>(
           value: onViewComment,
@@ -133,9 +144,7 @@ Future<void> showSongActionsSheet({
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.play_arrow_rounded),
-                title: Text(
-                  AppI18n.tByLocaleCode(localeCode, 'song.action.play'),
-                ),
+                title: Text(resolvedPlayActionLabel),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   onPlay();
@@ -199,6 +208,20 @@ Future<void> showSongActionsSheet({
                       }
                     : null,
               ),
+              if (onViewDetail != null)
+                ListTile(
+                  leading: const Icon(Icons.info_outline_rounded),
+                  title: Text(
+                    AppI18n.tByLocaleCode(
+                      localeCode,
+                      'song.action.view_detail',
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onViewDetail();
+                  },
+                ),
               if (onViewComment != null)
                 ListTile(
                   leading: const Icon(Icons.forum_rounded),

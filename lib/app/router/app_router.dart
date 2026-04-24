@@ -29,6 +29,7 @@ import '../../features/ranking/presentation/pages/ranking_detail_page.dart';
 import '../../features/ranking/presentation/pages/ranking_list_page.dart';
 import '../../features/radio/presentation/pages/radio_plaza_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/song/presentation/pages/song_detail_page.dart';
 import '../../features/settings/presentation/pages/about_page.dart';
 import '../../features/video/presentation/pages/video_detail_page.dart';
 import '../../features/video/presentation/pages/video_plaza_page.dart';
@@ -187,6 +188,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           id: _readQuery(state, 'id'),
           platform: _readQuery(state, 'platform'),
           title: _readQuery(state, 'title'),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.songDetail,
+        builder: (context, state) => SongDetailPage(
+          id: _readQuery(state, 'id'),
+          platform: _readQuery(state, 'platform'),
+          title: _readOptionalQuery(state, 'title') ?? '',
         ),
       ),
       GoRoute(

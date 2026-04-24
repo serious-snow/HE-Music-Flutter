@@ -12,6 +12,7 @@ import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
 import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
+import '../../../../shared/helpers/song_detail_navigation_helper.dart';
 import '../../../../shared/helpers/user_playlist_song_action_helper.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/utils/cover_resolver.dart';
@@ -687,6 +688,19 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
         localeCode: config.localeCode,
         onError: _showMessage,
       ),
+      onViewDetail:
+          canOpenSongDetail(
+            songId: song.id,
+            platformId: platform,
+            platforms: platforms,
+          )
+          ? () => openSongDetailPage(
+              context: context,
+              songId: song.id,
+              platformId: platform,
+              title: song.title,
+            )
+          : null,
       onViewComment: () => _openCommentPage(item),
       albumActionLabel: canViewAlbum
           ? AppI18n.t(config, 'player.action.view_album')

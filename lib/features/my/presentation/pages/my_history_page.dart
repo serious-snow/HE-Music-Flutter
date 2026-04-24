@@ -13,6 +13,7 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../core/network/network_error_message.dart';
 import '../../../../shared/helpers/current_track_helper.dart';
 import '../../../../shared/helpers/platform_label_helper.dart';
+import '../../../../shared/helpers/song_detail_navigation_helper.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../../../shared/utils/favorite_song_key.dart';
 import '../../../../shared/widgets/detail_page_shell.dart';
@@ -228,6 +229,19 @@ class _HistoryList extends ConsumerWidget {
       onPlayNext: () => unawaited(_insertNext(ref: ref, item: item)),
       onAddToPlaylist: () => unawaited(_appendToQueue(ref: ref, item: item)),
       onWatchMv: () {},
+      onViewDetail:
+          canOpenSongDetail(
+            songId: item.id,
+            platformId: platform,
+            platforms: platforms,
+          )
+          ? () => openSongDetailPage(
+              context: context,
+              songId: item.id,
+              platformId: platform,
+              title: song.title,
+            )
+          : null,
       onViewComment: isOnline
           ? () => _openSongComments(
               context: context,
