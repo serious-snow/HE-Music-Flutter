@@ -5,7 +5,9 @@ import 'package:he_music_flutter/app/config/app_config_controller.dart';
 import 'package:he_music_flutter/app/config/app_config_data_source.dart';
 import 'package:he_music_flutter/app/config/app_config_state.dart';
 import 'package:he_music_flutter/app/startup/app_auto_update_gate.dart';
+import 'package:he_music_flutter/features/update/domain/entities/update_release.dart';
 import 'package:he_music_flutter/features/update/domain/entities/update_state.dart';
+import 'package:he_music_flutter/features/update/domain/entities/update_version.dart';
 import 'package:he_music_flutter/features/update/presentation/controllers/update_controller.dart';
 import 'package:he_music_flutter/features/update/presentation/providers/update_providers.dart';
 
@@ -65,6 +67,35 @@ void main() {
             as _CountingUpdateController;
     expect(controller.checkCount, 0);
   });
+
+  testWidgets('app auto update gate shows available release sheet', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: <Override>[
+        appConfigDataSourceProvider.overrideWithValue(
+          _FakeAppConfigDataSource(autoCheckUpdates: true),
+        ),
+        updateControllerProvider.overrideWith(_AvailableUpdateController.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: AppAutoUpdateGate(child: SizedBox.shrink()),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('发现新版本'), findsOneWidget);
+    expect(find.text('1.1.0'), findsOneWidget);
+    expect(find.text('前往 GitHub Release'), findsOneWidget);
+  });
 }
 
 class _FakeAppConfigDataSource extends AppConfigDataSource {
@@ -89,5 +120,27 @@ class _CountingUpdateController extends UpdateController {
   @override
   Future<void> checkForUpdates() async {
     checkCount += 1;
+  }
+}
+
+class _AvailableUpdateController extends UpdateController {
+  @override
+  UpdateState build() {
+    return UpdateState.initial;
+  }
+
+  @override
+  Future<void> checkForUpdates() async {
+    state = UpdateState(
+      status: UpdateStatus.available,
+      release: UpdateRelease(
+        version: UpdateVersion.parse('1.1.0'),
+        versionTag: 'v1.1.0',
+        title: 'v1.1.0',
+        releaseNotes: '更新内容',
+        htmlUrl: 'https://example.com/release',
+        publishedAt: DateTime(2026, 4, 24, 12),
+      ),
+    );
   }
 }

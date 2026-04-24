@@ -8,6 +8,7 @@ import '../config/app_config_state.dart';
 import '../i18n/app_i18n.dart';
 import '../../features/update/domain/entities/update_state.dart';
 import '../../features/update/presentation/providers/update_providers.dart';
+import '../../features/update/presentation/widgets/update_available_release_sheet.dart';
 
 class AppAutoUpdateGate extends ConsumerStatefulWidget {
   const AppAutoUpdateGate({required this.child, super.key});
@@ -51,33 +52,30 @@ class _AppAutoUpdateGateState extends ConsumerState<AppAutoUpdateGate> {
       ref.read(updateControllerProvider.notifier).resetStatus();
       return;
     }
-    _showAvailableSnackBar(config, updateState);
+    await _showAvailableReleaseSheet(config, updateState);
   }
 
-  void _showAvailableSnackBar(AppConfigState config, UpdateState updateState) {
+  Future<void> _showAvailableReleaseSheet(
+    AppConfigState config,
+    UpdateState updateState,
+  ) async {
     final release = updateState.release;
     if (release == null) {
       return;
     }
-    final messenger = rootScaffoldMessengerKey.currentState;
-    if (messenger == null) {
+    if (!mounted) {
       ref.read(updateControllerProvider.notifier).resetStatus();
       return;
     }
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          '${AppI18n.t(config, 'settings.about.available')} ${release.version.normalized}',
-        ),
-        action: SnackBarAction(
-          label: AppI18n.t(config, 'settings.about.open_release'),
-          onPressed: () {
-            _openReleaseUrl(release.htmlUrl, config);
-          },
-        ),
-      ),
+    await showUpdateAvailableReleaseSheet(
+      context: context,
+      config: config,
+      release: release,
+      onOpenUrl: (rawUrl) => _openReleaseUrl(rawUrl, config),
     );
+    if (!mounted) {
+      return;
+    }
     ref.read(updateControllerProvider.notifier).resetStatus();
   }
 
