@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/config/app_config_controller.dart';
 import '../../../../app/i18n/app_i18n.dart';
 import '../../../../shared/constants/layout_tokens.dart';
+import '../../../../shared/helpers/detail_cover_preview_helper.dart';
 import '../../../../shared/widgets/detail_page_shell.dart';
 import '../providers/online_providers.dart';
 
@@ -1039,16 +1040,22 @@ class _CommentContentView extends StatelessWidget {
   }
 }
 
-class _CommentImageBlock extends StatelessWidget {
+class _CommentImageBlock extends ConsumerWidget {
   const _CommentImageBlock({required this.url});
 
   final String url;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = _normalizeImageUrl(url);
+    final config = ref.read(appConfigProvider);
     return GestureDetector(
-      onTap: () => _previewImage(context, imageUrl),
+      onTap: () => showDetailCoverPreview(
+        context: context,
+        ref: ref,
+        title: AppI18n.t(config, 'comments.image_preview'),
+        imageUrl: imageUrl,
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: ConstrainedBox(
@@ -1080,130 +1087,6 @@ class _CommentImageBlock extends StatelessWidget {
                 child: const Icon(Icons.broken_image_outlined),
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _previewImage(BuildContext context, String imageUrl) {
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'comment-image-preview',
-      barrierColor: const Color.fromRGBO(0, 0, 0, 0.92),
-      pageBuilder: (context, animation, secondaryAnimation) => Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: <Widget>[
-              Positioned.fill(
-                child: InteractiveViewer(
-                  minScale: 0.8,
-                  maxScale: 4,
-                  child: Center(
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) {
-                          return child;
-                        }
-                        return const SizedBox(
-                          width: 26,
-                          height: 26,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.broken_image_outlined,
-                        color: Colors.white70,
-                        size: 48,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 8,
-                right: 8,
-                top: 8,
-                child: Row(
-                  children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color.fromRGBO(0, 0, 0, 0.35),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        AppI18n.tByLocaleCode(
-                          Localizations.localeOf(context).languageCode,
-                          'comments.image_preview',
-                        ),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(0, 0, 0, 0.4),
-                      ),
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 18,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color.fromRGBO(0, 0, 0, 0.38),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Icon(
-                          Icons.zoom_in_rounded,
-                          size: 14,
-                          color: Colors.white70,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          AppI18n.tByLocaleCode(
-                            Localizations.localeOf(context).languageCode,
-                            'comments.image_preview_hint',
-                          ),
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),
