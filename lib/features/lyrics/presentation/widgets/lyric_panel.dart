@@ -53,7 +53,8 @@ class _LyricPanelState extends ConsumerState<LyricPanel> {
       if (_disposed) {
         return;
       }
-      _controller.setProgress(next);
+      // const Duration _kHighlightTransitionDuration = Duration(milliseconds: 200);
+      _controller.setProgress(next+Duration(milliseconds: 200));
     });
 
     _bindTapToSeekIfNeeded();
