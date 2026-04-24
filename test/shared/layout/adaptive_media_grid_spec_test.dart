@@ -11,9 +11,10 @@ void main() {
 
   test('promotes to three columns on medium widths', () {
     final spec = resolveAdaptiveMediaGridSpec(maxWidth: 560);
+    const expectedItemWidth = (560 - 8 * 2) / 3;
 
     expect(spec.crossAxisCount, 3);
-    expect(spec.itemWidth, closeTo(180, 0.01));
+    expect(spec.itemWidth, closeTo(expectedItemWidth, 0.01));
   });
 
   test('continues to add columns on wide desktop widths', () {
