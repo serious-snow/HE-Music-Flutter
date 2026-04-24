@@ -1320,7 +1320,10 @@ class _ArtistListFooter extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Center(
         child: Text(
-          '没有更多了',
+          AppI18n.tByLocaleCode(
+            Localizations.localeOf(context).languageCode,
+            'common.no_more',
+          ),
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
@@ -1381,7 +1384,10 @@ class _ArtistAlbumItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _albumMeta(album),
+                    _albumMeta(
+                      album,
+                      Localizations.localeOf(context).languageCode,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -1397,20 +1403,23 @@ class _ArtistAlbumItem extends StatelessWidget {
     );
   }
 
-  String _albumMeta(ArtistDetailAlbum album) {
+  String _albumMeta(ArtistDetailAlbum album, String localeCode) {
     final values = <String>[];
     if (album.songCount.trim().isNotEmpty && album.songCount.trim() != '0') {
-      values.add('${album.songCount} 首');
+      values.add(
+        AppI18n.formatByLocaleCode(
+          localeCode,
+          'artist.album.song_count',
+          <String, String>{'count': album.songCount},
+        ),
+      );
     }
     final publishDate = _formatPublishDate(album.publishTime);
     if (publishDate.isNotEmpty) {
       values.add(publishDate);
     }
     if (values.isEmpty) {
-      return AppI18n.tByLocaleCode(
-        WidgetsBinding.instance.platformDispatcher.locale.languageCode,
-        'artist.tab.album',
-      );
+      return AppI18n.tByLocaleCode(localeCode, 'artist.tab.album');
     }
     return values.join(' · ');
   }
@@ -1490,7 +1499,12 @@ class _ArtistVideoItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    video.creator.trim().isEmpty ? '未知作者' : video.creator,
+                    video.creator.trim().isEmpty
+                        ? AppI18n.tByLocaleCode(
+                            locale.languageCode,
+                            'common.unknown_author',
+                          )
+                        : video.creator,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -1500,8 +1514,20 @@ class _ArtistVideoItem extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     video.playCount.trim().isEmpty
-                        ? '0 播放'
-                        : '${formatCompactPlayCount(video.playCount, locale)} 播放',
+                        ? AppI18n.tByLocaleCode(
+                            locale.languageCode,
+                            'video.detail.zero_played',
+                          )
+                        : AppI18n.formatByLocaleCode(
+                            locale.languageCode,
+                            'artist.video.play_count',
+                            <String, String>{
+                              'count': formatCompactPlayCount(
+                                video.playCount,
+                                locale,
+                              ),
+                            },
+                          ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -1639,7 +1665,12 @@ class _TabErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () => unawaited(onRetry()),
-              child: const Text('重试'),
+              child: Text(
+                AppI18n.tByLocaleCode(
+                  Localizations.localeOf(context).languageCode,
+                  'common.retry',
+                ),
+              ),
             ),
           ],
         ),

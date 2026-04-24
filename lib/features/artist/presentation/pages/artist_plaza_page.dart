@@ -394,20 +394,21 @@ class _ArtistPlazaLoadingView extends StatelessWidget {
   }
 }
 
-class _PlatformsErrorView extends StatelessWidget {
+class _PlatformsErrorView extends ConsumerWidget {
   const _PlatformsErrorView({required this.onRetry});
 
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return SizedBox(
       height: 28,
       child: Row(
         children: <Widget>[
           Expanded(
             child: Text(
-              '平台加载失败',
+              AppI18n.t(config, 'artist.plaza.platform_load_failed'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -415,7 +416,10 @@ class _PlatformsErrorView extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('重试')),
+          TextButton(
+            onPressed: onRetry,
+            child: Text(AppI18n.t(config, 'common.retry')),
+          ),
         ],
       ),
     );
@@ -440,14 +444,15 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ErrorView extends StatelessWidget {
+class _ErrorView extends ConsumerWidget {
   const _ErrorView({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -462,7 +467,10 @@ class _ErrorView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            FilledButton.tonal(onPressed: onRetry, child: const Text('重试')),
+            FilledButton.tonal(
+              onPressed: onRetry,
+              child: Text(AppI18n.t(config, 'common.retry')),
+            ),
           ],
         ),
       ),
@@ -470,27 +478,33 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-class _LoadMoreRetryCard extends StatelessWidget {
+class _LoadMoreRetryCard extends ConsumerWidget {
   const _LoadMoreRetryCard({required this.message, required this.onRetry});
 
   final String? message;
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         children: <Widget>[
           Text(
-            message?.trim().isNotEmpty == true ? message!.trim() : '加载失败',
+            message?.trim().isNotEmpty == true
+                ? message!.trim()
+                : AppI18n.t(config, 'artist.plaza.load_failed'),
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
           ),
           const SizedBox(height: 8),
-          FilledButton.tonal(onPressed: onRetry, child: const Text('重试')),
+          FilledButton.tonal(
+            onPressed: onRetry,
+            child: Text(AppI18n.t(config, 'common.retry')),
+          ),
         ],
       ),
     );

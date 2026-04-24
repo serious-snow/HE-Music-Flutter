@@ -26,6 +26,23 @@ import 'package:he_music_flutter/shared/models/he_music_models.dart';
 import 'package:he_music_flutter/shared/widgets/online_song_list_item.dart';
 
 void main() {
+  testWidgets(
+    'new song page shows english title and empty text for en locale',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          localeCode: 'en',
+          apiClient: _FakeEmptyNewSongApiClient(),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('New Songs'), findsOneWidget);
+      expect(find.text('No new songs'), findsOneWidget);
+    },
+  );
+
   testWidgets('new song page renders platform tabs and category tabs', (
     tester,
   ) async {
@@ -114,10 +131,14 @@ void main() {
 Widget _buildTestApp({
   _TestPlayerController? playerController,
   _TestOnlineController? onlineController,
+  NewSongApiClient? apiClient,
+  String localeCode = 'zh',
 }) {
   return ProviderScope(
     overrides: <Override>[
-      appConfigProvider.overrideWith(_TestAppConfigController.new),
+      appConfigProvider.overrideWith(
+        () => _TestAppConfigController(localeCode: localeCode),
+      ),
       playerControllerProvider.overrideWith(
         () => playerController ?? _TestPlayerController(),
       ),
@@ -127,7 +148,9 @@ Widget _buildTestApp({
       favoriteSongStatusProvider.overrideWith(
         _TestFavoriteSongStatusController.new,
       ),
-      newSongApiClientProvider.overrideWithValue(_FakeNewSongApiClient()),
+      newSongApiClientProvider.overrideWithValue(
+        apiClient ?? _FakeNewSongApiClient(),
+      ),
       onlinePlatformsProvider.overrideWith(_TestOnlinePlatformsController.new),
     ],
     child: MaterialApp(
@@ -138,10 +161,14 @@ Widget _buildTestApp({
 }
 
 class _TestAppConfigController extends AppConfigController {
+  _TestAppConfigController({required this.localeCode});
+
+  final String localeCode;
+
   @override
   AppConfigState build() {
     return AppConfigState.initial.copyWith(
-      localeCode: 'zh',
+      localeCode: localeCode,
       apiBaseUrl: 'https://example.com',
       authToken: 'token',
     );
@@ -167,6 +194,21 @@ class _FakeNewSongApiClient extends NewSongApiClient {
   }) async {
     return NewReleasePageResult<SongInfo>(
       list: <SongInfo>[_buildSong(platform)],
+      hasMore: false,
+    );
+  }
+}
+
+class _FakeEmptyNewSongApiClient extends _FakeNewSongApiClient {
+  @override
+  Future<NewReleasePageResult<SongInfo>> fetchSongs({
+    required String platform,
+    required String tabId,
+    int pageIndex = 1,
+    int pageSize = 30,
+  }) async {
+    return NewReleasePageResult<SongInfo>(
+      list: const <SongInfo>[],
       hasMore: false,
     );
   }

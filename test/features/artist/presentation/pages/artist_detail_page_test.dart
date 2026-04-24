@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +23,47 @@ import 'package:he_music_flutter/shared/models/he_music_models.dart';
 import 'package:he_music_flutter/shared/widgets/animated_skeleton.dart';
 
 void main() {
+  testWidgets(
+    'artist detail albums tab shows english no more text for en locale',
+    (tester) async {
+      final repository = _PagedArtistDetailRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            appConfigProvider.overrideWith(
+              () => _TestAppConfigController(localeCode: 'en'),
+            ),
+            playerControllerProvider.overrideWith(_TestPlayerController.new),
+            artistDetailRepositoryProvider.overrideWithValue(repository),
+            onlinePlatformsProvider.overrideWith(
+              _TestOnlinePlatformsController.new,
+            ),
+          ],
+          child: _buildTestApp(
+            localeCode: 'en',
+            child: const ArtistDetailPage(
+              id: 'artist-1',
+              platform: 'qq',
+              title: 'Artist',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('Albums'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      repository.completeSecondAlbumPage();
+      await tester.pump();
+
+      expect(find.text('No more'), findsOneWidget);
+    },
+  );
+
   testWidgets('artist detail reuses songs from detail payload on first paint', (
     tester,
   ) async {
@@ -37,8 +79,13 @@ void main() {
             _TestOnlinePlatformsController.new,
           ),
         ],
-        child: const MaterialApp(
-          home: ArtistDetailPage(id: 'artist-1', platform: 'qq', title: '测试歌手'),
+        child: _buildTestApp(
+          localeCode: 'zh',
+          child: const ArtistDetailPage(
+            id: 'artist-1',
+            platform: 'qq',
+            title: '测试歌手',
+          ),
         ),
       ),
     );
@@ -65,8 +112,13 @@ void main() {
             _TestOnlinePlatformsController.new,
           ),
         ],
-        child: const MaterialApp(
-          home: ArtistDetailPage(id: 'artist-1', platform: 'qq', title: '测试歌手'),
+        child: _buildTestApp(
+          localeCode: 'zh',
+          child: const ArtistDetailPage(
+            id: 'artist-1',
+            platform: 'qq',
+            title: '测试歌手',
+          ),
         ),
       ),
     );
@@ -85,7 +137,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('第二页专辑'), findsOneWidget);
-    expect(find.text('没有更多了'), findsOneWidget);
   });
 
   testWidgets(
@@ -105,11 +156,12 @@ void main() {
               _TestOnlinePlatformsController.new,
             ),
           ],
-          child: MaterialApp(
+          child: _buildTestApp(
+            localeCode: 'zh',
             theme: ThemeData(
               iconTheme: const IconThemeData(color: themeIconColor),
             ),
-            home: const ArtistDetailPage(
+            child: const ArtistDetailPage(
               id: 'artist-1',
               platform: 'qq',
               title: '测试歌手',
@@ -156,33 +208,60 @@ void main() {
             _TestOnlinePlatformsController.new,
           ),
         ],
-        child: const MaterialApp(
-          home: ArtistDetailPage(id: 'artist-1', platform: 'qq', title: '测试歌手'),
+        child: _buildTestApp(
+          localeCode: 'zh',
+          child: const ArtistDetailPage(
+            id: 'artist-1',
+            platform: 'qq',
+            title: '测试歌手',
+          ),
         ),
       ),
     );
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Batch'));
+    await tester.tap(find.text('批量操作'));
     await tester.pump();
     await tester.tap(find.text('首屏歌曲'));
     await tester.pump();
 
-    expect(find.text('1 selected'), findsOneWidget);
+    expect(find.text('已选 1 首'), findsOneWidget);
 
     await tester.tap(find.text('专辑'));
     await tester.pumpAndSettle();
 
-    expect(find.text('1 selected'), findsNothing);
+    expect(find.text('已选 1 首'), findsNothing);
   });
 }
 
 class _TestAppConfigController extends AppConfigController {
+  _TestAppConfigController({this.localeCode = 'zh'});
+
+  final String localeCode;
+
   @override
   AppConfigState build() {
-    return AppConfigState.initial;
+    return AppConfigState.initial.copyWith(localeCode: localeCode);
   }
+}
+
+Widget _buildTestApp({
+  required String localeCode,
+  required Widget child,
+  ThemeData? theme,
+}) {
+  return MaterialApp(
+    locale: Locale(localeCode),
+    supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+    localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    theme: theme,
+    home: child,
+  );
 }
 
 class _TestPlayerController extends PlayerController {

@@ -7,17 +7,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 
+import '../../app/config/app_config_controller.dart';
+import '../../app/i18n/app_i18n.dart';
+
 Future<void> showDetailCoverPreview({
   required BuildContext context,
   required WidgetRef ref,
   required String title,
   required String imageUrl,
 }) async {
+  final config = ref.read(appConfigProvider);
   final normalizedUrl = imageUrl.trim();
   if (normalizedUrl.isEmpty) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('暂无可预览封面')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppI18n.t(config, 'cover.preview.empty'))),
+    );
     return;
   }
   await showGeneralDialog<void>(
@@ -91,7 +95,7 @@ Future<void> showDetailCoverPreview({
                   const SizedBox(width: 8),
                   _PreviewAction(
                     icon: Icons.download_rounded,
-                    tooltip: '保存到图库',
+                    tooltip: AppI18n.t(config, 'cover.preview.save'),
                     onTap: () async {
                       if (!context.mounted) {
                         return;
@@ -99,7 +103,11 @@ Future<void> showDetailCoverPreview({
                       final messenger = ScaffoldMessenger.of(context);
                       messenger.hideCurrentSnackBar();
                       messenger.showSnackBar(
-                        const SnackBar(content: Text('正在保存到图库...')),
+                        SnackBar(
+                          content: Text(
+                            AppI18n.t(config, 'cover.preview.saving'),
+                          ),
+                        ),
                       );
                       final success = await _saveCoverToGallery(
                         imageUrl: normalizedUrl,
@@ -111,7 +119,14 @@ Future<void> showDetailCoverPreview({
                       messenger.hideCurrentSnackBar();
                       messenger.showSnackBar(
                         SnackBar(
-                          content: Text(success ? '已保存到图库' : '保存失败，请检查权限后重试'),
+                          content: Text(
+                            success
+                                ? AppI18n.t(config, 'cover.preview.saved')
+                                : AppI18n.t(
+                                    config,
+                                    'cover.preview.save_failed',
+                                  ),
+                          ),
                         ),
                       );
                     },
@@ -119,7 +134,7 @@ Future<void> showDetailCoverPreview({
                   const SizedBox(width: 8),
                   _PreviewAction(
                     icon: Icons.close_rounded,
-                    tooltip: '关闭',
+                    tooltip: AppI18n.t(config, 'cover.preview.close'),
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
                 ],

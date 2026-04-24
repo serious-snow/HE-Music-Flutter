@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:he_music_flutter/app/config/app_config_controller.dart';
@@ -13,6 +14,34 @@ import 'package:he_music_flutter/features/player/presentation/controllers/player
 import 'package:he_music_flutter/features/player/presentation/providers/player_providers.dart';
 
 void main() {
+  testWidgets('online comments page shows english texts for en locale', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(
+            () => _TestAppConfigController(localeCode: 'en'),
+          ),
+          onlineApiClientProvider.overrideWithValue(_FakeOnlineApiClient()),
+          playerControllerProvider.overrideWith(_TestPlayerController.new),
+        ],
+        child: _buildTestApp(
+          localeCode: 'en',
+          child: const OnlineCommentsPage(
+            resourceId: 'song-1',
+            resourceType: 'song',
+            platform: 'qq',
+            title: 'Test Song',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Test Song · Comments'), findsOneWidget);
+  });
+
   testWidgets('online comments page opens desktop queue panel on wide screen', (
     tester,
   ) async {
@@ -26,8 +55,9 @@ void main() {
           onlineApiClientProvider.overrideWithValue(_FakeOnlineApiClient()),
           playerControllerProvider.overrideWith(_TestPlayerController.new),
         ],
-        child: const MaterialApp(
-          home: OnlineCommentsPage(
+        child: _buildTestApp(
+          localeCode: 'zh',
+          child: const OnlineCommentsPage(
             resourceId: 'song-1',
             resourceType: 'song',
             platform: 'qq',
@@ -53,10 +83,27 @@ void main() {
 }
 
 class _TestAppConfigController extends AppConfigController {
+  _TestAppConfigController({this.localeCode = 'zh'});
+
+  final String localeCode;
+
   @override
   AppConfigState build() {
-    return AppConfigState.initial.copyWith(localeCode: 'zh');
+    return AppConfigState.initial.copyWith(localeCode: localeCode);
   }
+}
+
+Widget _buildTestApp({required String localeCode, required Widget child}) {
+  return MaterialApp(
+    locale: Locale(localeCode),
+    supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+    localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: child,
+  );
 }
 
 class _FakeOnlineApiClient extends OnlineApiClient {
@@ -78,9 +125,18 @@ class _FakeOnlineApiClient extends OnlineApiClient {
         'content': '测试评论',
         'time': DateTime.now().millisecondsSinceEpoch,
         'praise_count': 1,
-        'reply_count': 0,
+        'reply_count': 2,
         'user': <String, dynamic>{'nickname': '测试用户', 'avatar': ''},
-        'sub_comments': const <Map<String, dynamic>>[],
+        'sub_comments': const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'comment_id': 'sub-1',
+            'content': '子评论',
+            'time': 0,
+            'praise_count': 0,
+            'reply_count': 0,
+            'user': <String, dynamic>{'nickname': '回复用户', 'avatar': ''},
+          },
+        ],
       },
     ];
   }

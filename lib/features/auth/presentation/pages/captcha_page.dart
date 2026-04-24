@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:gocaptcha/slide_captcha_model.dart';
 
 import '../../../../app/app_message_service.dart';
+import '../../../../app/config/app_config_controller.dart';
+import '../../../../app/i18n/app_i18n.dart';
 import '../../../../core/network/api_dio_provider.dart';
 import '../../data/datasources/captcha_api_client.dart';
 
@@ -40,15 +42,16 @@ class _CaptchaPageState extends ConsumerState<CaptchaPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final config = ref.watch(appConfigProvider);
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Text('验证码验证'),
+        title: Text(AppI18n.t(config, 'captcha.title')),
         actions: <Widget>[
           IconButton(
             onPressed: _loading ? null : _resetCaptcha,
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: '刷新',
+            tooltip: AppI18n.t(config, 'captcha.refresh'),
           ),
         ],
       ),
@@ -67,6 +70,7 @@ class _CaptchaPageState extends ConsumerState<CaptchaPage> {
 
   Widget _buildBody(BuildContext context) {
     final theme = Theme.of(context);
+    final config = ref.read(appConfigProvider);
     if (_loading) {
       return Container(
         width: double.infinity,
@@ -84,27 +88,30 @@ class _CaptchaPageState extends ConsumerState<CaptchaPage> {
     final errorMessage = _errorMessage;
     if (errorMessage != null) {
       return _StatusPanel(
-        title: '验证码加载失败',
+        title: AppI18n.t(config, 'captcha.load_failed'),
         message: errorMessage,
-        primaryLabel: '重新加载',
+        primaryLabel: AppI18n.t(config, 'captcha.reload'),
+        cancelLabel: AppI18n.t(config, 'common.cancel'),
         onPrimaryTap: _resetCaptcha,
       );
     }
     final unsupportedMessage = _unsupportedMessage;
     if (unsupportedMessage != null) {
       return _StatusPanel(
-        title: '当前验证码类型暂不支持',
+        title: AppI18n.t(config, 'captcha.unsupported'),
         message: unsupportedMessage,
-        primaryLabel: '重新获取',
+        primaryLabel: AppI18n.t(config, 'captcha.refetch'),
+        cancelLabel: AppI18n.t(config, 'common.cancel'),
         onPrimaryTap: _resetCaptcha,
       );
     }
     final payload = _captchaPayload;
     if (payload == null) {
       return _StatusPanel(
-        title: '验证码数据为空',
-        message: '请重新加载',
-        primaryLabel: '重新加载',
+        title: AppI18n.t(config, 'captcha.empty'),
+        message: AppI18n.t(config, 'captcha.empty_reload'),
+        primaryLabel: AppI18n.t(config, 'captcha.reload'),
+        cancelLabel: AppI18n.t(config, 'common.cancel'),
         onPrimaryTap: _resetCaptcha,
       );
     }
@@ -155,7 +162,11 @@ class _CaptchaPageState extends ConsumerState<CaptchaPage> {
         setState(() {
           _captchaPayload = null;
           _loading = false;
-          _unsupportedMessage = '后端当前返回的类型是 ${payload.type}，当前只接入滑块/拖拽拼图验证码。';
+          _unsupportedMessage = AppI18n.format(
+            ref.read(appConfigProvider),
+            'captcha.unsupported_type',
+            <String, String>{'type': '${payload.type}'},
+          );
         });
         return;
       }
@@ -187,7 +198,9 @@ class _CaptchaPageState extends ConsumerState<CaptchaPage> {
         y: y,
       );
       if (!isSuccess) {
-        _showMessage('验证码校验失败，请重试。');
+        _showMessage(
+          AppI18n.t(ref.read(appConfigProvider), 'captcha.verify_failed'),
+        );
         _resetCaptcha();
         return false;
       }
@@ -604,12 +617,14 @@ class _StatusPanel extends StatelessWidget {
     required this.title,
     required this.message,
     required this.primaryLabel,
+    required this.cancelLabel,
     required this.onPrimaryTap,
   });
 
   final String title;
   final String message;
   final String primaryLabel;
+  final String cancelLabel;
   final VoidCallback onPrimaryTap;
 
   @override
@@ -656,7 +671,7 @@ class _StatusPanel extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () => context.pop(false),
-              child: const Text('取消'),
+              child: Text(cancelLabel),
             ),
           ),
         ],

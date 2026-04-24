@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/config/app_config_controller.dart';
+import '../../../../app/i18n/app_i18n.dart';
 import '../../../../shared/widgets/glass_panel.dart';
 import '../../domain/entities/my_profile.dart';
 
-class MyAccountCard extends StatelessWidget {
+class MyAccountCard extends ConsumerWidget {
   const MyAccountCard({
     required this.profile,
     required this.tokenSet,
@@ -14,7 +17,8 @@ class MyAccountCard extends StatelessWidget {
   final bool tokenSet;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     final theme = Theme.of(context);
     return GlassPanel(
       borderRadius: BorderRadius.circular(32),
@@ -69,9 +73,17 @@ class MyAccountCard extends StatelessWidget {
                   runSpacing: 8,
                   children: <Widget>[
                     _ProfileMetaChip(label: 'ID ${profile.id}'),
-                    _ProfileMetaChip(label: '状态 ${profile.status}'),
                     _ProfileMetaChip(
-                      label: tokenSet ? 'Token 已配置' : 'Token 未配置',
+                      label: AppI18n.format(
+                        config,
+                        'my.account.status',
+                        <String, String>{'value': '${profile.status}'},
+                      ),
+                    ),
+                    _ProfileMetaChip(
+                      label: tokenSet
+                          ? AppI18n.t(config, 'my.account.token_set')
+                          : AppI18n.t(config, 'my.account.token_unset'),
                     ),
                   ],
                 ),

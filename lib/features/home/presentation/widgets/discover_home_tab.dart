@@ -119,10 +119,12 @@ class DiscoverHomeTab extends ConsumerWidget {
                       searchPlaceholderSecondary: searchPlaceholderSecondary,
                       onSearchTap: () => _openSearchPage(
                         context: context,
+                        config: config,
                         platformId: selectedPlatformId,
                       ),
                       onEntryTap: (entry) => _openEntry(
                         context: context,
+                        config: config,
                         platformId: selectedPlatformId,
                         entry: entry,
                       ),
@@ -160,6 +162,7 @@ class DiscoverHomeTab extends ConsumerWidget {
                   titleOf: (section) => AppI18n.t(config, section.titleKey),
                   sectionActionOf: (section) => _buildSectionAction(
                     context: context,
+                    config: config,
                     sectionKey: section.key,
                     selectedPlatformId: selectedPlatformId,
                   ),
@@ -298,13 +301,14 @@ class DiscoverHomeTab extends ConsumerWidget {
 
   DiscoverSectionAction? _buildSectionAction({
     required BuildContext context,
+    required AppConfigState config,
     required String sectionKey,
     required String selectedPlatformId,
   }) {
     final normalizedSectionKey = sectionKey.trim();
     if (normalizedSectionKey == 'new-song') {
       return DiscoverSectionAction(
-        label: '更多',
+        label: AppI18n.t(config, 'common.more'),
         onTap: () => context.push(
           Uri(
             path: AppRoutes.newSong,
@@ -317,7 +321,7 @@ class DiscoverHomeTab extends ConsumerWidget {
     }
     if (normalizedSectionKey == 'new-album') {
       return DiscoverSectionAction(
-        label: '更多',
+        label: AppI18n.t(config, 'common.more'),
         onTap: () => context.push(
           Uri(
             path: AppRoutes.newAlbum,
@@ -336,13 +340,14 @@ class DiscoverHomeTab extends ConsumerWidget {
     required WidgetRef ref,
     required SongInfo song,
   }) {
+    final config = ref.read(appConfigProvider);
     final platformId = ref
         .read(homeDiscoverControllerProvider)
         .selectedPlatformId;
     if (platformId == null || platformId.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('平台未就绪')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppI18n.t(config, 'home.platform_not_ready'))),
+      );
       return;
     }
 
@@ -351,7 +356,6 @@ class DiscoverHomeTab extends ConsumerWidget {
     final albumId = song.album?.id.trim() ?? '';
     final albumTitle = song.album?.name.trim() ?? '';
     final canViewAlbum = hasValidAlbumId(albumId);
-    final config = ref.read(appConfigProvider);
     final platforms =
         ref.read(onlinePlatformsProvider).valueOrNull ??
         const <OnlinePlatform>[];
@@ -924,12 +928,13 @@ class DiscoverHomeTab extends ConsumerWidget {
 
   void _openSearchPage({
     required BuildContext context,
+    required AppConfigState config,
     required String? platformId,
   }) {
     if (platformId == null || platformId.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('平台未就绪')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppI18n.t(config, 'home.platform_not_ready'))),
+      );
       return;
     }
     final uri = Uri(
@@ -941,13 +946,14 @@ class DiscoverHomeTab extends ConsumerWidget {
 
   void _openEntry({
     required BuildContext context,
+    required AppConfigState config,
     required String? platformId,
     required _DiscoverEntry entry,
   }) {
     if (platformId == null || platformId.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('平台未就绪')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppI18n.t(config, 'home.platform_not_ready'))),
+      );
       return;
     }
     final uri = switch (entry.type) {
@@ -997,7 +1003,10 @@ class _HomeHeroSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text('现在想听什么', style: theme.textTheme.headlineSmall),
+        Text(
+          AppI18n.t(config, 'home.hero.title'),
+          style: theme.textTheme.headlineSmall,
+        ),
         const SizedBox(height: 14),
         HomeSearchField(
           placeholderPrimary: searchPlaceholderPrimary,

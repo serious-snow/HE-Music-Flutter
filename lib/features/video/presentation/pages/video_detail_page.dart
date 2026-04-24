@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 import 'package:volume_controller/volume_controller.dart';
 
 import '../../../../app/config/app_config_controller.dart';
+import '../../../../app/i18n/app_i18n.dart';
 import '../../../../shared/utils/compact_number_formatter.dart';
 import '../../../player/presentation/providers/player_providers.dart';
 import '../../domain/entities/video_detail_content.dart';
@@ -121,10 +122,11 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
   }
 
   Widget _buildBody(BuildContext context, VideoDetailContent? content) {
+    final config = ref.read(appConfigProvider);
     if (content == null) {
       return _ErrorView(
         title: widget.title,
-        message: '暂无视频详情',
+        message: AppI18n.t(config, 'video.detail.empty'),
         onRetry: () =>
             ref.read(videoDetailControllerProvider.notifier).retry(_request),
       );
@@ -292,40 +294,43 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        '视频信息',
+                        AppI18n.t(config, 'video.detail.info'),
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF101615),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _VideoInfoRow(label: '标题', value: title),
+                      _VideoInfoRow(
+                        label: AppI18n.t(config, 'video.detail.title'),
+                        value: title,
+                      ),
                       if (content.creator.trim().isNotEmpty)
                         _VideoInfoRow(
-                          label: '作者',
+                          label: AppI18n.t(config, 'video.detail.author'),
                           value: content.creator.trim(),
                         ),
                       _VideoInfoRow(
-                        label: '播放量',
+                        label: AppI18n.t(config, 'video.detail.play_count'),
                         value: content.playCount.isEmpty
                             ? '0'
                             : formatCompactPlayCount(content.playCount, locale),
                       ),
                       _VideoInfoRow(
-                        label: '时长',
+                        label: AppI18n.t(config, 'video.detail.duration'),
                         value: content.duration > 0
                             ? formatDurationSecondsLabel('${content.duration}')
                             : '--:--',
                       ),
                       if (selectedLink != null)
                         _VideoInfoRow(
-                          label: '清晰度',
+                          label: AppI18n.t(config, 'video.detail.quality'),
                           value: selectedLink.qualityLabel,
                         ),
                       if (content.links.length > 1) ...<Widget>[
                         const SizedBox(height: 18),
                         Text(
-                          '清晰度切换',
+                          AppI18n.t(config, 'video.detail.quality_switch'),
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: const Color(0xFF111111),
@@ -333,7 +338,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '切换时保留当前进度',
+                          AppI18n.t(config, 'video.detail.quality_hint'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF7A8585),
                           ),
@@ -378,7 +383,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                       if (content.description.trim().isNotEmpty) ...<Widget>[
                         const SizedBox(height: 18),
                         _VideoInfoRow(
-                          label: '简介',
+                          label: AppI18n.t(config, 'video.detail.description'),
                           value: content.description.trim(),
                           multiline: true,
                         ),
@@ -1031,8 +1036,14 @@ class _FullscreenGestureHudView extends StatelessWidget {
         ? Icons.light_mode_rounded
         : Icons.volume_up_rounded;
     final label = hud.type == _FullscreenGestureHudType.brightness
-        ? '亮度'
-        : '音量';
+        ? AppI18n.tByLocaleCode(
+            Localizations.localeOf(context).languageCode,
+            'video.detail.brightness',
+          )
+        : AppI18n.tByLocaleCode(
+            Localizations.localeOf(context).languageCode,
+            'video.detail.volume',
+          );
     final percent = ((hud.value ?? 0) * 100).round().clamp(0, 100);
     final progress = (hud.value ?? 0).clamp(0.0, 1.0);
 
@@ -1137,7 +1148,13 @@ class _LoadingView extends StatelessWidget {
         children: <Widget>[
           const CircularProgressIndicator(),
           const SizedBox(height: 12),
-          Text('正在加载视频：$title'),
+          Text(
+            AppI18n.formatByLocaleCode(
+              Localizations.localeOf(context).languageCode,
+              'video.detail.loading',
+              <String, String>{'title': title},
+            ),
+          ),
         ],
       ),
     );
@@ -1172,7 +1189,15 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 10),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),
-            OutlinedButton(onPressed: onRetry, child: const Text('重试')),
+            OutlinedButton(
+              onPressed: onRetry,
+              child: Text(
+                AppI18n.tByLocaleCode(
+                  Localizations.localeOf(context).languageCode,
+                  'common.retry',
+                ),
+              ),
+            ),
           ],
         ),
       ),

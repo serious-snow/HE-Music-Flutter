@@ -280,7 +280,10 @@ class DetailSongActionHandler {
   }) {
     final platformId = resolvePlatformId(song);
     if (platformId.isEmpty) {
-      _showMessage(context, '平台未就绪');
+      _showMessage(
+        context,
+        AppI18n.t(ref.read(appConfigProvider), 'home.platform_not_ready'),
+      );
       return;
     }
     final config = ref.read(appConfigProvider);

@@ -19,6 +19,39 @@ import 'package:he_music_flutter/features/ranking/presentation/providers/ranking
 import 'package:he_music_flutter/shared/models/he_music_models.dart';
 
 void main() {
+  testWidgets('ranking detail shows english count text for en locale', (
+    tester,
+  ) async {
+    final repository = _FakeRankingRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          appConfigProvider.overrideWith(
+            () => _TestAppConfigController(localeCode: 'en'),
+          ),
+          playerControllerProvider.overrideWith(_TestPlayerController.new),
+          onlinePlatformsProvider.overrideWith(
+            _TestOnlinePlatformsController.new,
+          ),
+          rankingRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: const MaterialApp(
+          home: RankingDetailPage(
+            id: 'ranking-1',
+            platform: 'qq',
+            title: 'Test Ranking',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('2 tracks'), findsOneWidget);
+    expect(find.text('Play All 2'), findsOneWidget);
+  });
+
   testWidgets('ranking detail shows songs from detail payload on first paint', (
     tester,
   ) async {
@@ -88,10 +121,14 @@ void main() {
 }
 
 class _TestAppConfigController extends AppConfigController {
+  _TestAppConfigController({this.localeCode = 'zh'});
+
+  final String localeCode;
+
   @override
   AppConfigState build() {
     return AppConfigState.initial.copyWith(
-      localeCode: 'zh',
+      localeCode: localeCode,
       apiBaseUrl: 'https://example.com',
       authToken: 'token',
     );

@@ -84,7 +84,9 @@ class _NewSongPageState extends ConsumerState<NewSongPage> {
             )
           : null,
       child: Scaffold(
-        appBar: AppBar(title: const Text('新歌')),
+        appBar: AppBar(
+          title: Text(AppI18n.t(ref.read(appConfigProvider), 'new_song.title')),
+        ),
         body: Column(
           children: <Widget>[
             Padding(
@@ -142,7 +144,11 @@ class _NewSongPageState extends ConsumerState<NewSongPage> {
                 loadingMore: state.loadingMore,
                 hasMore: state.hasMore,
                 onLoadMore: controller.loadMore,
-                empty: const Center(child: Text('暂无新歌')),
+                empty: Center(
+                  child: Text(
+                    AppI18n.t(ref.read(appConfigProvider), 'new_song.empty'),
+                  ),
+                ),
                 countText: AppI18n.format(
                   ref.read(appConfigProvider),
                   'detail.play_all_count',

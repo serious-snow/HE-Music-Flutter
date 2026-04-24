@@ -424,13 +424,13 @@ class _SongHeroCard extends StatelessWidget {
     final meta = <_MetaItem>[
       if (!useWideLayout)
         _MetaItem(
-          label: '歌手',
+          label: AppI18n.t(config, 'player.meta.artist'),
           value: artistLabel.isEmpty ? '-' : artistLabel,
           onTap: onTapArtist,
         ),
       if (!useWideLayout)
         _MetaItem(
-          label: '专辑',
+          label: AppI18n.t(config, 'player.meta.album'),
           value: albumLabel.isEmpty ? '-' : albumLabel,
           onTap: onTapAlbum,
         ),
@@ -452,6 +452,7 @@ class _SongHeroCard extends StatelessWidget {
       ),
     ];
     final titleSection = _HeroInfo(
+      config: config,
       title: title,
       artistLabel: artistLabel,
       albumLabel: albumLabel,
@@ -619,6 +620,7 @@ class _HeroCover extends StatelessWidget {
 
 class _HeroInfo extends StatelessWidget {
   const _HeroInfo({
+    required this.config,
     required this.title,
     required this.artistLabel,
     required this.albumLabel,
@@ -627,6 +629,7 @@ class _HeroInfo extends StatelessWidget {
     this.onTapAlbum,
   });
 
+  final AppConfigState config;
   final String title;
   final String artistLabel;
   final String albumLabel;
@@ -659,14 +662,14 @@ class _HeroInfo extends StatelessWidget {
         if (!compact) ...<Widget>[
           const SizedBox(height: 16),
           _InfoLine(
-            label: '歌手',
+            label: AppI18n.t(config, 'player.meta.artist'),
             value: artistLabel,
             onTap: onTapArtist,
             compact: compact,
           ),
           const SizedBox(height: 8),
           _InfoLine(
-            label: '专辑',
+            label: AppI18n.t(config, 'player.meta.album'),
             value: albumLabel,
             onTap: onTapAlbum,
             compact: compact,

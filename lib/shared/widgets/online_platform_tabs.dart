@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/config/app_config_controller.dart';
+import '../../app/i18n/app_i18n.dart';
 import '../../features/online/domain/entities/online_platform.dart';
 
-class OnlinePlatformTabs extends StatelessWidget {
+class OnlinePlatformTabs extends ConsumerWidget {
   const OnlinePlatformTabs({
     required this.platforms,
     required this.selectedId,
@@ -17,10 +20,11 @@ class OnlinePlatformTabs extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     if (platforms.isEmpty) {
       return Text(
-        '没有可用平台',
+        AppI18n.t(config, 'ranking.no_platform'),
         style: Theme.of(
           context,
         ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).hintColor),

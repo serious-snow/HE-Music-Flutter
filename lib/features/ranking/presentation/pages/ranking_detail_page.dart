@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/config/app_config_controller.dart';
+import '../../../../app/i18n/app_i18n.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/constants/layout_tokens.dart';
 import '../../../../shared/helpers/detail_cover_preview_helper.dart';
@@ -66,7 +68,9 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
           'platform': widget.platform,
           if ((widget.title ?? '').trim().isNotEmpty) 'title': widget.title!,
         },
-        title: widget.title ?? '榜单',
+        title:
+            widget.title ??
+            AppI18n.t(ref.read(appConfigProvider), 'ranking.fallback_title'),
       ),
     );
     Future.microtask(() {
@@ -78,7 +82,11 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(rankingDetailControllerProvider);
     final controller = ref.read(rankingDetailControllerProvider.notifier);
-    final title = state.detail?.info.name ?? widget.title ?? '榜单';
+    final config = ref.watch(appConfigProvider);
+    final title =
+        state.detail?.info.name ??
+        widget.title ??
+        AppI18n.t(config, 'ranking.fallback_title');
 
     return DetailPageShell(
       bottomBar: _isBatchMode
@@ -95,7 +103,10 @@ class _RankingDetailPageState extends ConsumerState<RankingDetailPage> {
             )
           : null,
       child: state.loading
-          ? DetailLoadingBody(title: widget.title ?? '榜单')
+          ? DetailLoadingBody(
+              title:
+                  widget.title ?? AppI18n.t(config, 'ranking.fallback_title'),
+            )
           : state.errorMessage != null
           ? DetailErrorBody(
               message: state.errorMessage!,
@@ -297,6 +308,7 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = state.detail;
+    final config = ref.watch(appConfigProvider);
     final currentTrack = ref.watch(
       playerControllerProvider.select((player) => player.currentTrack),
     );
@@ -304,7 +316,11 @@ class _Body extends ConsumerWidget {
       return const Center(child: Text('No detail content.'));
     }
     final coverUrl = detail.info.coverUrl;
-    final subtitle = detail.totalCount > 0 ? '${detail.totalCount} 首' : '';
+    final subtitle = detail.totalCount > 0
+        ? AppI18n.format(config, 'ranking.track_count', <String, String>{
+            'count': '${detail.totalCount}',
+          })
+        : '';
 
     return NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -321,7 +337,11 @@ class _Body extends ConsumerWidget {
           SliverPersistentHeader(
             pinned: true,
             delegate: MusicDetailPlayAllHeader(
-              countText: '全部播放 ${state.songs.length}',
+              countText: AppI18n.format(
+                config,
+                'detail.play_all_count',
+                <String, String>{'count': '${state.songs.length}'},
+              ),
               onPlayAll: onPlayAll,
               onBatchAction: state.songs.isEmpty ? null : onEnterBatchMode,
               batchMode: batchMode,
@@ -356,7 +376,7 @@ class _Body extends ConsumerWidget {
           onLoadMore: onLoadMore,
           empty: Center(
             child: Text(
-              '暂无歌曲列表',
+              AppI18n.t(config, 'detail.empty_songs'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).hintColor,
               ),

@@ -210,7 +210,12 @@ class _CommentTabPaneState extends ConsumerState<_CommentTabPane>
                     ),
                   ),
                   const SizedBox(height: 10),
-                  FilledButton(onPressed: _refresh, child: const Text('重试')),
+                  FilledButton(
+                    onPressed: _refresh,
+                    child: Text(
+                      AppI18n.t(ref.read(appConfigProvider), 'common.retry'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -487,7 +492,13 @@ class _CommentCard extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(0, 0),
                         ),
-                        child: Text('查看全部回复（$replyCount）'),
+                        child: Text(
+                          AppI18n.formatByLocaleCode(
+                            Localizations.localeOf(context).languageCode,
+                            'comments.view_all_replies',
+                            <String, String>{'count': '$replyCount'},
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -523,7 +534,11 @@ class _SubCommentPreviewTile extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _CommentContentView(
-            content: '$author：$content',
+            content: AppI18n.formatByLocaleCode(
+              Localizations.localeOf(context).languageCode,
+              'comments.reply_to_user',
+              <String, String>{'user': author, 'content': content},
+            ),
             textStyle: Theme.of(context).textTheme.bodySmall,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -586,7 +601,12 @@ class _CommentFooter extends StatelessWidget {
                 minimumSize: const Size(0, 0),
                 padding: EdgeInsets.zero,
               ),
-              child: const Text('重试'),
+              child: Text(
+                AppI18n.tByLocaleCode(
+                  Localizations.localeOf(context).languageCode,
+                  'common.retry',
+                ),
+              ),
             ),
           ],
         ),
@@ -597,7 +617,10 @@ class _CommentFooter extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Center(
           child: Text(
-            '没有更多了',
+            AppI18n.tByLocaleCode(
+              Localizations.localeOf(context).languageCode,
+              'common.no_more',
+            ),
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
@@ -663,7 +686,11 @@ class _ReplySheetState extends ConsumerState<_ReplySheet> {
                 children: <Widget>[
                   Expanded(
                     child: Text(
-                      '回复（$totalReplyCount）',
+                      AppI18n.formatByLocaleCode(
+                        Localizations.localeOf(context).languageCode,
+                        'comments.reply_count',
+                        <String, String>{'count': '$totalReplyCount'},
+                      ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
@@ -717,7 +744,12 @@ class _ReplySheetState extends ConsumerState<_ReplySheet> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  FilledButton(onPressed: _refresh, child: const Text('重试')),
+                  FilledButton(
+                    onPressed: _refresh,
+                    child: Text(
+                      AppI18n.t(ref.read(appConfigProvider), 'common.retry'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -748,7 +780,12 @@ class _ReplySheetState extends ConsumerState<_ReplySheet> {
             return Center(
               child: TextButton(
                 onPressed: _loadMore,
-                child: const Text('加载更多回复'),
+                child: Text(
+                  AppI18n.t(
+                    ref.read(appConfigProvider),
+                    'comments.load_more_replies',
+                  ),
+                ),
               ),
             );
           }
@@ -1106,9 +1143,15 @@ class _CommentImageBlock extends StatelessWidget {
                         color: const Color.fromRGBO(0, 0, 0, 0.35),
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text(
-                        '图片预览',
-                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      child: Text(
+                        AppI18n.tByLocaleCode(
+                          Localizations.localeOf(context).languageCode,
+                          'comments.image_preview',
+                        ),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -1139,7 +1182,7 @@ class _CommentImageBlock extends StatelessWidget {
                       color: const Color.fromRGBO(0, 0, 0, 0.38),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         Icon(
@@ -1149,7 +1192,10 @@ class _CommentImageBlock extends StatelessWidget {
                         ),
                         SizedBox(width: 6),
                         Text(
-                          '双指缩放，点击遮罩关闭',
+                          AppI18n.tByLocaleCode(
+                            Localizations.localeOf(context).languageCode,
+                            'comments.image_preview_hint',
+                          ),
                           style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
@@ -1218,7 +1264,13 @@ List<_CommentSegment> _normalizeCommentSegments(
   return source
       .map((segment) {
         if (segment.type == _CommentSegmentType.blockImage) {
-          return const _CommentSegment(_CommentSegmentType.text, '[图片]');
+          return _CommentSegment(
+            _CommentSegmentType.text,
+            AppI18n.tByLocaleCode(
+              WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+              'comments.inline_image',
+            ),
+          );
         }
         return segment;
       })
@@ -1380,7 +1432,10 @@ String _commentAuthor(Map<String, dynamic> comment) {
       return value;
     }
   }
-  return '匿名用户';
+  return AppI18n.tByLocaleCode(
+    WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+    'comments.anonymous_user',
+  );
 }
 
 String _commentContent(Map<String, dynamic> comment) {
@@ -1393,7 +1448,7 @@ String _commentContent(Map<String, dynamic> comment) {
       _asText(comment['comment']) ??
       '-';
   if (replyContent != null && replyContent.isNotEmpty) {
-    return '$content\n回复 @$replyUser：$replyContent';
+    return '$content\n${AppI18n.formatByLocaleCode(WidgetsBinding.instance.platformDispatcher.locale.languageCode, 'comments.reply_to_user', <String, String>{'user': replyUser, 'content': replyContent})}';
   }
   return content;
 }
