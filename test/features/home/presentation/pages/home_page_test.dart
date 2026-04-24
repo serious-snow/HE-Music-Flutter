@@ -30,7 +30,9 @@ void main() {
     await tester.pumpWidget(_buildTestApp());
     await tester.pump();
 
-    final titleTopLeft = tester.getTopLeft(find.text('现在想听什么'));
+    final titleTopLeft = tester.getTopLeft(
+      find.text('What do you want to hear?'),
+    );
 
     expect(titleTopLeft.dx, 12);
   });

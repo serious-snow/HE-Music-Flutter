@@ -448,6 +448,9 @@ class DownloadController extends Notifier<DownloadState> {
     required String taskId,
     required String filePath,
   }) async {
+    if (_disposed) {
+      return;
+    }
     final current = _findTask(taskId);
     if (current == null) {
       return;
@@ -466,10 +469,16 @@ class DownloadController extends Notifier<DownloadState> {
               artworkUrl: current.artworkUrl,
             ),
           );
+      if (_disposed) {
+        return;
+      }
       final finalizedPaths = await _finalizeDownloadedArtifacts(
         filePath: filePath,
         lyricPath: result.lyricPath,
       );
+      if (_disposed) {
+        return;
+      }
       await _updateTask(
         taskId,
         (old) => old.copyWith(
@@ -555,6 +564,9 @@ class DownloadController extends Notifier<DownloadState> {
     required String filePath,
     String? lyricPath,
   }) async {
+    if (_disposed) {
+      return _FinalizedDownloadPaths(filePath: filePath, lyricPath: lyricPath);
+    }
     final repository = ref.read(downloadRepositoryProvider);
     if (!repository.shouldMoveToPublicDownloads) {
       return _FinalizedDownloadPaths(filePath: filePath, lyricPath: lyricPath);

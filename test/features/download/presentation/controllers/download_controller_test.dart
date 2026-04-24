@@ -329,6 +329,65 @@ void main() {
   );
 
   test(
+    'complete event skips metadata state write after container dispose',
+    () async {
+      final repository = _FakeDownloadRepository();
+      final metadataWriter = _FakeDownloadMetadataWriter(
+        result: const DownloadMetadataWriteResult(
+          lyricFormat: DownloadLyricFormat.timed,
+          artworkEmbedded: true,
+          lyricPath: '/tmp/测试下载.lrc',
+        ),
+        delay: const Duration(milliseconds: 10),
+      );
+      final online = _FakeOnlineController();
+      final container = ProviderContainer(
+        overrides: <Override>[
+          downloadRepositoryProvider.overrideWithValue(repository),
+          downloadMetadataWriterProvider.overrideWithValue(metadataWriter),
+          onlineControllerProvider.overrideWith(() => online),
+        ],
+      );
+      addTearDown(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+
+      container.read(downloadControllerProvider);
+      await Future<void>.delayed(Duration.zero);
+      await container
+          .read(downloadControllerProvider.notifier)
+          .enqueue(
+            title: '测试下载',
+            songId: 'song-1',
+            platform: 'qq',
+            artist: '周杰伦',
+            album: '十一月的萧邦',
+            artworkUrl: 'https://example.com/cover.jpg',
+            quality: DownloadTaskQuality(
+              label: 'standard',
+              bitrate: 320,
+              fileExtension: 'mp3',
+            ),
+          );
+      await Future<void>.delayed(Duration.zero);
+      final pluginTaskId = repository.enqueueTaskRequests.single.pluginTaskId;
+
+      repository.emit(
+        DownloadRunnerEvent(
+          pluginTaskId: pluginTaskId,
+          status: DownloadRunnerStatus.complete,
+          filePath: '/tmp/测试下载.mp3',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(metadataWriter.requests, isEmpty);
+    },
+  );
+
+  test(
     'android complete flow moves audio and lyric to public downloads',
     () async {
       final repository = _FakeDownloadRepository(
@@ -916,6 +975,7 @@ class _FakeDownloadRepository implements DownloadRepository {
 class _FakeDownloadMetadataWriter extends DownloadMetadataWriter {
   _FakeDownloadMetadataWriter({
     this.error,
+    this.delay = Duration.zero,
     this.result = const DownloadMetadataWriteResult(
       lyricFormat: DownloadLyricFormat.none,
       artworkEmbedded: false,
@@ -927,6 +987,7 @@ class _FakeDownloadMetadataWriter extends DownloadMetadataWriter {
        );
 
   final Object? error;
+  final Duration delay;
   final DownloadMetadataWriteResult result;
   final List<DownloadMetadataRequest> requests = <DownloadMetadataRequest>[];
 
@@ -935,6 +996,9 @@ class _FakeDownloadMetadataWriter extends DownloadMetadataWriter {
     DownloadMetadataRequest request,
   ) async {
     requests.add(request);
+    if (delay > Duration.zero) {
+      await Future<void>.delayed(delay);
+    }
     if (error != null) {
       throw error!;
     }
