@@ -123,6 +123,47 @@ void main() {
     expect(find.text('View Detail'), findsNothing);
   });
 
+  testWidgets('song actions sheet uses view comments label', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: Center(
+                child: FilledButton(
+                  onPressed: () {
+                    showSongActionsSheet(
+                      context: context,
+                      coverUrl: null,
+                      title: '在线歌曲',
+                      subtitle: '在线歌手',
+                      hasMv: false,
+                      sourceLabel: 'QQ 音乐',
+                      onPlay: () {},
+                      onPlayNext: () {},
+                      onAddToPlaylist: () {},
+                      onWatchMv: () {},
+                      onViewComment: () {},
+                      onCopySongName: () {},
+                      onCopySongId: () {},
+                    );
+                  },
+                  child: const Text('Open with comments'),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open with comments'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('View Comments'), findsOneWidget);
+    expect(find.text('Comments'), findsNothing);
+  });
+
   testWidgets('song actions sheet shows download action only when provided', (
     tester,
   ) async {

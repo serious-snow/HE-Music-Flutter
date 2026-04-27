@@ -641,11 +641,21 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
     final artists = song.artists;
     final albumId = song.album?.id.trim() ?? '';
     final albumTitle = song.album?.name.trim() ?? '';
-    final canViewAlbum = hasValidAlbumId(albumId);
     final config = ref.read(appConfigProvider);
     final platforms =
         ref.read(onlinePlatformsProvider).valueOrNull ??
         const <OnlinePlatform>[];
+    final canViewAlbum =
+        hasValidAlbumId(albumId) &&
+        platformSupportsAlbumDetail(platformId: platform, platforms: platforms);
+    final artistActionLabel =
+        platformSupportsArtistDetail(platformId: platform, platforms: platforms)
+        ? songArtistActionLabel(artists, localeCode: config.localeCode)
+        : null;
+    final canViewComment = platformSupportsSongComment(
+      platformId: platform,
+      platforms: platforms,
+    );
     final qualities = buildDownloadQualityOptions(
       links: song.links,
       qualityDescriptions: _platformQualityDescriptions(platform, platforms),
@@ -701,7 +711,7 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
               title: song.title,
             )
           : null,
-      onViewComment: () => _openCommentPage(item),
+      onViewComment: canViewComment ? () => _openCommentPage(item) : null,
       albumActionLabel: canViewAlbum
           ? AppI18n.t(config, 'player.action.view_album')
           : null,
@@ -712,11 +722,8 @@ class _OnlineSearchPageState extends ConsumerState<OnlineSearchPage> {
               albumTitle: albumTitle,
             )
           : null,
-      artistActionLabel: songArtistActionLabel(
-        artists,
-        localeCode: config.localeCode,
-      ),
-      onViewArtists: artists.isEmpty
+      artistActionLabel: artistActionLabel,
+      onViewArtists: artistActionLabel == null
           ? null
           : () => unawaited(
               openSongArtistSelection(

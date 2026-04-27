@@ -216,6 +216,9 @@ class _HistoryList extends ConsumerWidget {
     final platform = item.platform?.trim() ?? '';
     final isOnline = platform.isNotEmpty && platform.toLowerCase() != 'local';
     final platformLabel = resolvePlatformLabel(platform, platforms: platforms);
+    final canViewComment =
+        isOnline &&
+        platformSupportsSongComment(platformId: platform, platforms: platforms);
     return showSongActionsSheet(
       context: context,
       coverUrl: coverUrl,
@@ -242,7 +245,7 @@ class _HistoryList extends ConsumerWidget {
               title: song.title,
             )
           : null,
-      onViewComment: isOnline
+      onViewComment: canViewComment
           ? () => _openSongComments(
               context: context,
               ref: ref,

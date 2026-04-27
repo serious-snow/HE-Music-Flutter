@@ -13,17 +13,40 @@ bool platformSupportsSongDetail({
   required String platformId,
   required List<OnlinePlatform> platforms,
 }) {
-  if (!isOnlineSongPlatform(platformId)) {
-    return false;
-  }
-  for (final platform in platforms) {
-    if (platform.id != platformId) {
-      continue;
-    }
-    return platform.available &&
-        platform.supports(PlatformFeatureSupportFlag.getSongInfo);
-  }
-  return true;
+  return isOnlineSongPlatform(platformId);
+}
+
+bool platformSupportsAlbumDetail({
+  required String platformId,
+  required List<OnlinePlatform> platforms,
+}) {
+  return _platformSupports(
+    platformId: platformId,
+    platforms: platforms,
+    featureFlag: PlatformFeatureSupportFlag.getAlbumInfo,
+  );
+}
+
+bool platformSupportsArtistDetail({
+  required String platformId,
+  required List<OnlinePlatform> platforms,
+}) {
+  return _platformSupports(
+    platformId: platformId,
+    platforms: platforms,
+    featureFlag: PlatformFeatureSupportFlag.getSingerInfo,
+  );
+}
+
+bool platformSupportsSongComment({
+  required String platformId,
+  required List<OnlinePlatform> platforms,
+}) {
+  return _platformSupports(
+    platformId: platformId,
+    platforms: platforms,
+    featureFlag: PlatformFeatureSupportFlag.getCommentList,
+  );
 }
 
 bool canOpenSongDetail({
@@ -33,6 +56,23 @@ bool canOpenSongDetail({
 }) {
   return songId.trim().isNotEmpty &&
       platformSupportsSongDetail(platformId: platformId, platforms: platforms);
+}
+
+bool _platformSupports({
+  required String platformId,
+  required List<OnlinePlatform> platforms,
+  required BigInt featureFlag,
+}) {
+  if (!isOnlineSongPlatform(platformId)) {
+    return false;
+  }
+  for (final platform in platforms) {
+    if (platform.id != platformId) {
+      continue;
+    }
+    return platform.available && platform.supports(featureFlag);
+  }
+  return false;
 }
 
 void openSongDetailPage({

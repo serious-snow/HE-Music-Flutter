@@ -292,9 +292,25 @@ class DetailSongActionHandler {
         const <OnlinePlatform>[];
     final albumId = song.album?.id.trim() ?? '';
     final albumTitle = song.album?.name.trim() ?? '';
-    final canViewAlbum = hasValidAlbumId(albumId);
+    final canViewAlbum =
+        hasValidAlbumId(albumId) &&
+        platformSupportsAlbumDetail(
+          platformId: platformId,
+          platforms: platforms,
+        );
     final canViewDetail = canOpenSongDetail(
       songId: song.id,
+      platformId: platformId,
+      platforms: platforms,
+    );
+    final artistActionLabel =
+        platformSupportsArtistDetail(
+          platformId: platformId,
+          platforms: platforms,
+        )
+        ? songArtistActionLabel(song.artists, localeCode: config.localeCode)
+        : null;
+    final canViewComment = platformSupportsSongComment(
       platformId: platformId,
       platforms: platforms,
     );
@@ -345,12 +361,14 @@ class DetailSongActionHandler {
               title: song.title,
             )
           : null,
-      onViewComment: () => _openSongComments(
-        context: context,
-        songId: song.id,
-        platformId: platformId,
-        title: song.title,
-      ),
+      onViewComment: canViewComment
+          ? () => _openSongComments(
+              context: context,
+              songId: song.id,
+              platformId: platformId,
+              title: song.title,
+            )
+          : null,
       albumActionLabel: canViewAlbum
           ? AppI18n.t(config, 'player.action.view_album')
           : null,
@@ -362,11 +380,8 @@ class DetailSongActionHandler {
               albumTitle: albumTitle,
             )
           : null,
-      artistActionLabel: songArtistActionLabel(
-        song.artists,
-        localeCode: config.localeCode,
-      ),
-      onViewArtists: song.artists.isEmpty
+      artistActionLabel: artistActionLabel,
+      onViewArtists: artistActionLabel == null
           ? null
           : () => unawaited(
               openSongArtistSelection(
@@ -566,9 +581,12 @@ class DetailSongActionHandler {
     required String platformId,
     required String title,
   }) {
-    if (!_platformSupports(
+    final platforms =
+        ref.read(onlinePlatformsProvider).valueOrNull ??
+        const <OnlinePlatform>[];
+    if (!platformSupportsSongComment(
       platformId: platformId,
-      featureFlag: PlatformFeatureSupportFlag.getCommentList,
+      platforms: platforms,
     )) {
       _showMessage(
         context,
@@ -605,23 +623,6 @@ class DetailSongActionHandler {
       },
     );
     context.push(uri.toString());
-  }
-
-  bool _platformSupports({
-    required String platformId,
-    required BigInt featureFlag,
-  }) {
-    final all = ref.read(onlinePlatformsProvider).valueOrNull;
-    if (all == null) {
-      return true;
-    }
-    for (final platform in all) {
-      if (platform.id != platformId) {
-        continue;
-      }
-      return platform.available && platform.supports(featureFlag);
-    }
-    return true;
   }
 
   Future<void> _copyText({

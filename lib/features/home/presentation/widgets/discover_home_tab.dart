@@ -355,10 +355,22 @@ class DiscoverHomeTab extends ConsumerWidget {
     final subtitle = song.artist;
     final albumId = song.album?.id.trim() ?? '';
     final albumTitle = song.album?.name.trim() ?? '';
-    final canViewAlbum = hasValidAlbumId(albumId);
     final platforms =
         ref.read(onlinePlatformsProvider).valueOrNull ??
         const <OnlinePlatform>[];
+    final canViewAlbum =
+        hasValidAlbumId(albumId) &&
+        platformSupportsAlbumDetail(
+          platformId: platformId,
+          platforms: platforms,
+        );
+    final artistActionLabel =
+        platformSupportsArtistDetail(
+          platformId: platformId,
+          platforms: platforms,
+        )
+        ? songArtistActionLabel(song.artists, localeCode: config.localeCode)
+        : null;
     final sourceLabel = AppI18n.format(
       ref.read(appConfigProvider),
       'song.source',
@@ -449,6 +461,19 @@ class DiscoverHomeTab extends ConsumerWidget {
         platformId: platformId,
         song: song,
       ),
+      onViewComment:
+          platformSupportsSongComment(
+            platformId: platformId,
+            platforms: platforms,
+          )
+          ? () => _openSongComments(
+              context: context,
+              ref: ref,
+              songId: song.id,
+              platformId: platformId,
+              title: title,
+            )
+          : null,
       onViewDetail:
           canOpenSongDetail(
             songId: song.id,
@@ -462,13 +487,6 @@ class DiscoverHomeTab extends ConsumerWidget {
               title: title,
             )
           : null,
-      onViewComment: () => _openSongComments(
-        context: context,
-        ref: ref,
-        songId: song.id,
-        platformId: platformId,
-        title: title,
-      ),
       albumActionLabel: canViewAlbum
           ? AppI18n.t(config, 'player.action.view_album')
           : null,
@@ -480,11 +498,8 @@ class DiscoverHomeTab extends ConsumerWidget {
               albumTitle: albumTitle,
             )
           : null,
-      artistActionLabel: songArtistActionLabel(
-        song.artists,
-        localeCode: config.localeCode,
-      ),
-      onViewArtists: song.artists.isEmpty
+      artistActionLabel: artistActionLabel,
+      onViewArtists: artistActionLabel == null
           ? null
           : () => unawaited(
               openSongArtistSelection(

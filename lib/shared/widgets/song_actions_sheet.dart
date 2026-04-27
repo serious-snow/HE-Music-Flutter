@@ -81,7 +81,10 @@ Future<void> showSongActionsSheet({
       if (onViewComment != null)
         AdaptiveActionMenuItem<VoidCallback>(
           value: onViewComment,
-          label: AppI18n.tByLocaleCode(localeCode, 'player.action.comments'),
+          label: AppI18n.tByLocaleCode(
+            localeCode,
+            'player.action.view_comments',
+          ),
           icon: Icons.forum_rounded,
         ),
       if (albumActionLabel != null && onViewAlbum != null)
@@ -226,7 +229,10 @@ Future<void> showSongActionsSheet({
                 ListTile(
                   leading: const Icon(Icons.forum_rounded),
                   title: Text(
-                    AppI18n.tByLocaleCode(localeCode, 'player.action.comments'),
+                    AppI18n.tByLocaleCode(
+                      localeCode,
+                      'player.action.view_comments',
+                    ),
                   ),
                   onTap: () {
                     Navigator.of(sheetContext).pop();

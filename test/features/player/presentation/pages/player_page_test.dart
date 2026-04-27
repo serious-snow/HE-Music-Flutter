@@ -80,6 +80,53 @@ void main() {
     expect(find.text('HQ'), findsWidgets);
   });
 
+  testWidgets('player more sheet shows detail entry for online track', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildPlayerTestApp(controllerFactory: _OnlineTrackPlayerController.new),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('View Detail'), findsOneWidget);
+  });
+
+  testWidgets(
+    'player more sheet hides album artist comments when platform flags are unsupported',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _buildPlayerTestApp(
+          controllerFactory: _OnlineTrackPlayerController.new,
+          featureSupportFlag: BigInt.zero,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      expect(find.text('View Detail'), findsOneWidget);
+      expect(find.text('View Album'), findsNothing);
+      expect(find.text('View Artist'), findsNothing);
+      expect(find.text('View Comments'), findsNothing);
+    },
+  );
+
   testWidgets('player switch quality sheet shows quality description', (
     tester,
   ) async {
@@ -338,12 +385,21 @@ void main() {
 
 Widget _buildPlayerTestApp({
   required PlayerController Function() controllerFactory,
+  BigInt? featureSupportFlag,
 }) {
   return ProviderScope(
     overrides: <Override>[
       appConfigProvider.overrideWith(_TestAppConfigController.new),
       playerControllerProvider.overrideWith(controllerFactory),
-      onlinePlatformsProvider.overrideWith(_TestOnlinePlatformsController.new),
+      onlinePlatformsProvider.overrideWith(
+        () => _TestOnlinePlatformsController(
+          featureSupportFlag:
+              featureSupportFlag ??
+              (PlatformFeatureSupportFlag.getAlbumInfo |
+                  PlatformFeatureSupportFlag.getSingerInfo |
+                  PlatformFeatureSupportFlag.getCommentList),
+        ),
+      ),
     ],
     child: const MaterialApp(home: PlayerPage()),
   );
@@ -382,6 +438,9 @@ class _OnlineTrackPlayerController extends PlayerController {
         artist: '测试歌手',
         album: '测试专辑',
         albumId: 'album-1',
+        artists: <SongInfoArtistInfo>[
+          SongInfoArtistInfo(id: 'artist-1', name: '测试歌手'),
+        ],
         platform: 'qq',
       ),
     ]).copyWith(
@@ -450,6 +509,10 @@ class _RadioTrackPlayerController extends PlayerController {
 }
 
 class _TestOnlinePlatformsController extends OnlinePlatformsController {
+  _TestOnlinePlatformsController({required this.featureSupportFlag});
+
+  final BigInt featureSupportFlag;
+
   @override
   Future<List<OnlinePlatform>> build() async {
     return <OnlinePlatform>[
@@ -458,7 +521,7 @@ class _TestOnlinePlatformsController extends OnlinePlatformsController {
         name: 'QQ 音乐',
         shortName: 'QQ',
         status: 1,
-        featureSupportFlag: BigInt.zero,
+        featureSupportFlag: featureSupportFlag,
         qualities: const <String, String>{
           'SQ': 'Standard Quality',
           'HQ': 'High Quality',

@@ -18,7 +18,7 @@ Future<void> showSearchSongActions({
   VoidCallback? onAddToUserPlaylist,
   required VoidCallback onWatchMv,
   VoidCallback? onViewDetail,
-  required VoidCallback onViewComment,
+  VoidCallback? onViewComment,
   String? albumActionLabel,
   VoidCallback? onViewAlbum,
   String? artistActionLabel,

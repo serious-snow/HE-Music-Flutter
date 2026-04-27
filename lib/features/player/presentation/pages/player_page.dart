@@ -16,6 +16,7 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../shared/helpers/album_id_helper.dart';
 import '../../../../shared/helpers/platform_label_helper.dart';
 import '../../../../shared/helpers/song_artist_navigation_helper.dart';
+import '../../../../shared/helpers/song_detail_navigation_helper.dart';
 import '../../../../shared/helpers/user_playlist_song_action_helper.dart';
 import '../../../../shared/models/he_music_models.dart';
 import '../../../download/domain/entities/download_task.dart';
@@ -321,9 +322,37 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
               track != null &&
               track.title.trim().isNotEmpty &&
               searchPlatformId != null;
-          final canViewAlbum = canOnline && hasValidAlbumId(track?.albumId);
+          final config = ref.read(appConfigProvider);
+          final platforms =
+              ref.read(onlinePlatformsProvider).valueOrNull ??
+              const <OnlinePlatform>[];
+          final canViewDetail = canOnline && track != null;
+          final canViewAlbum =
+              canOnline &&
+              hasValidAlbumId(track?.albumId) &&
+              platformSupportsAlbumDetail(
+                platformId: onlinePlatformId,
+                platforms: platforms,
+              );
+          final artistActionLabel = canOnline && track != null
+              ? (platformSupportsArtistDetail(
+                      platformId: onlinePlatformId,
+                      platforms: platforms,
+                    )
+                    ? songArtistActionLabel(
+                        track.artists,
+                        localeCode: config.localeCode,
+                      )
+                    : null)
+              : null;
           final canViewArtists =
-              canOnline && track != null && track.artists.isNotEmpty;
+              canOnline && track != null && artistActionLabel != null;
+          final canViewComments =
+              canOnline &&
+              platformSupportsSongComment(
+                platformId: onlinePlatformId,
+                platforms: platforms,
+              );
           final canWatchMv =
               canOnline &&
               ((track?.mvId?.trim().isNotEmpty ?? false) &&
@@ -331,13 +360,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
           final onlineKeyword = track?.title.trim() ?? '';
           final onlineId = track?.id ?? '';
           final onlineTitle = track?.title.trim() ?? '';
-          final config = ref.read(appConfigProvider);
-          final platforms = ref.read(onlinePlatformsProvider).valueOrNull;
           final sourcePlatformLabel = canOnline
-              ? resolvePlatformLabel(
-                  onlinePlatformId,
-                  platforms: platforms ?? const <OnlinePlatform>[],
-                )
+              ? resolvePlatformLabel(onlinePlatformId, platforms: platforms)
               : 'LOCAL';
 
           return SafeArea(
@@ -436,59 +460,61 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                             );
                           },
                   ),
-                if (canOnline)
+                if (canViewDetail)
+                  _PlayerSheetActionTile(
+                    icon: Icons.info_outline_rounded,
+                    title: AppI18n.t(config, 'song.action.view_detail'),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      openSongDetailPage(
+                        context: rootContext,
+                        songId: track!.id,
+                        platformId: onlinePlatformId,
+                        title: onlineTitle,
+                      );
+                    },
+                  ),
+                if (canViewAlbum)
                   _PlayerSheetActionTile(
                     icon: Icons.album_outlined,
                     title: AppI18n.t(config, 'player.action.view_album'),
                     subtitle: track?.album?.trim() ?? '',
-                    enabled: canViewAlbum,
-                    onTap: canViewAlbum
-                        ? () {
-                            Navigator.of(sheetContext).pop();
-                            rootContext.push(
-                              Uri(
-                                path: AppRoutes.albumDetail,
-                                queryParameters: <String, String>{
-                                  'id': track!.albumId!.trim(),
-                                  'platform': onlinePlatformId,
-                                  if ((track.album ?? '').trim().isNotEmpty)
-                                    'title': track.album!.trim(),
-                                },
-                              ).toString(),
-                            );
-                          }
-                        : null,
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      rootContext.push(
+                        Uri(
+                          path: AppRoutes.albumDetail,
+                          queryParameters: <String, String>{
+                            'id': track!.albumId!.trim(),
+                            'platform': onlinePlatformId,
+                            if ((track.album ?? '').trim().isNotEmpty)
+                              'title': track.album!.trim(),
+                          },
+                        ).toString(),
+                      );
+                    },
                   ),
-                if (canOnline)
+                if (canViewArtists)
                   _PlayerSheetActionTile(
                     icon: Icons.person_outline_rounded,
-                    title: canViewArtists && track.artists.length > 1
-                        ? AppI18n.format(
-                            config,
-                            'player.action.view_artists_count',
-                            <String, String>{
-                              'count': '${track.artists.length}',
-                            },
-                          )
-                        : AppI18n.t(config, 'player.action.view_artists'),
+                    title:
+                        artistActionLabel ??
+                        AppI18n.t(config, 'player.action.view_artists'),
                     subtitle: track?.artist ?? '',
-                    enabled: canViewArtists,
-                    onTap: canViewArtists
-                        ? () {
-                            Navigator.of(sheetContext).pop();
-                            openSongArtistSelection(
-                              context: rootContext,
-                              platformId: onlinePlatformId,
-                              artists: track.artists,
-                              onError: _showMessage,
-                            );
-                          }
-                        : null,
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      openSongArtistSelection(
+                        context: rootContext,
+                        platformId: onlinePlatformId,
+                        artists: track.artists,
+                        onError: _showMessage,
+                      );
+                    },
                   ),
-                if (canOnline)
+                if (canViewComments)
                   _PlayerSheetActionTile(
                     icon: Icons.chat_bubble_outline_rounded,
-                    title: AppI18n.t(config, 'player.action.comments'),
+                    title: AppI18n.t(config, 'player.action.view_comments'),
                     onTap: () {
                       Navigator.of(sheetContext).pop();
                       rootContext.push(

@@ -43,6 +43,8 @@ class PlatformFeatureSupportFlag {
   static final BigInt listArtistPhotos = BigInt.one << 41;
   static final BigInt listMvFilters = BigInt.one << 42;
   static final BigInt listFilterMvs = BigInt.one << 43;
+  static final BigInt getSongDetail = BigInt.one << 44;
+  static final BigInt listSongRelations = BigInt.one << 45;
 }
 
 class OnlinePlatform {
