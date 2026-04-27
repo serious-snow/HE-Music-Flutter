@@ -47,8 +47,9 @@ class LyricRepositoryImpl implements LyricRepository {
           );
         }
       } catch (_) {
-        // 在线歌词失败时降级到本地 demo 数据源。
+        return const LyricDocument.empty();
       }
+      return const LyricDocument.empty();
     }
     final demoRaw = await _demoDataSource.fetchRawLyric(trackId);
     if (demoRaw == null || demoRaw.trim().isEmpty) {

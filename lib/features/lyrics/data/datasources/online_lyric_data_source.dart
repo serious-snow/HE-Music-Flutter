@@ -16,6 +16,14 @@ class OnlineLyricDataSource {
     );
     final data = _asMap(payload['data']);
     final lrc = _asMap(payload['lrc']);
+    if (!_matchesRequest(
+      payload: payload,
+      data: data,
+      trackId: trackId,
+      platform: platform,
+    )) {
+      return null;
+    }
     final lyric =
         _readText(payload['lyric']) ??
         _readText(data['lyric']) ??
@@ -58,5 +66,28 @@ class OnlineLyricDataSource {
       return null;
     }
     return text;
+  }
+
+  bool _matchesRequest({
+    required Map<String, dynamic> payload,
+    required Map<String, dynamic> data,
+    required String trackId,
+    required String platform,
+  }) {
+    final responseTrackId =
+        _readText(payload['id']) ??
+        _readText(payload['songId']) ??
+        _readText(data['id']) ??
+        _readText(data['songId']) ??
+        '';
+    final responsePlatform =
+        _readText(payload['platform']) ?? _readText(data['platform']) ?? '';
+    if (responseTrackId.isNotEmpty && responseTrackId != trackId) {
+      return false;
+    }
+    if (responsePlatform.isNotEmpty && responsePlatform != platform) {
+      return false;
+    }
+    return true;
   }
 }
