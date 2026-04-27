@@ -508,7 +508,9 @@ class _TestOnlinePlatformsController extends OnlinePlatformsController {
         name: 'QQ 音乐',
         shortName: 'QQ',
         status: 1,
-        featureSupportFlag: PlatformFeatureSupportFlag.getSongInfo,
+        featureSupportFlag:
+            PlatformFeatureSupportFlag.getSongInfo |
+            PlatformFeatureSupportFlag.listSongRelations,
       ),
     ];
   }
