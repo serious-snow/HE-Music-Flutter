@@ -468,7 +468,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                       Navigator.of(sheetContext).pop();
                       openSongDetailPage(
                         context: rootContext,
-                        songId: track!.id,
+                        songId: track.id,
                         platformId: onlinePlatformId,
                         title: onlineTitle,
                       );
@@ -497,10 +497,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                 if (canViewArtists)
                   _PlayerSheetActionTile(
                     icon: Icons.person_outline_rounded,
-                    title:
-                        artistActionLabel ??
-                        AppI18n.t(config, 'player.action.view_artists'),
-                    subtitle: track?.artist ?? '',
+                    title: artistActionLabel,
+                    subtitle: track.artist ?? '',
                     onTap: () {
                       Navigator.of(sheetContext).pop();
                       openSongArtistSelection(
